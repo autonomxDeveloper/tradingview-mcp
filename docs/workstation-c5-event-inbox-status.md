@@ -12,6 +12,8 @@ This note tracks the research-only local event inbox foundation.
 - PR #34: added a separate composable app factory that registers the event routes on the workstation app without editing the main app file, plus smoke tests for status, create, and list flows.
 - PR #36: added a standalone static event client helper for status, create, and list calls without wiring active UI.
 - PR #37: recorded the standalone static event client helper in this status note and extended the doc guard.
+- PR #43: added static browser event client contract tests for payload normalization and helper exports.
+- PR #46: added endpoint string coverage for the browser event client helper.
 
 ## Current scope
 
