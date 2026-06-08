@@ -97,3 +97,11 @@ def test_c5_validation_history_tracks_status_checkpoint_update():
     assert "PR #52" in text
     assert "static client test checkpoints" in text
     assert "status note" in text
+
+
+def test_c5_validation_history_tracks_roadmap_position_checkpoint():
+    text = VALIDATION_HISTORY.read_text(encoding="utf-8")
+
+    assert "PR #54" in text
+    assert "roadmap-position summary" in text
+    assert "status note" in text
