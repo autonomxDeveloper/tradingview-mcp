@@ -2,11 +2,11 @@
 
 This note tracks the research-only local event inbox foundation.
 
-## Completed in this slice
+## Completed slices
 
-- Added a local JSONL-backed research event service.
-- Added create/list/status helpers.
-- Added focused unit tests for local event creation, symbol filtering, and status metadata.
+- PR #29: local JSONL-backed research event service.
+- PR #29: create/list/status helpers.
+- PR #29: focused unit tests for local event creation, symbol filtering, and status metadata.
 
 ## Current scope
 
@@ -17,7 +17,7 @@ This note tracks the research-only local event inbox foundation.
 
 ## Deferred follow-up
 
-- FastAPI route wiring remains pending because the connector blocked the large workstation app rewrite in this slice.
+- FastAPI route wiring remains pending because the connector blocked the large workstation app rewrite in the foundation slice.
 - UI controls and event inbox display remain pending.
 - Webhook ingestion remains pending and must stay research-only.
 
