@@ -36,11 +36,16 @@
       <select id="levelKind"><option>level</option><option>support</option><option>resistance</option><option>alert</option></select>
       <button class="secondary" onclick="addLevelFromInput()">Add level</button>
       <button class="secondary" onclick="addLevelFromLastClose()">Last close</button>
-      <button class="secondary" onclick="clearLevels()">Clear levels</button>
+      <input id="noteText" class="note-input" placeholder="chart note" />
+      <button class="secondary" onclick="addNoteAtLastClose()">Add note</button>
+      <button class="secondary" onclick="clearDrawings()">Clear drawings</button>
+      <button class="secondary" onclick="exportDrawings()">Export</button>
+      <button class="secondary" onclick="importDrawings()">Import</button>
       <span id="chartMeta" class="muted"></span>
     </div>
     <div id="chartWrap">
       <div id="legend" class="legend">Load a symbol to see OHLC.</div>
+      <div id="notesOverlay" class="notes-overlay"></div>
       <div id="chart"></div>
     </div>
     <div class="bottom">

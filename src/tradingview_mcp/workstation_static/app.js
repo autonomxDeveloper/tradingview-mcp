@@ -3,7 +3,7 @@ let currentBars = [];
 let volumeVisible = true;
 let overlaySeries = {};
 let overlayState = { sma20: false, sma50: false, ema21: false };
-let priceLevels = [];
+let drawings = { levels: [], notes: [] };
 let priceLineHandles = [];
 
 function $(id) { return document.getElementById(id); }
@@ -34,7 +34,10 @@ function initChart() {
   volume = chart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '', lastValueVisible: false, priceLineVisible: false });
   volume.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
   chart.subscribeCrosshairMove((param) => updateLegend(param));
-  window.onresize = () => chart.resize($('chart').clientWidth, $('chart').clientHeight);
+  window.onresize = () => {
+    chart.resize($('chart').clientWidth, $('chart').clientHeight);
+    renderNotes();
+  };
 }
 
 async function boot() {
@@ -97,7 +100,7 @@ async function loadMarket() {
     })));
   }
   renderChartSeries();
-  restoreLevels();
+  restoreDrawings();
   fitChart();
   updateChartMeta();
   updateLegend();
@@ -162,8 +165,12 @@ function toggleVolume() {
   volume.applyOptions({ visible: volumeVisible });
 }
 
-function levelStorageKey() {
-  return `workstation-levels:${$('symbol').value.toUpperCase()}:${$('tf').value}`;
+function drawingStorageKey() {
+  return `workstation-drawings:${$('symbol').value.toUpperCase()}:${$('tf').value}`;
+}
+
+function emptyDrawings() {
+  return { levels: [], notes: [] };
 }
 
 function levelColor(kind) {
@@ -181,9 +188,9 @@ function addLevel(price, label, kind = 'level') {
   }
   const cleanKind = ['level', 'support', 'resistance', 'alert'].includes(kind) ? kind : 'level';
   const cleanLabel = (label || cleanKind).trim() || cleanKind;
-  priceLevels.push({ price: cleanPrice, label: cleanLabel, kind: cleanKind });
-  persistLevels();
-  renderLevels();
+  drawings.levels.push({ price: cleanPrice, label: cleanLabel, kind: cleanKind });
+  persistDrawings();
+  renderDrawings();
 }
 
 function addLevelFromInput() {
@@ -196,23 +203,46 @@ function addLevelFromLastClose() {
   addLevel(last.close, $('levelLabel').value || 'last close', $('levelKind').value);
 }
 
-function persistLevels() {
-  localStorage.setItem(levelStorageKey(), JSON.stringify(priceLevels));
+function addNoteAtLastClose() {
+  if (!currentBars.length) return;
+  const text = ($('noteText').value || '').trim();
+  if (!text) {
+    print('Enter note text first.');
+    return;
+  }
+  const last = currentBars[currentBars.length - 1];
+  drawings.notes.push({ time: last.time, price: last.close, text });
+  persistDrawings();
+  renderDrawings();
 }
 
-function restoreLevels() {
+function persistDrawings() {
+  localStorage.setItem(drawingStorageKey(), JSON.stringify(drawings));
+}
+
+function restoreDrawings() {
   try {
-    priceLevels = JSON.parse(localStorage.getItem(levelStorageKey()) || '[]');
+    const loaded = JSON.parse(localStorage.getItem(drawingStorageKey()) || 'null');
+    if (Array.isArray(loaded)) {
+      drawings = { levels: loaded, notes: [] };
+    } else {
+      drawings = { ...emptyDrawings(), ...(loaded || {}) };
+    }
   } catch (_) {
-    priceLevels = [];
+    drawings = emptyDrawings();
   }
+  renderDrawings();
+}
+
+function renderDrawings() {
   renderLevels();
+  renderNotes();
 }
 
 function renderLevels() {
   priceLineHandles.forEach((handle) => candles.removePriceLine(handle));
   priceLineHandles = [];
-  priceLevels.forEach((level) => {
+  drawings.levels.forEach((level) => {
     const handle = candles.createPriceLine({
       price: level.price,
       color: levelColor(level.kind),
@@ -225,14 +255,56 @@ function renderLevels() {
   });
 }
 
+function renderNotes() {
+  const overlay = $('notesOverlay');
+  if (!overlay || !chart || !candles) return;
+  overlay.innerHTML = '';
+  drawings.notes.forEach((note) => {
+    const x = chart.timeScale().timeToCoordinate(note.time);
+    const y = candles.priceToCoordinate(note.price);
+    if (x === null || y === null) return;
+    const el = document.createElement('div');
+    el.className = 'chart-note';
+    el.textContent = note.text;
+    el.style.left = `${Math.max(0, x)}px`;
+    el.style.top = `${Math.max(0, y - 36)}px`;
+    overlay.appendChild(el);
+  });
+}
+
+function clearDrawings() {
+  drawings = emptyDrawings();
+  persistDrawings();
+  renderDrawings();
+}
+
+function exportDrawings() {
+  print({ symbol: $('symbol').value.toUpperCase(), timeframe: $('tf').value, drawings });
+}
+
+function importDrawings() {
+  const raw = prompt('Paste exported drawings JSON');
+  if (!raw) return;
+  try {
+    const payload = JSON.parse(raw);
+    drawings = { ...emptyDrawings(), ...(payload.drawings || payload) };
+    persistDrawings();
+    renderDrawings();
+    print('Drawings imported.');
+  } catch (error) {
+    print(`Could not import drawings: ${error.message}`);
+  }
+}
+
 function clearLevels() {
-  priceLevels = [];
-  persistLevels();
-  renderLevels();
+  drawings.levels = [];
+  persistDrawings();
+  renderDrawings();
 }
 
 function fitChart() {
   chart.timeScale().fitContent();
+  renderNotes();
 }
 
 function updateChartMeta() {
