@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 STATUS = ROOT / "docs" / "workstation-c5-event-inbox-status.md"
+LOCAL_ROUTE = ROOT / "docs" / "workstation-c5-local-route-composition.md"
 
 
 def test_c5_status_note_tracks_event_inbox_scope():
@@ -45,3 +46,12 @@ def test_c5_status_note_tracks_connector_safe_boundaries():
     assert "PR #37" in text
     assert "Connector-safe boundaries" in text
     assert "standalone helpers, docs, and focused tests" in text
+
+
+def test_c5_local_route_composition_note_tracks_safe_path():
+    text = LOCAL_ROUTE.read_text(encoding="utf-8")
+
+    assert "create_event_enabled_app" in text
+    assert "composed app factory" in text
+    assert "TRADING_WORKSTATION_EVENT_INBOX" in text
+    assert "research-only boundary" in text
