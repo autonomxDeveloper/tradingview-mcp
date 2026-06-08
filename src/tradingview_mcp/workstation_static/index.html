@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Autonomx Trading Research Workstation</title>
+  <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+<header><b>Autonomx Trading Research Workstation</b><span id="status" class="muted">loading...</span></header>
+<main>
+  <aside>
+    <div class="label">Watchlist</div>
+    <div class="watch" id="watch"></div>
+    <div class="label">Status</div>
+    <pre id="risk"></pre>
+  </aside>
+  <section class="center">
+    <div class="bar">
+      <input id="symbol" value="AAPL" />
+      <select id="asset"><option>auto</option><option>stock</option><option>crypto</option></select>
+      <input id="exchange" value="NASDAQ" />
+      <select id="tf"><option>1m</option><option>5m</option><option>15m</option><option>1h</option><option selected>1D</option><option>1W</option></select>
+      <button onclick="loadMarket()">Load</button>
+      <button class="secondary" onclick="analyze()">AI analyze</button>
+    </div>
+    <div id="chart"></div>
+    <div class="bottom">
+      <div class="tabs">
+        <button onclick="showPayload()">Payload</button>
+        <button onclick="runBacktest()">Backtest</button>
+        <button onclick="compareStrategies()">Compare</button>
+        <button onclick="loadBacktests()">Backtests</button>
+        <button onclick="saveIdea()">Save idea</button>
+        <button onclick="loadIdeas()">Ideas</button>
+        <button onclick="loadJournal()">Journal</button>
+      </div>
+      <pre id="output">Ready.</pre>
+    </div>
+  </section>
+  <section class="right">
+    <div class="panel">
+      <div class="label">AI question</div>
+      <textarea id="question">Give observations, risks, invalidation levels, and what to backtest next. Do not recommend taking a position.</textarea>
+      <button onclick="analyze()">Analyze current symbol</button>
+      <div class="label">Research idea</div>
+      <input id="hypothesis" style="width:100%" placeholder="Hypothesis" />
+      <input id="invalidation" style="width:100%;margin-top:6px" placeholder="Invalidation" />
+      <input id="backtestPlan" style="width:100%;margin-top:6px" placeholder="Backtest plan" />
+      <input id="ideaId" style="width:100%;margin-top:6px" placeholder="Optional idea ID for backtest link" />
+      <div class="label">Backtest</div>
+      <select id="strategy"><option>ema_cross</option><option>rsi</option><option>bollinger</option><option>macd</option><option>supertrend</option><option>donchian</option><option>rsi_pullback</option><option>keltner_breakout</option><option>triple_ema</option></select>
+      <select id="period"><option>1mo</option><option>3mo</option><option>6mo</option><option selected>1y</option><option>2y</option></select>
+    </div>
+    <div class="panel" style="overflow:auto">
+      <div class="label">AI / results</div>
+      <pre id="analysis">Start LM Studio and use Analyze.</pre>
+    </div>
+  </section>
+</main>
+<script src="/static/app.js"></script>
+</body>
+</html>
