@@ -24,6 +24,10 @@ The composed app smoke tests cover:
 - symbol normalization
 - local JSONL storage override through `TRADING_WORKSTATION_EVENT_INBOX`
 
+## Validation checklist
+
+Before promoting more C5 event inbox work, verify that storage remains local, the composed app path still works, and the default workstation app is unchanged by composition-only validation.
+
 ## Deferred active app inclusion
 
 Direct inclusion in the default workstation app is still deferred. Prior connector attempts to update the active app file were blocked, so route composition should stay local or be submitted as a very small patch outside the blocked connector path.
