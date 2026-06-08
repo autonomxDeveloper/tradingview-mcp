@@ -53,3 +53,26 @@ def test_advanced_chart_controls_are_present():
     assert "updateLegend" in js
     assert "chartbar" in css
     assert "#chartWrap" in css
+
+
+def test_price_level_drawing_controls_are_present():
+    client = TestClient(create_app())
+
+    html = client.get("/").text
+    js = client.get("/static/app.js").text
+    css = client.get("/static/styles.css").text
+
+    assert "levelPrice" in html
+    assert "levelLabel" in html
+    assert "levelKind" in html
+    assert "Add level" in html
+    assert "Last close" in html
+    assert "Clear levels" in html
+    assert "addLevelFromInput" in js
+    assert "addLevelFromLastClose" in js
+    assert "levelStorageKey" in js
+    assert "restoreLevels" in js
+    assert "renderLevels" in js
+    assert "createPriceLine" in js
+    assert "level-input" in css
+    assert "level-label-input" in css
