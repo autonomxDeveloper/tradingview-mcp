@@ -1,5 +1,6 @@
 const slotCharts = {};
 const slotCandles = {};
+const emptySlotSummaryExample = 'S2: empty';
 
 function slotIsCrypto(symbol) {
   const clean = String(symbol || '').toUpperCase();
