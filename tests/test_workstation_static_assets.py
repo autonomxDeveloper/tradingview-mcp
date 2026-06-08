@@ -11,6 +11,7 @@ def test_static_asset_files_exist():
     assert (STATIC_DIR / "styles.css").exists()
     assert (STATIC_DIR / "app.js").exists()
     assert (STATIC_DIR / "slot2_chart.js").exists()
+    assert (STATIC_DIR / "event_client.js").exists()
 
 
 def test_index_serves_static_html():
@@ -31,6 +32,7 @@ def test_static_assets_are_mounted():
     css_response = client.get("/static/styles.css")
     js_response = client.get("/static/app.js")
     slot_response = client.get("/static/slot2_chart.js")
+    event_response = client.get("/static/event_client.js")
 
     assert css_response.status_code == 200
     assert "background" in css_response.text
@@ -38,6 +40,21 @@ def test_static_assets_are_mounted():
     assert "loadMarket" in js_response.text
     assert slot_response.status_code == 200
     assert "renderSlot2Chart" in slot_response.text
+    assert event_response.status_code == 200
+    assert "eventApi" in event_response.text
+
+
+def test_event_client_helper_is_present():
+    client = TestClient(create_app())
+
+    event_js = client.get("/static/event_client.js").text
+
+    assert "readEventStatus" in event_js
+    assert "createEvent" in event_js
+    assert "listEvents" in event_js
+    assert "eventPayload" in event_js
+    assert "normalizeSymbol" in event_js
+    assert "research_only" not in event_js
 
 
 def test_advanced_chart_controls_are_present():
