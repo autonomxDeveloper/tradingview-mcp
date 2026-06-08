@@ -97,3 +97,24 @@ def test_drawing_notes_export_import_controls_are_present():
     assert "emptyDrawings" in js
     assert "notes-overlay" in css
     assert "chart-note" in css
+
+
+def test_rectangle_zone_drawing_controls_are_present():
+    client = TestClient(create_app())
+
+    html = client.get("/").text
+    js = client.get("/static/app.js").text
+    css = client.get("/static/styles.css").text
+
+    assert "zoneLow" in html
+    assert "zoneHigh" in html
+    assert "zoneLabel" in html
+    assert "zoneKind" in html
+    assert "Add zone" in html
+    assert "zonesOverlay" in html
+    assert "addZoneFromInput" in js
+    assert "renderZones" in js
+    assert "renderHtmlDrawings" in js
+    assert "zones: []" in js
+    assert "chart-zone" in css
+    assert "zones-overlay" in css
