@@ -1,8 +1,9 @@
 let chart, candles, volume, lastPayload = null;
 let rsiChart = null, rsiSeries = null, rsiTopLine = null, rsiBottomLine = null;
 let macdChart = null, macdSeries = null, macdSignalSeries = null, macdHistogram = null;
+let atrChart = null, atrSeries = null;
 let currentBars = [];
-let volumeVisible = true, rsiVisible = false, macdVisible = false;
+let volumeVisible = true, rsiVisible = false, macdVisible = false, atrVisible = false;
 let overlaySeries = {};
 let overlayState = { sma20: false, sma50: false, ema21: false };
 let drawings = { levels: [], notes: [], zones: [], guides: [] };
@@ -38,10 +39,12 @@ function initChart() {
   chart.subscribeCrosshairMove((param) => updateLegend(param));
   styleIndicatorPane('rsiWrap', 'rsiChart', 'rsiLegend');
   styleIndicatorPane('macdWrap', 'macdChart', 'macdLegend');
+  styleIndicatorPane('atrWrap', 'atrChart', 'atrLegend');
   window.onresize = () => {
     chart.resize($('chart').clientWidth, $('chart').clientHeight);
     if (rsiChart && rsiVisible) rsiChart.resize($('rsiChart').clientWidth, $('rsiChart').clientHeight);
     if (macdChart && macdVisible) macdChart.resize($('macdChart').clientWidth, $('macdChart').clientHeight);
+    if (atrChart && atrVisible) atrChart.resize($('atrChart').clientWidth, $('atrChart').clientHeight);
     renderHtmlDrawings();
   };
 }
@@ -92,6 +95,12 @@ function ensureMacdChart() {
   macdSignalSeries = macdChart.addLineSeries({ lineWidth: 1, lastValueVisible: true, priceLineVisible: false });
 }
 
+function ensureAtrChart() {
+  if (atrChart) return;
+  atrChart = LightweightCharts.createChart($('atrChart'), chartOptions());
+  atrSeries = atrChart.addLineSeries({ lineWidth: 2, lastValueVisible: true, priceLineVisible: false });
+}
+
 async function boot() {
   initChart();
   const health = await api('/api/health');
@@ -135,6 +144,7 @@ async function loadMarket() {
   renderChartSeries();
   renderRsiPane();
   renderMacdPane();
+  renderAtrPane();
   restoreDrawings();
   fitChart();
   updateChartMeta();
@@ -213,6 +223,26 @@ function macdValues() {
   return { macd, signal, histogram };
 }
 
+function averageTrueRange(period = 14) {
+  const points = [];
+  if (currentBars.length <= period) return points;
+  const ranges = [];
+  for (let i = 1; i < currentBars.length; i += 1) {
+    const bar = currentBars[i];
+    const previous = currentBars[i - 1];
+    ranges.push({
+      time: bar.time,
+      value: Math.max(bar.high - bar.low, Math.abs(bar.high - previous.close), Math.abs(bar.low - previous.close)),
+    });
+  }
+  let atr = ranges.slice(0, period).reduce((sum, point) => sum + point.value, 0) / period;
+  for (let i = period; i < ranges.length; i += 1) {
+    atr = (atr * (period - 1) + ranges[i].value) / period;
+    points.push({ time: ranges[i].time, value: +atr.toFixed(6) });
+  }
+  return points;
+}
+
 function toggleRsiPane() {
   rsiVisible = !rsiVisible;
   $('rsiWrap').style.display = rsiVisible ? 'block' : 'none';
@@ -223,6 +253,12 @@ function toggleMacdPane() {
   macdVisible = !macdVisible;
   $('macdWrap').style.display = macdVisible ? 'block' : 'none';
   if (macdVisible) { ensureMacdChart(); renderMacdPane(); macdChart.resize($('macdChart').clientWidth, $('macdChart').clientHeight); macdChart.timeScale().fitContent(); }
+}
+
+function toggleAtrPane() {
+  atrVisible = !atrVisible;
+  $('atrWrap').style.display = atrVisible ? 'block' : 'none';
+  if (atrVisible) { ensureAtrChart(); renderAtrPane(); atrChart.resize($('atrChart').clientWidth, $('atrChart').clientHeight); atrChart.timeScale().fitContent(); }
 }
 
 function renderRsiPane() {
@@ -246,6 +282,15 @@ function renderMacdPane() {
   macdSignalSeries.setData(values.signal);
   macdHistogram.setData(values.histogram);
   $('macdLegend').textContent = lastMacd && lastSignal ? `MACD ${lastMacd.value.toFixed(4)} Signal ${lastSignal.value.toFixed(4)}` : 'MACD 12 26 9';
+}
+
+function renderAtrPane() {
+  if (!atrVisible) return;
+  ensureAtrChart();
+  const values = averageTrueRange(14);
+  const last = values[values.length - 1];
+  atrSeries.setData(values);
+  $('atrLegend').textContent = last ? `ATR 14 ${last.value.toFixed(4)}` : 'ATR 14';
 }
 
 function ensureOverlay(name) {
@@ -317,7 +362,7 @@ function clearDrawings() { drawings = emptyDrawings(); persistDrawings(); render
 function exportDrawings() { print({ symbol: $('symbol').value.toUpperCase(), timeframe: $('tf').value, drawings }); }
 function importDrawings() { const raw = prompt('Paste exported drawings JSON'); if (!raw) return; try { const payload = JSON.parse(raw); drawings = { ...emptyDrawings(), ...(payload.drawings || payload) }; persistDrawings(); renderDrawings(); print('Drawings imported.'); } catch (error) { print(`Could not import drawings: ${error.message}`); } }
 function clearLevels() { drawings.levels = []; persistDrawings(); renderDrawings(); }
-function fitChart() { chart.timeScale().fitContent(); renderHtmlDrawings(); if (rsiChart && rsiVisible) rsiChart.timeScale().fitContent(); if (macdChart && macdVisible) macdChart.timeScale().fitContent(); }
+function fitChart() { chart.timeScale().fitContent(); renderHtmlDrawings(); if (rsiChart && rsiVisible) rsiChart.timeScale().fitContent(); if (macdChart && macdVisible) macdChart.timeScale().fitContent(); if (atrChart && atrVisible) atrChart.timeScale().fitContent(); }
 function updateChartMeta() { const metadata = lastPayload?.metadata || {}; const source = metadata.source || lastPayload?.source || 'unknown source'; const cache = metadata.cache_status ? ` · ${metadata.cache_status}${metadata.stale ? ' stale' : ''}` : ''; $('chartMeta').textContent = `${$('symbol').value.toUpperCase()} · ${$('tf').value} · ${source}${cache}`; }
 function updateLegend(param) { if (!currentBars.length) { $('legend').textContent = 'No chart data loaded.'; return; } let bar = currentBars[currentBars.length - 1]; if (param && param.time) { const match = currentBars.find((candidate) => candidate.time === param.time); if (match) bar = match; } const change = bar.close - bar.open, changePct = bar.open ? (change / bar.open) * 100 : 0, klass = change >= 0 ? 'up' : 'down'; $('legend').innerHTML = `<strong>${$('symbol').value.toUpperCase()}</strong> O ${fmt(bar.open)} H ${fmt(bar.high)} L ${fmt(bar.low)} C ${fmt(bar.close)} <span class="${klass}">${fmt(change)} (${changePct.toFixed(2)}%)</span> Vol ${fmtVolume(bar.volume)}`; }
 function fmt(value) { if (!Number.isFinite(value)) return '-'; return Math.abs(value) >= 1000 ? value.toFixed(2) : value.toPrecision(6).replace(/0+$/, '').replace(/\.$/, ''); }
