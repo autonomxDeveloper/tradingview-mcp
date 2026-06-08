@@ -10,6 +10,7 @@ def test_static_asset_files_exist():
     assert INDEX_FILE.exists()
     assert (STATIC_DIR / "styles.css").exists()
     assert (STATIC_DIR / "app.js").exists()
+    assert (STATIC_DIR / "slot2_chart.js").exists()
 
 
 def test_index_serves_static_html():
@@ -21,6 +22,7 @@ def test_index_serves_static_html():
     assert "Autonomx Trading Research Workstation" in response.text
     assert "/static/styles.css" in response.text
     assert "/static/app.js" in response.text
+    assert "/static/slot2_chart.js" in response.text
 
 
 def test_static_assets_are_mounted():
@@ -28,11 +30,14 @@ def test_static_assets_are_mounted():
 
     css_response = client.get("/static/styles.css")
     js_response = client.get("/static/app.js")
+    slot_response = client.get("/static/slot2_chart.js")
 
     assert css_response.status_code == 200
     assert "background" in css_response.text
     assert js_response.status_code == 200
     assert "loadMarket" in js_response.text
+    assert slot_response.status_code == 200
+    assert "renderSlot2Chart" in slot_response.text
 
 
 def test_advanced_chart_controls_are_present():
@@ -108,6 +113,22 @@ def test_chart_slot_state_controls_are_present():
     assert "applyChartSlots" in html
     assert "workstationChartSlots" in html
     assert "slot-card" in css
+
+
+def test_slot2_chart_rendering_controls_are_present():
+    client = TestClient(create_app())
+
+    html = client.get("/").text
+    css = client.get("/static/styles.css").text
+    slot_js = client.get("/static/slot2_chart.js").text
+
+    assert "slot2Chart" in html
+    assert "slot2Status" in html
+    assert "slot-chart" in css
+    assert "renderSlot2Chart" in slot_js
+    assert "normalizeSlot2Bars" in slot_js
+    assert "slot2ApiUrl" in slot_js
+    assert "slot2Candles" in slot_js
 
 
 def test_layout_sync_controls_are_present():
