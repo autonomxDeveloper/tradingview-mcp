@@ -113,3 +113,11 @@ def test_c5_validation_history_tracks_pr55_checkpoint():
     assert "PR #55" in text
     assert "PR #54 checkpoint" in text
     assert "history note" in text
+
+
+def test_c5_validation_history_tracks_pr56_checkpoint():
+    text = VALIDATION_HISTORY.read_text(encoding="utf-8")
+
+    assert "PR #56" in text
+    assert "PR #55 checkpoint" in text
+    assert "history note" in text
