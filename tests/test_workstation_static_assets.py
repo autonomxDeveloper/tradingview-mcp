@@ -71,6 +71,22 @@ def test_rsi_indicator_pane_controls_are_present():
     assert "ensureRsiChart" in js
 
 
+def test_macd_indicator_pane_controls_are_present():
+    client = TestClient(create_app())
+
+    html = client.get("/").text
+    js = client.get("/static/app.js").text
+
+    assert "MACD" in html
+    assert "macdWrap" in html
+    assert "macdChart" in html
+    assert "macdLegend" in html
+    assert "toggleMacdPane" in js
+    assert "macdValues" in js
+    assert "renderMacdPane" in js
+    assert "ensureMacdChart" in js
+
+
 def test_price_level_drawing_controls_are_present():
     client = TestClient(create_app())
 
