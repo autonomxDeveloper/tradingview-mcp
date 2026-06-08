@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 STATUS = ROOT / "docs" / "workstation-c5-event-inbox-status.md"
 LOCAL_ROUTE = ROOT / "docs" / "workstation-c5-local-route-composition.md"
+VALIDATION_HISTORY = ROOT / "docs" / "workstation-c5-validation-history.md"
 
 
 def test_c5_status_note_tracks_event_inbox_scope():
@@ -63,3 +64,11 @@ def test_c5_local_route_composition_note_tracks_validation_checklist():
     assert "Validation checklist" in text
     assert "storage remains local" in text
     assert "default workstation app is unchanged" in text
+
+
+def test_c5_validation_history_tracks_pr40_checkpoint():
+    text = VALIDATION_HISTORY.read_text(encoding="utf-8")
+
+    assert "PR #40" in text
+    assert "validation checklist" in text
+    assert "test_workstation_c5_docs.py" in text
