@@ -21,3 +21,11 @@ def test_c5_status_note_tracks_app_hook_blocker():
 
     assert "direct hook attempt" in text
     assert "outside the connector path" in text
+
+
+def test_c5_status_note_tracks_composable_app_factory():
+    text = STATUS.read_text(encoding="utf-8")
+
+    assert "PR #34" in text
+    assert "create_event_enabled_app()" in text
+    assert "composable app factory" in text
