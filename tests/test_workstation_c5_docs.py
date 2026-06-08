@@ -81,3 +81,11 @@ def test_c5_validation_history_tracks_pr40_checkpoint():
     assert "PR #40" in text
     assert "validation checklist" in text
     assert "test_workstation_c5_docs.py" in text
+
+
+def test_c5_validation_history_tracks_status_checkpoint_update():
+    text = VALIDATION_HISTORY.read_text(encoding="utf-8")
+
+    assert "PR #52" in text
+    assert "static client test checkpoints" in text
+    assert "status note" in text
