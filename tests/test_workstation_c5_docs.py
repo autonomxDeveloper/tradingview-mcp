@@ -29,3 +29,11 @@ def test_c5_status_note_tracks_composable_app_factory():
     assert "PR #34" in text
     assert "create_event_enabled_app()" in text
     assert "composable app factory" in text
+
+
+def test_c5_status_note_tracks_static_event_client():
+    text = STATUS.read_text(encoding="utf-8")
+
+    assert "PR #36" in text
+    assert "event_client.js" in text
+    assert "browser-side helper contract" in text
