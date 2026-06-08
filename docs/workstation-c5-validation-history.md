@@ -12,5 +12,6 @@ This note records narrow documentation checkpoints for C5 validation work.
 - PR #47 recorded the PR #46 checkpoint in this history note.
 - PR #48 recorded the PR #47 checkpoint in this history note.
 - PR #49 recorded the PR #48 checkpoint in this history note.
+- PR #50 recorded the PR #49 checkpoint in this history note.
 - The checklist is guarded by `tests/test_workstation_c5_docs.py`.
 - The preferred path remains small documentation, helper, and test updates until the default application hook can be changed safely.
