@@ -9,5 +9,6 @@ This note records narrow documentation checkpoints for C5 validation work.
 - PR #43 added focused static tests for the browser event client helper.
 - PR #44 recorded the PR #43 checkpoint in this history note.
 - PR #46 added endpoint string coverage for the browser event client helper.
+- PR #47 recorded the PR #46 checkpoint in this history note.
 - The checklist is guarded by `tests/test_workstation_c5_docs.py`.
 - The preferred path remains small documentation, helper, and test updates until the default application hook can be changed safely.
