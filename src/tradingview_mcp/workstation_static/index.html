@@ -33,6 +33,7 @@
       <button class="secondary" onclick="toggleRsiPane()">RSI</button>
       <button class="secondary" onclick="toggleMacdPane()">MACD</button>
       <button class="secondary" onclick="toggleAtrPane()">ATR</button>
+      <select id="layoutMode" onchange="setLayoutMode(this.value)"><option value="1">1 chart</option><option value="2">2 split</option><option value="4">4 grid</option></select>
       <button class="secondary" onclick="fitChart()">Auto-fit</button>
       <input id="levelPrice" class="level-input" placeholder="price level" />
       <input id="levelLabel" class="level-label-input" placeholder="label" />
@@ -62,12 +63,17 @@
       <button class="secondary" onclick="deleteLayout()">Delete layout</button>
       <span id="chartMeta" class="muted"></span>
     </div>
-    <div id="chartWrap">
-      <div id="legend" class="legend">Load a symbol to see OHLC.</div>
-      <div id="zonesOverlay" class="zones-overlay"></div>
-      <svg id="guidesOverlay" class="guides-overlay"></svg>
-      <div id="notesOverlay" class="notes-overlay"></div>
-      <div id="chart"></div>
+    <div id="chartGrid" class="layout-grid layout-grid-1">
+      <div id="chartWrap" class="chart-cell active-chart-cell">
+        <div id="legend" class="legend">Load a symbol to see OHLC.</div>
+        <div id="zonesOverlay" class="zones-overlay"></div>
+        <svg id="guidesOverlay" class="guides-overlay"></svg>
+        <div id="notesOverlay" class="notes-overlay"></div>
+        <div id="chart"></div>
+      </div>
+      <div id="chartSlot2" class="chart-cell placeholder-chart-cell">Chart slot 2</div>
+      <div id="chartSlot3" class="chart-cell placeholder-chart-cell">Chart slot 3</div>
+      <div id="chartSlot4" class="chart-cell placeholder-chart-cell">Chart slot 4</div>
     </div>
     <div id="rsiWrap" class="indicator-wrap hidden">
       <div id="rsiLegend" class="indicator-legend">RSI 14</div>
@@ -115,5 +121,32 @@
   </section>
 </main>
 <script src="/static/app.js"></script>
+<script>
+window.workstationLayoutMode = '1';
+function setLayoutMode(mode) {
+  window.workstationLayoutMode = ['1', '2', '4'].includes(String(mode)) ? String(mode) : '1';
+  const grid = document.getElementById('chartGrid');
+  if (grid) grid.className = `layout-grid layout-grid-${window.workstationLayoutMode}`;
+  const selector = document.getElementById('layoutMode');
+  if (selector) selector.value = window.workstationLayoutMode;
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
+}
+const originalCurrentLayoutState = window.currentLayoutState;
+window.currentLayoutState = function() {
+  const state = originalCurrentLayoutState ? originalCurrentLayoutState() : {};
+  return { ...state, layoutMode: window.workstationLayoutMode || '1' };
+};
+const originalApplyLayoutState = window.applyLayoutState;
+window.applyLayoutState = function(state) {
+  setLayoutMode((state && state.layoutMode) || '1');
+  if (originalApplyLayoutState) originalApplyLayoutState(state || {});
+};
+const originalResetLayout = window.resetLayout;
+window.resetLayout = function() {
+  setLayoutMode('1');
+  if (originalResetLayout) originalResetLayout();
+};
+setLayoutMode('1');
+</script>
 </body>
 </html>
