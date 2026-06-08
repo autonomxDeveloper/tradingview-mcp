@@ -16,5 +16,6 @@ This note records narrow documentation checkpoints for C5 validation work.
 - PR #52 updated the status note with the static client test checkpoints.
 - PR #54 added the status note roadmap-position summary.
 - PR #55 recorded the PR #54 checkpoint in this history note.
+- PR #56 recorded the PR #55 checkpoint in this history note.
 - The checklist is guarded by `tests/test_workstation_c5_docs.py`.
 - The preferred path remains small documentation, helper, and test updates until the default application hook can be changed safely.
