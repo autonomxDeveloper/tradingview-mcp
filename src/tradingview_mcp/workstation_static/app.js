@@ -3,6 +3,8 @@ let currentBars = [];
 let volumeVisible = true;
 let overlaySeries = {};
 let overlayState = { sma20: false, sma50: false, ema21: false };
+let priceLevels = [];
+let priceLineHandles = [];
 
 function $(id) { return document.getElementById(id); }
 
@@ -95,6 +97,7 @@ async function loadMarket() {
     })));
   }
   renderChartSeries();
+  restoreLevels();
   fitChart();
   updateChartMeta();
   updateLegend();
@@ -157,6 +160,75 @@ function toggleOverlay(name) {
 function toggleVolume() {
   volumeVisible = !volumeVisible;
   volume.applyOptions({ visible: volumeVisible });
+}
+
+function levelStorageKey() {
+  return `workstation-levels:${$('symbol').value.toUpperCase()}:${$('tf').value}`;
+}
+
+function levelColor(kind) {
+  if (kind === 'support') return '#22c55e';
+  if (kind === 'resistance') return '#ef4444';
+  if (kind === 'alert') return '#f59e0b';
+  return '#60a5fa';
+}
+
+function addLevel(price, label, kind = 'level') {
+  const cleanPrice = Number(price);
+  if (!Number.isFinite(cleanPrice) || cleanPrice <= 0) {
+    print('Enter a positive price level.');
+    return;
+  }
+  const cleanKind = ['level', 'support', 'resistance', 'alert'].includes(kind) ? kind : 'level';
+  const cleanLabel = (label || cleanKind).trim() || cleanKind;
+  priceLevels.push({ price: cleanPrice, label: cleanLabel, kind: cleanKind });
+  persistLevels();
+  renderLevels();
+}
+
+function addLevelFromInput() {
+  addLevel($('levelPrice').value, $('levelLabel').value, $('levelKind').value);
+}
+
+function addLevelFromLastClose() {
+  if (!currentBars.length) return;
+  const last = currentBars[currentBars.length - 1];
+  addLevel(last.close, $('levelLabel').value || 'last close', $('levelKind').value);
+}
+
+function persistLevels() {
+  localStorage.setItem(levelStorageKey(), JSON.stringify(priceLevels));
+}
+
+function restoreLevels() {
+  try {
+    priceLevels = JSON.parse(localStorage.getItem(levelStorageKey()) || '[]');
+  } catch (_) {
+    priceLevels = [];
+  }
+  renderLevels();
+}
+
+function renderLevels() {
+  priceLineHandles.forEach((handle) => candles.removePriceLine(handle));
+  priceLineHandles = [];
+  priceLevels.forEach((level) => {
+    const handle = candles.createPriceLine({
+      price: level.price,
+      color: levelColor(level.kind),
+      lineWidth: 2,
+      lineStyle: LightweightCharts.LineStyle.Solid,
+      axisLabelVisible: true,
+      title: level.label,
+    });
+    priceLineHandles.push(handle);
+  });
+}
+
+function clearLevels() {
+  priceLevels = [];
+  persistLevels();
+  renderLevels();
 }
 
 function fitChart() {
