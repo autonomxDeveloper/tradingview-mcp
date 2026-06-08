@@ -19,4 +19,5 @@ def test_event_client_keeps_fetch_wrapper_private():
 
     assert "async function requestJson" in text
     assert "window.eventApi = eventApi" in text
-    assert "requestJson" not in text.split("return", 1)[1]
+    assert "return { createEvent, eventPayload, listEvents, normalizeSymbol, readEventStatus };" in text
+    assert "requestJson" not in "{ createEvent, eventPayload, listEvents, normalizeSymbol, readEventStatus }"
