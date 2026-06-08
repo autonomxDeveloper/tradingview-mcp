@@ -66,6 +66,13 @@ def test_c5_status_note_tracks_roadmap_position():
     assert "active workstation integration" in text
 
 
+def test_c5_status_note_tracks_validation_posture():
+    text = STATUS.read_text(encoding="utf-8")
+
+    assert "Current validation posture" in text
+    assert "documentation and focused tests" in text
+
+
 def test_c5_local_route_composition_note_tracks_safe_path():
     text = LOCAL_ROUTE.read_text(encoding="utf-8")
 
