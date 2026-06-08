@@ -67,12 +67,33 @@ def test_price_level_drawing_controls_are_present():
     assert "levelKind" in html
     assert "Add level" in html
     assert "Last close" in html
-    assert "Clear levels" in html
     assert "addLevelFromInput" in js
     assert "addLevelFromLastClose" in js
-    assert "levelStorageKey" in js
-    assert "restoreLevels" in js
+    assert "drawingStorageKey" in js
+    assert "restoreDrawings" in js
     assert "renderLevels" in js
     assert "createPriceLine" in js
     assert "level-input" in css
     assert "level-label-input" in css
+
+
+def test_drawing_notes_export_import_controls_are_present():
+    client = TestClient(create_app())
+
+    html = client.get("/").text
+    js = client.get("/static/app.js").text
+    css = client.get("/static/styles.css").text
+
+    assert "noteText" in html
+    assert "Add note" in html
+    assert "Clear drawings" in html
+    assert "Export" in html
+    assert "Import" in html
+    assert "notesOverlay" in html
+    assert "addNoteAtLastClose" in js
+    assert "exportDrawings" in js
+    assert "importDrawings" in js
+    assert "renderNotes" in js
+    assert "emptyDrawings" in js
+    assert "notes-overlay" in css
+    assert "chart-note" in css
