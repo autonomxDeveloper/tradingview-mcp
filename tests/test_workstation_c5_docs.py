@@ -37,3 +37,11 @@ def test_c5_status_note_tracks_static_event_client():
     assert "PR #36" in text
     assert "event_client.js" in text
     assert "browser-side helper contract" in text
+
+
+def test_c5_status_note_tracks_connector_safe_boundaries():
+    text = STATUS.read_text(encoding="utf-8")
+
+    assert "PR #37" in text
+    assert "Connector-safe boundaries" in text
+    assert "standalone helpers, docs, and focused tests" in text
