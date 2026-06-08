@@ -55,6 +55,23 @@ def test_advanced_chart_controls_are_present():
     assert "#chartWrap" in css
 
 
+def test_layout_controls_are_present():
+    client = TestClient(create_app())
+
+    html = client.get("/").text
+    js = client.get("/static/app.js").text
+
+    assert "layoutName" in html
+    assert "Save layout" in html
+    assert "Load layout" in html
+    assert "Reset layout" in html
+    assert "saveLayout" in js
+    assert "loadLayout" in js
+    assert "resetLayout" in js
+    assert "currentLayoutState" in js
+    assert "applyLayoutState" in js
+
+
 def test_rsi_indicator_pane_controls_are_present():
     client = TestClient(create_app())
 
