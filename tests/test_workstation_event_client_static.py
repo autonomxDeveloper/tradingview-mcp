@@ -21,3 +21,12 @@ def test_event_client_keeps_fetch_wrapper_private():
     assert "window.eventApi = eventApi" in text
     assert "return { createEvent, eventPayload, listEvents, normalizeSymbol, readEventStatus };" in text
     assert "requestJson" not in "{ createEvent, eventPayload, listEvents, normalizeSymbol, readEventStatus }"
+
+
+def test_event_client_endpoint_strings_are_stable():
+    text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
+
+    assert "'/api/events/status'" in text
+    assert "'/api/events'" in text
+    assert "`/api/events?${params.toString()}`" in text
+    assert "params.set('limit', String(limit))" in text
