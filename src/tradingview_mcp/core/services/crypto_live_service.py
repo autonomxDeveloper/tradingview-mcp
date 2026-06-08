@@ -5,6 +5,8 @@ from typing import Any
 
 import requests
 
+from tradingview_mcp.core.services.market_data_cache_service import fallback_from_cache, write_cache
+
 
 SUPPORTED_CRYPTO_VENUES = {"binance", "coinbase", "kraken"}
 
@@ -66,6 +68,15 @@ def _normalize_interval(venue: str, interval: str) -> str | int:
     return {"1m": 1, "5m": 5, "15m": 15, "30m": 30, "1h": 60, "4h": 240, "1d": 1440}.get(value, 60)
 
 
+def _cache_key(kind: str, venue: str, symbol: str, *parts: object) -> str:
+    suffix = ":".join(str(part) for part in parts if part is not None)
+    return f"crypto:{kind}:{venue}:{symbol}:{suffix}"
+
+
+def _cache_or_error(cache_key: str, payload: dict[str, Any]) -> dict[str, Any]:
+    return fallback_from_cache(cache_key, payload)
+
+
 def get_crypto_live_ticker(symbol: str, venue: str = "binance") -> dict[str, Any]:
     try:
         clean_venue = _venue(venue)
@@ -75,10 +86,11 @@ def get_crypto_live_ticker(symbol: str, venue: str = "binance") -> dict[str, Any
     try:
         if clean_venue == "binance":
             clean_symbol = _binance_symbol(symbol)
+            cache_key = _cache_key("ticker", clean_venue, clean_symbol)
             payload = _request_json("https://api.binance.com/api/v3/ticker/24hr", params={"symbol": clean_symbol})
             if isinstance(payload, dict) and "error" in payload:
-                return payload
-            return {
+                return _cache_or_error(cache_key, payload)
+            result = {
                 "venue": clean_venue,
                 "symbol": clean_symbol,
                 "price": payload.get("lastPrice"),
@@ -89,13 +101,15 @@ def get_crypto_live_ticker(symbol: str, venue: str = "binance") -> dict[str, Any
                 "quote_volume_24h": payload.get("quoteVolume"),
                 "raw": payload,
             }
+            return write_cache(cache_key, result, source="binance_ticker")
 
         if clean_venue == "coinbase":
             product_id = _coinbase_product_id(symbol)
+            cache_key = _cache_key("ticker", clean_venue, product_id)
             payload = _request_json(f"https://api.exchange.coinbase.com/products/{product_id}/ticker")
             if isinstance(payload, dict) and "error" in payload:
-                return payload
-            return {
+                return _cache_or_error(cache_key, payload)
+            result = {
                 "venue": clean_venue,
                 "symbol": product_id,
                 "price": payload.get("price"),
@@ -105,16 +119,18 @@ def get_crypto_live_ticker(symbol: str, venue: str = "binance") -> dict[str, Any
                 "time": payload.get("time"),
                 "raw": payload,
             }
+            return write_cache(cache_key, result, source="coinbase_ticker")
 
         pair = _kraken_pair(symbol)
+        cache_key = _cache_key("ticker", clean_venue, pair)
         payload = _request_json("https://api.kraken.com/0/public/Ticker", params={"pair": pair})
         if isinstance(payload, dict) and "error" in payload:
-            return payload
+            return _cache_or_error(cache_key, payload)
         if payload.get("error"):
-            return {"error": {"code": "UPSTREAM_ERROR", "message": payload.get("error")}}
+            return _cache_or_error(cache_key, {"error": {"code": "UPSTREAM_ERROR", "message": payload.get("error")}})
         result = payload.get("result", {})
         ticker = result.get(next(iter(result), ""), {})
-        return {
+        payload_out = {
             "venue": clean_venue,
             "symbol": pair,
             "price": ticker.get("c", [None])[0],
@@ -123,6 +139,7 @@ def get_crypto_live_ticker(symbol: str, venue: str = "binance") -> dict[str, Any
             "volume_24h": ticker.get("v", [None, None])[1],
             "raw": ticker,
         }
+        return write_cache(cache_key, payload_out, source="kraken_ticker")
     except ValueError as exc:
         return {"error": {"code": "INVALID_SYMBOL", "message": str(exc)}}
 
@@ -137,27 +154,30 @@ def get_crypto_order_book(symbol: str, venue: str = "binance", limit: int = 20) 
     try:
         if clean_venue == "binance":
             clean_symbol = _binance_symbol(symbol)
+            cache_key = _cache_key("book", clean_venue, clean_symbol, clean_limit)
             payload = _request_json("https://api.binance.com/api/v3/depth", params={"symbol": clean_symbol, "limit": clean_limit})
             if isinstance(payload, dict) and "error" in payload:
-                return payload
-            return {"venue": clean_venue, "symbol": clean_symbol, "bids": payload.get("bids", [])[:clean_limit], "asks": payload.get("asks", [])[:clean_limit], "raw": payload}
+                return _cache_or_error(cache_key, payload)
+            return write_cache(cache_key, {"venue": clean_venue, "symbol": clean_symbol, "bids": payload.get("bids", [])[:clean_limit], "asks": payload.get("asks", [])[:clean_limit], "raw": payload}, source="binance_book")
 
         if clean_venue == "coinbase":
             product_id = _coinbase_product_id(symbol)
+            cache_key = _cache_key("book", clean_venue, product_id, clean_limit)
             payload = _request_json(f"https://api.exchange.coinbase.com/products/{product_id}/book", params={"level": 2})
             if isinstance(payload, dict) and "error" in payload:
-                return payload
-            return {"venue": clean_venue, "symbol": product_id, "bids": payload.get("bids", [])[:clean_limit], "asks": payload.get("asks", [])[:clean_limit], "raw": payload}
+                return _cache_or_error(cache_key, payload)
+            return write_cache(cache_key, {"venue": clean_venue, "symbol": product_id, "bids": payload.get("bids", [])[:clean_limit], "asks": payload.get("asks", [])[:clean_limit], "raw": payload}, source="coinbase_book")
 
         pair = _kraken_pair(symbol)
+        cache_key = _cache_key("book", clean_venue, pair, clean_limit)
         payload = _request_json("https://api.kraken.com/0/public/Depth", params={"pair": pair, "count": clean_limit})
         if isinstance(payload, dict) and "error" in payload:
-            return payload
+            return _cache_or_error(cache_key, payload)
         if payload.get("error"):
-            return {"error": {"code": "UPSTREAM_ERROR", "message": payload.get("error")}}
+            return _cache_or_error(cache_key, {"error": {"code": "UPSTREAM_ERROR", "message": payload.get("error")}})
         result = payload.get("result", {})
         book = result.get(next(iter(result), ""), {})
-        return {"venue": clean_venue, "symbol": pair, "bids": book.get("bids", [])[:clean_limit], "asks": book.get("asks", [])[:clean_limit], "raw": book}
+        return write_cache(cache_key, {"venue": clean_venue, "symbol": pair, "bids": book.get("bids", [])[:clean_limit], "asks": book.get("asks", [])[:clean_limit], "raw": book}, source="kraken_book")
     except ValueError as exc:
         return {"error": {"code": "INVALID_SYMBOL", "message": str(exc)}}
 
@@ -173,30 +193,33 @@ def get_crypto_candles(symbol: str, venue: str = "binance", interval: str = "1h"
         venue_interval = _normalize_interval(clean_venue, interval)
         if clean_venue == "binance":
             clean_symbol = _binance_symbol(symbol)
+            cache_key = _cache_key("candles", clean_venue, clean_symbol, venue_interval, clean_limit)
             payload = _request_json("https://api.binance.com/api/v3/klines", params={"symbol": clean_symbol, "interval": venue_interval, "limit": clean_limit})
             if isinstance(payload, dict) and "error" in payload:
-                return payload
+                return _cache_or_error(cache_key, payload)
             bars = [{"open_time": row[0], "open": row[1], "high": row[2], "low": row[3], "close": row[4], "volume": row[5], "close_time": row[6]} for row in payload]
-            return {"venue": clean_venue, "symbol": clean_symbol, "interval": venue_interval, "limit": clean_limit, "bars": bars}
+            return write_cache(cache_key, {"venue": clean_venue, "symbol": clean_symbol, "interval": venue_interval, "limit": clean_limit, "bars": bars}, source="binance_candles")
 
         if clean_venue == "coinbase":
             product_id = _coinbase_product_id(symbol)
+            cache_key = _cache_key("candles", clean_venue, product_id, venue_interval, clean_limit)
             payload = _request_json(f"https://api.exchange.coinbase.com/products/{product_id}/candles", params={"granularity": venue_interval})
             if isinstance(payload, dict) and "error" in payload:
-                return payload
+                return _cache_or_error(cache_key, payload)
             bars = [{"time": row[0], "low": row[1], "high": row[2], "open": row[3], "close": row[4], "volume": row[5]} for row in payload[:clean_limit]]
-            return {"venue": clean_venue, "symbol": product_id, "interval": interval, "limit": clean_limit, "bars": bars}
+            return write_cache(cache_key, {"venue": clean_venue, "symbol": product_id, "interval": interval, "limit": clean_limit, "bars": bars}, source="coinbase_candles")
 
         pair = _kraken_pair(symbol)
+        cache_key = _cache_key("candles", clean_venue, pair, venue_interval, clean_limit)
         payload = _request_json("https://api.kraken.com/0/public/OHLC", params={"pair": pair, "interval": venue_interval})
         if isinstance(payload, dict) and "error" in payload:
-            return payload
+            return _cache_or_error(cache_key, payload)
         if payload.get("error"):
-            return {"error": {"code": "UPSTREAM_ERROR", "message": payload.get("error")}}
+            return _cache_or_error(cache_key, {"error": {"code": "UPSTREAM_ERROR", "message": payload.get("error")}})
         result = payload.get("result", {})
         pair_keys = [key for key in result.keys() if key != "last"]
         bars_raw = result.get(pair_keys[0], []) if pair_keys else []
         bars = [{"time": row[0], "open": row[1], "high": row[2], "low": row[3], "close": row[4], "vwap": row[5], "volume": row[6], "count": row[7]} for row in bars_raw[-clean_limit:]]
-        return {"venue": clean_venue, "symbol": pair, "interval": venue_interval, "limit": clean_limit, "bars": bars}
+        return write_cache(cache_key, {"venue": clean_venue, "symbol": pair, "interval": venue_interval, "limit": clean_limit, "bars": bars}, source="kraken_candles")
     except ValueError as exc:
         return {"error": {"code": "INVALID_SYMBOL", "message": str(exc)}}

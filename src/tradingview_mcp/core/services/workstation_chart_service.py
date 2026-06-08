@@ -5,6 +5,7 @@ from typing import Any
 
 import requests
 
+from tradingview_mcp.core.services.market_data_cache_service import fallback_from_cache, write_cache
 from tradingview_mcp.core.utils.validators import normalize_yahoo_symbol, sanitize_timeframe
 
 
@@ -27,9 +28,15 @@ def _json_error(code: str, message: str, **extra: Any) -> dict[str, Any]:
     return payload
 
 
+def _cache_key(symbol: str, timeframe: str, limit: int) -> str:
+    return f"yahoo-chart:{normalize_yahoo_symbol(symbol)}:{sanitize_timeframe(timeframe, '1D')}:{max(1, min(int(limit), 2000))}"
+
+
 def get_yahoo_chart(symbol: str, timeframe: str = "1D", limit: int = 500) -> dict[str, Any]:
     yahoo_symbol = normalize_yahoo_symbol(symbol)
     safe_timeframe = sanitize_timeframe(timeframe, "1D")
+    clean_limit = max(1, min(int(limit), 2000))
+    cache_key = _cache_key(yahoo_symbol, safe_timeframe, clean_limit)
     range_value, interval = YAHOO_RANGE_BY_TIMEFRAME.get(safe_timeframe, ("1y", "1d"))
     try:
         response = requests.get(
@@ -38,22 +45,25 @@ def get_yahoo_chart(symbol: str, timeframe: str = "1D", limit: int = 500) -> dic
             timeout=20,
         )
     except requests.RequestException as exc:
-        return _json_error("REQUEST_FAILED", str(exc))
+        return fallback_from_cache(cache_key, _json_error("REQUEST_FAILED", str(exc)))
 
     try:
         payload = response.json()
     except ValueError:
-        return _json_error("INVALID_RESPONSE", response.text[:500])
+        return fallback_from_cache(cache_key, _json_error("INVALID_RESPONSE", response.text[:500]))
 
     if response.status_code >= 400:
-        return _json_error("UPSTREAM_ERROR", "Yahoo chart request failed.", status_code=response.status_code, payload=payload)
+        return fallback_from_cache(
+            cache_key,
+            _json_error("UPSTREAM_ERROR", "Yahoo chart request failed.", status_code=response.status_code, payload=payload),
+        )
 
     chart = payload.get("chart", {})
     if chart.get("error"):
-        return _json_error("YAHOO_CHART_ERROR", "Yahoo chart returned an error.", details=chart.get("error"))
+        return fallback_from_cache(cache_key, _json_error("YAHOO_CHART_ERROR", "Yahoo chart returned an error.", details=chart.get("error")))
     results = chart.get("result") or []
     if not results:
-        return _json_error("NO_CHART_DATA", f"No chart data returned for {yahoo_symbol}.")
+        return fallback_from_cache(cache_key, _json_error("NO_CHART_DATA", f"No chart data returned for {yahoo_symbol}."))
 
     result = results[0]
     timestamps = result.get("timestamp") or []
@@ -85,10 +95,9 @@ def get_yahoo_chart(symbol: str, timeframe: str = "1D", limit: int = 500) -> dic
             }
         )
 
-    if limit > 0:
-        candles = candles[-min(limit, 2000) :]
+    candles = candles[-clean_limit:]
     meta = result.get("meta", {})
-    return {
+    result_payload = {
         "symbol": yahoo_symbol,
         "timeframe": safe_timeframe,
         "range": range_value,
@@ -100,3 +109,4 @@ def get_yahoo_chart(symbol: str, timeframe: str = "1D", limit: int = 500) -> dic
         "candles": candles,
         "source": "yahoo_finance_chart",
     }
+    return write_cache(cache_key, result_payload, source="yahoo_finance_chart")
