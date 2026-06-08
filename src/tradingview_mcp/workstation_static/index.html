@@ -30,9 +30,13 @@
       <button class="secondary" onclick="toggleOverlay('sma50')">SMA 50</button>
       <button class="secondary" onclick="toggleOverlay('ema21')">EMA 21</button>
       <button class="secondary" onclick="toggleVolume()">Volume</button>
-      <button class="secondary" onclick="toggleLogScale()">Log</button>
-      <button class="secondary" onclick="togglePercentScale()">%</button>
       <button class="secondary" onclick="fitChart()">Auto-fit</button>
+      <input id="levelPrice" class="level-input" placeholder="price level" />
+      <input id="levelLabel" class="level-label-input" placeholder="label" />
+      <select id="levelKind"><option>level</option><option>support</option><option>resistance</option><option>alert</option></select>
+      <button class="secondary" onclick="addLevelFromInput()">Add level</button>
+      <button class="secondary" onclick="addLevelFromLastClose()">Last close</button>
+      <button class="secondary" onclick="clearLevels()">Clear levels</button>
       <span id="chartMeta" class="muted"></span>
     </div>
     <div id="chartWrap">
