@@ -7,7 +7,7 @@ This note tracks the research-only local event inbox foundation.
 - PR #29: local JSONL-backed research event service.
 - PR #29: create/list/status helpers.
 - PR #29: focused unit tests for local event creation, symbol filtering, and status metadata.
-- Current slice: reusable FastAPI route registration helper with route smoke tests.
+- PR #31: reusable FastAPI route registration helper with route smoke tests.
 
 ## Current scope
 
