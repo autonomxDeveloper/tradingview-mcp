@@ -55,6 +55,22 @@ def test_advanced_chart_controls_are_present():
     assert "#chartWrap" in css
 
 
+def test_rsi_indicator_pane_controls_are_present():
+    client = TestClient(create_app())
+
+    html = client.get("/").text
+    js = client.get("/static/app.js").text
+
+    assert "RSI" in html
+    assert "rsiWrap" in html
+    assert "rsiChart" in html
+    assert "rsiLegend" in html
+    assert "toggleRsiPane" in js
+    assert "relativeStrengthIndex" in js
+    assert "renderRsiPane" in js
+    assert "ensureRsiChart" in js
+
+
 def test_price_level_drawing_controls_are_present():
     client = TestClient(create_app())
 
