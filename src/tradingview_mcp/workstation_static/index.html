@@ -121,5 +121,32 @@
   </section>
 </main>
 <script src="/static/app.js"></script>
+<script>
+window.workstationLayoutMode = '1';
+function setLayoutMode(mode) {
+  window.workstationLayoutMode = ['1', '2', '4'].includes(String(mode)) ? String(mode) : '1';
+  const grid = document.getElementById('chartGrid');
+  if (grid) grid.className = `layout-grid layout-grid-${window.workstationLayoutMode}`;
+  const selector = document.getElementById('layoutMode');
+  if (selector) selector.value = window.workstationLayoutMode;
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
+}
+const originalCurrentLayoutState = window.currentLayoutState;
+window.currentLayoutState = function() {
+  const state = originalCurrentLayoutState ? originalCurrentLayoutState() : {};
+  return { ...state, layoutMode: window.workstationLayoutMode || '1' };
+};
+const originalApplyLayoutState = window.applyLayoutState;
+window.applyLayoutState = function(state) {
+  setLayoutMode((state && state.layoutMode) || '1');
+  if (originalApplyLayoutState) originalApplyLayoutState(state || {});
+};
+const originalResetLayout = window.resetLayout;
+window.resetLayout = function() {
+  setLayoutMode('1');
+  if (originalResetLayout) originalResetLayout();
+};
+setLayoutMode('1');
+</script>
 </body>
 </html>
