@@ -33,7 +33,7 @@ tradingview-workstation = "tradingview_mcp.workstation_app:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-tradingview_mcp = ["coinlist/*.txt"]
+tradingview_mcp = ["coinlist/*.txt", "workstation_static/*.html", "workstation_static/*.css", "workstation_static/*.js"]
 
 [tool.uv]
 dev-dependencies = [
