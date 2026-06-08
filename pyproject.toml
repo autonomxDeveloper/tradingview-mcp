@@ -19,11 +19,15 @@ dependencies = [
   "requests>=2.32",
   "tradingview-screener>=0.6.4",
   "tradingview-ta>=3.3.0",
+  "fastapi>=0.115.0",
+  "uvicorn>=0.30.0",
+  "pydantic>=2.8.0",
 ]
 
 [project.scripts]
 # Entry point now points to packaged module
 tradingview-mcp = "tradingview_mcp.server:main"
+tradingview-workstation = "tradingview_mcp.workstation_app:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
