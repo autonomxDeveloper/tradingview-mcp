@@ -90,6 +90,26 @@ def test_layout_mode_controls_are_present():
     assert "layout-grid-4" in css
 
 
+def test_chart_slot_state_controls_are_present():
+    client = TestClient(create_app())
+
+    html = client.get("/").text
+    css = client.get("/static/styles.css").text
+
+    assert "slot2Symbol" in html
+    assert "slot3Symbol" in html
+    assert "slot4Symbol" in html
+    assert "slot2Tf" in html
+    assert "slot3Tf" in html
+    assert "slot4Tf" in html
+    assert "slot2Label" in html
+    assert "setChartSlot" in html
+    assert "renderChartSlot" in html
+    assert "applyChartSlots" in html
+    assert "workstationChartSlots" in html
+    assert "slot-card" in css
+
+
 def test_layout_sync_controls_are_present():
     client = TestClient(create_app())
 
