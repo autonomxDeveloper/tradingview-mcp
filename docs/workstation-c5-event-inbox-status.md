@@ -19,6 +19,10 @@ This note tracks the research-only local event inbox foundation.
 
 C5 is foundation-complete for the connector-landed path: the local service, route helper, composable app factory, static client helper, and status documentation guards are in place. The remaining C5 milestone is active workstation integration, which stays pending until the default app hook can land safely.
 
+## Current validation posture
+
+The latest connector-landed work keeps validation on documentation and focused tests. That preserves the safe path while active workstation integration remains outside the allowed connector path.
+
 ## Current scope
 
 - The event inbox stores local research events for review.
