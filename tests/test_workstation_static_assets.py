@@ -33,3 +33,23 @@ def test_static_assets_are_mounted():
     assert "background" in css_response.text
     assert js_response.status_code == 200
     assert "loadMarket" in js_response.text
+
+
+def test_advanced_chart_controls_are_present():
+    client = TestClient(create_app())
+
+    html = client.get("/").text
+    js = client.get("/static/app.js").text
+    css = client.get("/static/styles.css").text
+
+    assert "SMA 20" in html
+    assert "SMA 50" in html
+    assert "EMA 21" in html
+    assert "chartMeta" in html
+    assert "legend" in html
+    assert "toggleOverlay" in js
+    assert "movingAverage" in js
+    assert "exponentialMovingAverage" in js
+    assert "updateLegend" in js
+    assert "chartbar" in css
+    assert "#chartWrap" in css
