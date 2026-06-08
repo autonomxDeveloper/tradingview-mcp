@@ -55,3 +55,11 @@ def test_c5_local_route_composition_note_tracks_safe_path():
     assert "composed app factory" in text
     assert "TRADING_WORKSTATION_EVENT_INBOX" in text
     assert "research-only boundary" in text
+
+
+def test_c5_local_route_composition_note_tracks_validation_checklist():
+    text = LOCAL_ROUTE.read_text(encoding="utf-8")
+
+    assert "Validation checklist" in text
+    assert "storage remains local" in text
+    assert "default workstation app is unchanged" in text
