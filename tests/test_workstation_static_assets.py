@@ -72,6 +72,24 @@ def test_layout_controls_are_present():
     assert "applyLayoutState" in js
 
 
+def test_layout_mode_controls_are_present():
+    client = TestClient(create_app())
+
+    html = client.get("/").text
+    css = client.get("/static/styles.css").text
+
+    assert "layoutMode" in html
+    assert "1 chart" in html
+    assert "2 split" in html
+    assert "4 grid" in html
+    assert "chartGrid" in html
+    assert "chartSlot2" in html
+    assert "setLayoutMode" in html
+    assert "workstationLayoutMode" in html
+    assert "layout-grid-2" in css
+    assert "layout-grid-4" in css
+
+
 def test_layout_catalog_controls_are_present():
     client = TestClient(create_app())
 
