@@ -115,7 +115,7 @@ def test_chart_slot_state_controls_are_present():
     assert "slot-card" in css
 
 
-def test_slot2_chart_rendering_controls_are_present():
+def test_slot_chart_helper_is_generic():
     client = TestClient(create_app())
 
     html = client.get("/").text
@@ -126,9 +126,11 @@ def test_slot2_chart_rendering_controls_are_present():
     assert "slot2Status" in html
     assert "slot-chart" in css
     assert "renderSlot2Chart" in slot_js
-    assert "normalizeSlot2Bars" in slot_js
-    assert "slot2ApiUrl" in slot_js
-    assert "slot2Candles" in slot_js
+    assert "renderSlotChart" in slot_js
+    assert "normalizeSlotBars" in slot_js
+    assert "slotApiUrl" in slot_js
+    assert "slotCandles" in slot_js
+    assert "[2, 3, 4]" in slot_js
 
 
 def test_layout_sync_controls_are_present():
