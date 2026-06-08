@@ -32,6 +32,7 @@
       <button class="secondary" onclick="toggleVolume()">Volume</button>
       <button class="secondary" onclick="toggleRsiPane()">RSI</button>
       <button class="secondary" onclick="toggleMacdPane()">MACD</button>
+      <button class="secondary" onclick="toggleAtrPane()">ATR</button>
       <button class="secondary" onclick="fitChart()">Auto-fit</button>
       <input id="levelPrice" class="level-input" placeholder="price level" />
       <input id="levelLabel" class="level-label-input" placeholder="label" />
@@ -69,6 +70,10 @@
     <div id="macdWrap" class="indicator-wrap hidden">
       <div id="macdLegend" class="indicator-legend">MACD 12 26 9</div>
       <div id="macdChart"></div>
+    </div>
+    <div id="atrWrap" class="indicator-wrap hidden">
+      <div id="atrLegend" class="indicator-legend">ATR 14</div>
+      <div id="atrChart"></div>
     </div>
     <div class="bottom">
       <div class="tabs">
