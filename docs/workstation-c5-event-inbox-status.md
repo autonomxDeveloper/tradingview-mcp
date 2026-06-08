@@ -15,6 +15,10 @@ This note tracks the research-only local event inbox foundation.
 - PR #43: added static browser event client contract tests for payload normalization and helper exports.
 - PR #46: added endpoint string coverage for the browser event client helper.
 
+## Roadmap position
+
+C5 is foundation-complete for the connector-landed path: the local service, route helper, composable app factory, static client helper, and status documentation guards are in place. The remaining C5 milestone is active workstation integration, which stays pending until the default app hook can land safely.
+
 ## Current scope
 
 - The event inbox stores local research events for review.

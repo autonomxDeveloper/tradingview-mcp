@@ -58,6 +58,14 @@ def test_c5_status_note_tracks_static_client_test_checkpoints():
     assert "endpoint string coverage" in text
 
 
+def test_c5_status_note_tracks_roadmap_position():
+    text = STATUS.read_text(encoding="utf-8")
+
+    assert "Roadmap position" in text
+    assert "foundation-complete" in text
+    assert "active workstation integration" in text
+
+
 def test_c5_local_route_composition_note_tracks_safe_path():
     text = LOCAL_ROUTE.read_text(encoding="utf-8")
 
