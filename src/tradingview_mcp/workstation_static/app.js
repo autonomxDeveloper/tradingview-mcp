@@ -1,6 +1,11 @@
 let chart, candles, volume, lastPayload = null;
+let rsiChart = null;
+let rsiSeries = null;
+let rsiTopLine = null;
+let rsiBottomLine = null;
 let currentBars = [];
 let volumeVisible = true;
+let rsiVisible = false;
 let overlaySeries = {};
 let overlayState = { sma20: false, sma50: false, ema21: false };
 let drawings = { levels: [], notes: [], zones: [], guides: [] };
@@ -34,10 +39,48 @@ function initChart() {
   volume = chart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '', lastValueVisible: false, priceLineVisible: false });
   volume.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
   chart.subscribeCrosshairMove((param) => updateLegend(param));
+  styleIndicatorPane();
   window.onresize = () => {
     chart.resize($('chart').clientWidth, $('chart').clientHeight);
+    if (rsiChart && rsiVisible) rsiChart.resize($('rsiChart').clientWidth, $('rsiChart').clientHeight);
     renderHtmlDrawings();
   };
+}
+
+function styleIndicatorPane() {
+  const wrap = $('rsiWrap');
+  const panel = $('rsiChart');
+  const legend = $('rsiLegend');
+  if (!wrap || !panel || !legend) return;
+  wrap.style.position = 'relative';
+  wrap.style.height = '140px';
+  wrap.style.background = '#0b1020';
+  wrap.style.borderTop = '1px solid #263044';
+  wrap.style.display = 'none';
+  panel.style.height = '100%';
+  panel.style.width = '100%';
+  legend.style.position = 'absolute';
+  legend.style.zIndex = '5';
+  legend.style.top = '8px';
+  legend.style.left = '12px';
+  legend.style.padding = '4px 7px';
+  legend.style.border = '1px solid #334155';
+  legend.style.borderRadius = '7px';
+  legend.style.background = 'rgba(8,13,24,.86)';
+  legend.style.fontSize = '12px';
+}
+
+function ensureRsiChart() {
+  if (rsiChart) return;
+  rsiChart = LightweightCharts.createChart($('rsiChart'), {
+    layout: { background: { color: '#0b1020' }, textColor: '#d1d5db' },
+    grid: { vertLines: { color: '#1f2937' }, horzLines: { color: '#1f2937' } },
+    rightPriceScale: { borderColor: '#334155' },
+    timeScale: { borderColor: '#334155', timeVisible: true, secondsVisible: false },
+  });
+  rsiSeries = rsiChart.addLineSeries({ lineWidth: 2, lastValueVisible: true, priceLineVisible: false });
+  rsiTopLine = rsiChart.addLineSeries({ lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
+  rsiBottomLine = rsiChart.addLineSeries({ lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
 }
 
 async function boot() {
@@ -100,6 +143,7 @@ async function loadMarket() {
     })));
   }
   renderChartSeries();
+  renderRsiPane();
   restoreDrawings();
   fitChart();
   updateChartMeta();
@@ -133,6 +177,50 @@ function exponentialMovingAverage(period) {
     if (index >= period - 1) points.push({ time: bar.time, value: +ema.toFixed(6) });
   });
   return points;
+}
+
+function relativeStrengthIndex(period = 14) {
+  const points = [];
+  if (currentBars.length <= period) return points;
+  let gain = 0;
+  let loss = 0;
+  for (let i = 1; i <= period; i += 1) {
+    const change = currentBars[i].close - currentBars[i - 1].close;
+    if (change >= 0) gain += change;
+    else loss -= change;
+  }
+  let avgGain = gain / period;
+  let avgLoss = loss / period;
+  for (let i = period + 1; i < currentBars.length; i += 1) {
+    const change = currentBars[i].close - currentBars[i - 1].close;
+    avgGain = (avgGain * (period - 1) + Math.max(change, 0)) / period;
+    avgLoss = (avgLoss * (period - 1) + Math.max(-change, 0)) / period;
+    const value = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+    points.push({ time: currentBars[i].time, value: +value.toFixed(4) });
+  }
+  return points;
+}
+
+function toggleRsiPane() {
+  rsiVisible = !rsiVisible;
+  $('rsiWrap').style.display = rsiVisible ? 'block' : 'none';
+  if (rsiVisible) {
+    ensureRsiChart();
+    renderRsiPane();
+    rsiChart.resize($('rsiChart').clientWidth, $('rsiChart').clientHeight);
+    rsiChart.timeScale().fitContent();
+  }
+}
+
+function renderRsiPane() {
+  if (!rsiVisible) return;
+  ensureRsiChart();
+  const values = relativeStrengthIndex(14);
+  const last = values[values.length - 1];
+  rsiSeries.setData(values);
+  rsiTopLine.setData(values.map((point) => ({ time: point.time, value: 70 })));
+  rsiBottomLine.setData(values.map((point) => ({ time: point.time, value: 30 })));
+  $('rsiLegend').textContent = last ? `RSI 14 ${last.value.toFixed(2)}` : 'RSI 14';
 }
 
 function ensureOverlay(name) {

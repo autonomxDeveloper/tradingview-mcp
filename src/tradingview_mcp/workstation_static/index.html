@@ -30,6 +30,7 @@
       <button class="secondary" onclick="toggleOverlay('sma50')">SMA 50</button>
       <button class="secondary" onclick="toggleOverlay('ema21')">EMA 21</button>
       <button class="secondary" onclick="toggleVolume()">Volume</button>
+      <button class="secondary" onclick="toggleRsiPane()">RSI</button>
       <button class="secondary" onclick="fitChart()">Auto-fit</button>
       <input id="levelPrice" class="level-input" placeholder="price level" />
       <input id="levelLabel" class="level-label-input" placeholder="label" />
@@ -59,6 +60,10 @@
       <svg id="guidesOverlay" class="guides-overlay"></svg>
       <div id="notesOverlay" class="notes-overlay"></div>
       <div id="chart"></div>
+    </div>
+    <div id="rsiWrap" class="indicator-wrap hidden">
+      <div id="rsiLegend" class="indicator-legend">RSI 14</div>
+      <div id="rsiChart"></div>
     </div>
     <div class="bottom">
       <div class="tabs">
