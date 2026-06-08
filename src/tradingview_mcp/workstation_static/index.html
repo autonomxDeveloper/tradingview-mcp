@@ -43,11 +43,11 @@
       <input id="zoneLabel" class="level-label-input" placeholder="zone label" />
       <select id="zoneKind"><option>zone</option><option>support</option><option>resistance</option><option>supply</option><option>demand</option></select>
       <button class="secondary" onclick="addZoneFromInput()">Add zone</button>
-      <input id="lineStartPrice" class="level-input" placeholder="line start" />
-      <input id="lineEndPrice" class="level-input" placeholder="line end" />
-      <input id="lineLabel" class="level-label-input" placeholder="line label" />
-      <select id="lineKind"><option>trendline</option><option>ray</option><option>support</option><option>resistance</option></select>
-      <button class="secondary" onclick="addTrendlineFromInput()">Add line</button>
+      <input id="guideStartPrice" class="level-input" placeholder="guide start" />
+      <input id="guideEndPrice" class="level-input" placeholder="guide end" />
+      <input id="guideLabel" class="level-label-input" placeholder="guide label" />
+      <select id="guideKind"><option>guide</option><option>support</option><option>resistance</option></select>
+      <button class="secondary" onclick="addGuideFromInput()">Add guide</button>
       <button class="secondary" onclick="clearDrawings()">Clear drawings</button>
       <button class="secondary" onclick="exportDrawings()">Export</button>
       <button class="secondary" onclick="importDrawings()">Import</button>
@@ -56,7 +56,7 @@
     <div id="chartWrap">
       <div id="legend" class="legend">Load a symbol to see OHLC.</div>
       <div id="zonesOverlay" class="zones-overlay"></div>
-      <svg id="linesOverlay" class="lines-overlay"></svg>
+      <svg id="guidesOverlay" class="guides-overlay"></svg>
       <div id="notesOverlay" class="notes-overlay"></div>
       <div id="chart"></div>
     </div>
