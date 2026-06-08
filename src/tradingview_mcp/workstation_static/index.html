@@ -17,7 +17,7 @@
     <pre id="risk"></pre>
   </aside>
   <section class="center">
-    <div class="bar">
+    <div class="bar topbar">
       <input id="symbol" value="AAPL" />
       <select id="asset"><option>auto</option><option>stock</option><option>crypto</option></select>
       <input id="exchange" value="NASDAQ" />
@@ -25,7 +25,20 @@
       <button onclick="loadMarket()">Load</button>
       <button class="secondary" onclick="analyze()">AI analyze</button>
     </div>
-    <div id="chart"></div>
+    <div class="bar chartbar">
+      <button class="secondary" onclick="toggleOverlay('sma20')">SMA 20</button>
+      <button class="secondary" onclick="toggleOverlay('sma50')">SMA 50</button>
+      <button class="secondary" onclick="toggleOverlay('ema21')">EMA 21</button>
+      <button class="secondary" onclick="toggleVolume()">Volume</button>
+      <button class="secondary" onclick="toggleLogScale()">Log</button>
+      <button class="secondary" onclick="togglePercentScale()">%</button>
+      <button class="secondary" onclick="fitChart()">Auto-fit</button>
+      <span id="chartMeta" class="muted"></span>
+    </div>
+    <div id="chartWrap">
+      <div id="legend" class="legend">Load a symbol to see OHLC.</div>
+      <div id="chart"></div>
+    </div>
     <div class="bottom">
       <div class="tabs">
         <button onclick="showPayload()">Payload</button>
