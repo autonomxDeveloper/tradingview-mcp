@@ -11,6 +11,7 @@ This note tracks the research-only local event inbox foundation.
 - PR #33: documented connector-side direct app inclusion blockers and preserved the status note with doc tests.
 - PR #34: added a separate composable app factory that registers the event routes on the workstation app without editing the main app file, plus smoke tests for status, create, and list flows.
 - PR #36: added a standalone static event client helper for status, create, and list calls without wiring active UI.
+- PR #37: recorded the standalone static event client helper in this status note and extended the doc guard.
 
 ## Current scope
 
@@ -21,6 +22,12 @@ This note tracks the research-only local event inbox foundation.
 - The route helper exposes create, list, and status endpoints when registered on an app.
 - `create_event_enabled_app()` composes the workstation app with the route helper for smoke coverage and local validation.
 - `event_client.js` provides a browser-side helper contract for `/api/events/status`, `/api/events`, and event payload normalization.
+
+## Connector-safe boundaries
+
+- Keep connector-landed slices research-only and avoid active action pathways.
+- Active workstation page changes for this area should stay very small, because prior direct page/app inclusion attempts were blocked by connector-side safety checks.
+- Prefer standalone helpers, docs, and focused tests until the app hook can be applied locally or through an allowed minimal patch.
 
 ## Deferred follow-up
 
