@@ -3,7 +3,7 @@ let currentBars = [];
 let volumeVisible = true;
 let overlaySeries = {};
 let overlayState = { sma20: false, sma50: false, ema21: false };
-let drawings = { levels: [], notes: [], zones: [] };
+let drawings = { levels: [], notes: [], zones: [], guides: [] };
 let priceLineHandles = [];
 
 function $(id) { return document.getElementById(id); }
@@ -170,7 +170,7 @@ function drawingStorageKey() {
 }
 
 function emptyDrawings() {
-  return { levels: [], notes: [], zones: [] };
+  return { levels: [], notes: [], zones: [], guides: [] };
 }
 
 function levelColor(kind) {
@@ -233,6 +233,23 @@ function addZoneFromInput() {
   renderDrawings();
 }
 
+function addGuideFromInput() {
+  if (!currentBars.length) return;
+  const startPrice = Number($('guideStartPrice').value);
+  const endPrice = Number($('guideEndPrice').value);
+  if (!Number.isFinite(startPrice) || !Number.isFinite(endPrice) || startPrice <= 0 || endPrice <= 0) {
+    print('Enter positive guide start and end prices.');
+    return;
+  }
+  const last = currentBars[currentBars.length - 1];
+  const visibleStart = currentBars[Math.max(0, currentBars.length - 60)] || currentBars[0];
+  const kind = $('guideKind').value || 'guide';
+  const label = ($('guideLabel').value || kind).trim() || kind;
+  drawings.guides.push({ startTime: visibleStart.time, endTime: last.time, startPrice, endPrice, label, kind });
+  persistDrawings();
+  renderDrawings();
+}
+
 function persistDrawings() {
   localStorage.setItem(drawingStorageKey(), JSON.stringify(drawings));
 }
@@ -241,7 +258,7 @@ function restoreDrawings() {
   try {
     const loaded = JSON.parse(localStorage.getItem(drawingStorageKey()) || 'null');
     if (Array.isArray(loaded)) {
-      drawings = { levels: loaded, notes: [], zones: [] };
+      drawings = { levels: loaded, notes: [], zones: [], guides: [] };
     } else {
       drawings = { ...emptyDrawings(), ...(loaded || {}) };
     }
@@ -274,6 +291,7 @@ function renderLevels() {
 
 function renderHtmlDrawings() {
   renderZones();
+  renderGuides();
   renderNotes();
 }
 
@@ -302,6 +320,46 @@ function renderZones() {
     label.textContent = zone.label || zone.kind || 'zone';
     el.appendChild(label);
     overlay.appendChild(el);
+  });
+}
+
+function guideColor(kind) {
+  if (kind === 'support') return '#22c55e';
+  if (kind === 'resistance') return '#ef4444';
+  return '#60a5fa';
+}
+
+function renderGuides() {
+  const overlay = $('guidesOverlay');
+  if (!overlay || !chart || !candles) return;
+  overlay.setAttribute('width', String($('chartWrap').clientWidth));
+  overlay.setAttribute('height', String($('chartWrap').clientHeight));
+  overlay.style.position = 'absolute';
+  overlay.style.inset = '0';
+  overlay.style.pointerEvents = 'none';
+  overlay.style.zIndex = '4';
+  overlay.innerHTML = '';
+  drawings.guides.forEach((guide) => {
+    const x1 = chart.timeScale().timeToCoordinate(guide.startTime);
+    const x2 = chart.timeScale().timeToCoordinate(guide.endTime);
+    const y1 = candles.priceToCoordinate(guide.startPrice);
+    const y2 = candles.priceToCoordinate(guide.endPrice);
+    if (x1 === null || x2 === null || y1 === null || y2 === null) return;
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    path.setAttribute('x1', String(x1));
+    path.setAttribute('y1', String(y1));
+    path.setAttribute('x2', String(x2));
+    path.setAttribute('y2', String(y2));
+    path.setAttribute('stroke', guideColor(guide.kind));
+    path.setAttribute('stroke-width', '2');
+    overlay.appendChild(path);
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', String((x1 + x2) / 2));
+    label.setAttribute('y', String((y1 + y2) / 2 - 5));
+    label.setAttribute('fill', '#e5e7eb');
+    label.setAttribute('font-size', '11');
+    label.textContent = guide.label || guide.kind || 'guide';
+    overlay.appendChild(label);
   });
 }
 
