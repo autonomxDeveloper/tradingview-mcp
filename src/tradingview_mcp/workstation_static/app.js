@@ -1,4 +1,8 @@
 let chart, candles, volume, lastPayload = null;
+let currentBars = [];
+let volumeVisible = true;
+let overlaySeries = {};
+let overlayState = { sma20: false, sma50: false, ema21: false };
 
 function $(id) { return document.getElementById(id); }
 
@@ -20,10 +24,14 @@ function initChart() {
   chart = LightweightCharts.createChart($('chart'), {
     layout: { background: { color: '#0b1020' }, textColor: '#d1d5db' },
     grid: { vertLines: { color: '#1f2937' }, horzLines: { color: '#1f2937' } },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    rightPriceScale: { borderColor: '#334155', scaleMargins: { top: 0.08, bottom: 0.18 } },
+    timeScale: { borderColor: '#334155', timeVisible: true, secondsVisible: false },
   });
-  candles = chart.addCandlestickSeries();
-  volume = chart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '' });
+  candles = chart.addCandlestickSeries({ priceLineVisible: true, lastValueVisible: true });
+  volume = chart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '', lastValueVisible: false, priceLineVisible: false });
   volume.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+  chart.subscribeCrosshairMove((param) => updateLegend(param));
   window.onresize = () => chart.resize($('chart').clientWidth, $('chart').clientHeight);
 }
 
@@ -58,36 +66,137 @@ function activeIsCrypto() {
   return $('asset').value === 'crypto' || symbol.endsWith('USDT') || symbol.endsWith('-USD');
 }
 
+function normalizeBars(rawBars) {
+  return rawBars.filter((bar) => Number.isFinite(bar.open) && Number.isFinite(bar.high) && Number.isFinite(bar.low) && Number.isFinite(bar.close));
+}
+
 async function loadMarket() {
   const symbol = $('symbol').value.trim();
   const timeframe = $('tf').value;
   if (activeIsCrypto()) {
     lastPayload = await api(`/api/crypto/candles?symbol=${encodeURIComponent(symbol)}&venue=binance&interval=${encodeURIComponent(timeframe.toLowerCase())}&limit=300`);
-    const bars = (lastPayload.bars || []).map((bar) => ({
+    currentBars = normalizeBars((lastPayload.bars || []).map((bar) => ({
       time: bar.open_time ? Math.floor(bar.open_time / 1000) : bar.time,
       open: +bar.open,
       high: +bar.high,
       low: +bar.low,
       close: +bar.close,
       volume: +bar.volume,
-    }));
-    candles.setData(bars);
-    volume.setData(bars.map((bar) => ({ time: bar.time, value: bar.volume })));
+    })));
   } else {
     lastPayload = await api(`/api/stock/yahoo-chart?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}&limit=300`);
-    const bars = (lastPayload.candles || []).map((bar) => ({
+    currentBars = normalizeBars((lastPayload.candles || []).map((bar) => ({
       time: bar.time,
       open: +bar.open,
       high: +bar.high,
       low: +bar.low,
       close: +bar.close,
       volume: +bar.volume,
-    }));
-    candles.setData(bars);
-    volume.setData(bars.map((bar) => ({ time: bar.time, value: bar.volume })));
+    })));
   }
-  chart.timeScale().fitContent();
+  renderChartSeries();
+  fitChart();
+  updateChartMeta();
+  updateLegend();
   print(lastPayload);
+}
+
+function renderChartSeries() {
+  candles.setData(currentBars.map((bar) => ({ time: bar.time, open: bar.open, high: bar.high, low: bar.low, close: bar.close })));
+  volume.setData(currentBars.map((bar) => ({ time: bar.time, value: bar.volume })));
+  applyOverlayData();
+}
+
+function movingAverage(period) {
+  const points = [];
+  let sum = 0;
+  currentBars.forEach((bar, index) => {
+    sum += bar.close;
+    if (index >= period) sum -= currentBars[index - period].close;
+    if (index >= period - 1) points.push({ time: bar.time, value: +(sum / period).toFixed(6) });
+  });
+  return points;
+}
+
+function exponentialMovingAverage(period) {
+  const points = [];
+  const k = 2 / (period + 1);
+  let ema = null;
+  currentBars.forEach((bar, index) => {
+    ema = ema === null ? bar.close : bar.close * k + ema * (1 - k);
+    if (index >= period - 1) points.push({ time: bar.time, value: +ema.toFixed(6) });
+  });
+  return points;
+}
+
+function ensureOverlay(name) {
+  if (!overlaySeries[name]) {
+    overlaySeries[name] = chart.addLineSeries({ lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
+  }
+  return overlaySeries[name];
+}
+
+function applyOverlayData() {
+  Object.entries(overlayState).forEach(([name, enabled]) => {
+    if (!enabled) {
+      if (overlaySeries[name]) overlaySeries[name].setData([]);
+      return;
+    }
+    const series = ensureOverlay(name);
+    if (name === 'sma20') series.setData(movingAverage(20));
+    if (name === 'sma50') series.setData(movingAverage(50));
+    if (name === 'ema21') series.setData(exponentialMovingAverage(21));
+  });
+}
+
+function toggleOverlay(name) {
+  overlayState[name] = !overlayState[name];
+  applyOverlayData();
+}
+
+function toggleVolume() {
+  volumeVisible = !volumeVisible;
+  volume.applyOptions({ visible: volumeVisible });
+}
+
+function fitChart() {
+  chart.timeScale().fitContent();
+}
+
+function updateChartMeta() {
+  const metadata = lastPayload?.metadata || {};
+  const source = metadata.source || lastPayload?.source || 'unknown source';
+  const cache = metadata.cache_status ? ` · ${metadata.cache_status}${metadata.stale ? ' stale' : ''}` : '';
+  $('chartMeta').textContent = `${$('symbol').value.toUpperCase()} · ${$('tf').value} · ${source}${cache}`;
+}
+
+function updateLegend(param) {
+  if (!currentBars.length) {
+    $('legend').textContent = 'No chart data loaded.';
+    return;
+  }
+  let bar = currentBars[currentBars.length - 1];
+  if (param && param.time) {
+    const match = currentBars.find((candidate) => candidate.time === param.time);
+    if (match) bar = match;
+  }
+  const change = bar.close - bar.open;
+  const changePct = bar.open ? (change / bar.open) * 100 : 0;
+  const klass = change >= 0 ? 'up' : 'down';
+  $('legend').innerHTML = `<strong>${$('symbol').value.toUpperCase()}</strong> O ${fmt(bar.open)} H ${fmt(bar.high)} L ${fmt(bar.low)} C ${fmt(bar.close)} <span class="${klass}">${fmt(change)} (${changePct.toFixed(2)}%)</span> Vol ${fmtVolume(bar.volume)}`;
+}
+
+function fmt(value) {
+  if (!Number.isFinite(value)) return '-';
+  return Math.abs(value) >= 1000 ? value.toFixed(2) : value.toPrecision(6).replace(/0+$/, '').replace(/\.$/, '');
+}
+
+function fmtVolume(value) {
+  if (!Number.isFinite(value)) return '-';
+  if (value >= 1000000000) return (value / 1000000000).toFixed(2) + 'B';
+  if (value >= 1000000) return (value / 1000000).toFixed(2) + 'M';
+  if (value >= 1000) return (value / 1000).toFixed(2) + 'K';
+  return String(value);
 }
 
 async function analyze() {
