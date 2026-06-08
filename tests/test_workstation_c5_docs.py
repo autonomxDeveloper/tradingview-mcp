@@ -73,6 +73,14 @@ def test_c5_status_note_tracks_validation_posture():
     assert "documentation and focused tests" in text
 
 
+def test_c5_status_note_tracks_next_connector_safe_move():
+    text = STATUS.read_text(encoding="utf-8")
+
+    assert "Next connector-safe move" in text
+    assert "small status, helper, or test refinements" in text
+    assert "allowed minimal connector change" in text
+
+
 def test_c5_local_route_composition_note_tracks_safe_path():
     text = LOCAL_ROUTE.read_text(encoding="utf-8")
 
