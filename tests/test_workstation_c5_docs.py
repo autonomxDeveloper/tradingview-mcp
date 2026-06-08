@@ -49,6 +49,15 @@ def test_c5_status_note_tracks_connector_safe_boundaries():
     assert "standalone helpers, docs, and focused tests" in text
 
 
+def test_c5_status_note_tracks_static_client_test_checkpoints():
+    text = STATUS.read_text(encoding="utf-8")
+
+    assert "PR #43" in text
+    assert "payload normalization" in text
+    assert "PR #46" in text
+    assert "endpoint string coverage" in text
+
+
 def test_c5_local_route_composition_note_tracks_safe_path():
     text = LOCAL_ROUTE.read_text(encoding="utf-8")
 
