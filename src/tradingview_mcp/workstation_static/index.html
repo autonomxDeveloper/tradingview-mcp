@@ -74,7 +74,8 @@
         <div id="chart"></div>
       </div>
       <div id="chartSlot2" class="chart-cell placeholder-chart-cell">
-        <div class="slot-card"><b>Slot 2</b><span id="slot2Label">Unassigned</span><input id="slot2Symbol" placeholder="symbol" /><input id="slot2Tf" placeholder="timeframe" /><button class="secondary" onclick="setChartSlot(2)">Set slot</button></div>
+        <div class="slot-card"><b>Slot 2</b><span id="slot2Label">Unassigned</span><input id="slot2Symbol" placeholder="symbol" /><input id="slot2Tf" placeholder="timeframe" /><button class="secondary" onclick="setChartSlot(2)">Set slot</button><span id="slot2Status">No chart loaded.</span></div>
+        <div id="slot2Chart" class="slot-chart"></div>
       </div>
       <div id="chartSlot3" class="chart-cell placeholder-chart-cell">
         <div class="slot-card"><b>Slot 3</b><span id="slot3Label">Unassigned</span><input id="slot3Symbol" placeholder="symbol" /><input id="slot3Tf" placeholder="timeframe" /><button class="secondary" onclick="setChartSlot(3)">Set slot</button></div>
@@ -201,5 +202,6 @@ setSymbolSync(false);
 setTimeframeSync(false);
 applyChartSlots({});
 </script>
+<script src="/static/slot2_chart.js"></script>
 </body>
 </html>
