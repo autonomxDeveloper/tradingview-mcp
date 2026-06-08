@@ -26,7 +26,30 @@ function normalizeSlotBars(payload) {
   })).filter((bar) => Number.isFinite(bar.open) && Number.isFinite(bar.high) && Number.isFinite(bar.low) && Number.isFinite(bar.close));
 }
 
+function ensureSecondarySlotShell(slot) {
+  const cell = document.getElementById(`chartSlot${slot}`);
+  if (!cell) return;
+  const card = cell.querySelector('.slot-card');
+  if (card && !document.getElementById(`slot${slot}Status`)) {
+    const status = document.createElement('span');
+    status.id = `slot${slot}Status`;
+    status.textContent = 'No chart loaded.';
+    card.appendChild(status);
+  }
+  if (!document.getElementById(`slot${slot}Chart`)) {
+    const panel = document.createElement('div');
+    panel.id = `slot${slot}Chart`;
+    panel.className = 'slot-chart';
+    cell.appendChild(panel);
+  }
+}
+
+function ensureSlotShells() {
+  [2, 3, 4].forEach((slot) => ensureSecondarySlotShell(slot));
+}
+
 function ensureSlotChart(slot) {
+  ensureSecondarySlotShell(slot);
   const panel = document.getElementById(`slot${slot}Chart`);
   if (!panel || slotCharts[slot]) return;
   slotCharts[slot] = LightweightCharts.createChart(panel, {
@@ -39,6 +62,7 @@ function ensureSlotChart(slot) {
 }
 
 async function renderSlotChart(slot) {
+  ensureSecondarySlotShell(slot);
   const state = (window.workstationChartSlots || {})[slot] || {};
   const symbol = (state.symbol || document.getElementById(`slot${slot}Symbol`)?.value || '').trim().toUpperCase();
   const timeframe = (state.timeframe || document.getElementById(`slot${slot}Tf`)?.value || '1D').trim() || '1D';
@@ -75,3 +99,5 @@ window.addEventListener('resize', () => {
     if (slotCharts[slot] && panel) slotCharts[slot].resize(panel.clientWidth, panel.clientHeight);
   });
 });
+
+ensureSlotShells();

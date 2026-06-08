@@ -133,6 +133,18 @@ def test_slot_chart_helper_is_generic():
     assert "[2, 3, 4]" in slot_js
 
 
+def test_slot_shell_injection_supports_secondary_slots():
+    client = TestClient(create_app())
+
+    slot_js = client.get("/static/slot2_chart.js").text
+
+    assert "ensureSecondarySlotShell" in slot_js
+    assert "ensureSlotShells" in slot_js
+    assert "slot${slot}Status" in slot_js
+    assert "slot${slot}Chart" in slot_js
+    assert "No chart loaded." in slot_js
+
+
 def test_layout_sync_controls_are_present():
     client = TestClient(create_app())
 
