@@ -12,6 +12,7 @@ This note records the current state of the local chart layout work after the C4 
 - PR #19: compact slot 2 chart rendering.
 - PR #21: shared compact slot chart helper foundation.
 - PR #23: runtime chart shells for slots 3 and 4.
+- PR #25: visible secondary slot summary.
 
 ## Current capabilities
 
@@ -21,7 +22,8 @@ This note records the current state of the local chart layout work after the C4 
 - Slot 2 can render a compact chart using the stored slot 2 symbol and timeframe.
 - The compact slot helper supports slots 2 through 4 internally.
 - Slots 3 and 4 get status labels and compact chart containers at runtime.
-- Static asset tests cover the visible controls, helper files, runtime shell injection, and shim functions.
+- The layout toolbar now shows a secondary slot summary for slots 2 through 4.
+- Static asset tests cover the visible controls, helper files, runtime shell injection, summary helpers, and shim functions.
 
 ## Remaining C4 work
 
@@ -30,4 +32,4 @@ This note records the current state of the local chart layout work after the C4 
 
 ## Next recommended slice
 
-Add a visible slot readiness/status summary near the layout controls so users can see which secondary slots are assigned and ready without opening each grid cell.
+Add a lightweight browser-test plan or manual QA checklist for C4 slot interactions, covering layout modes, secondary slot assignments, saved layout restore, and secondary chart rendering.
