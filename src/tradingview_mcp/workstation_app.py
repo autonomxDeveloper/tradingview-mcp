@@ -6,12 +6,14 @@ from __future__ import annotations
 
 import argparse
 import os
+from pathlib import Path
 from typing import Any, Literal
 
 import requests
 import uvicorn
 from fastapi import FastAPI, Query
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from tradingview_mcp.core.services.alpaca_service import (
@@ -51,6 +53,8 @@ from tradingview_mcp.core.utils.validators import normalize_yahoo_symbol, saniti
 
 
 DEFAULT_WATCHLIST = ["AAPL", "NVDA", "TSLA", "SPY", "QQQ", "BTCUSDT", "ETHUSDT", "SOLUSDT"]
+STATIC_DIR = Path(__file__).with_name("workstation_static")
+INDEX_FILE = STATIC_DIR / "index.html"
 
 
 class AnalyzeRequest(BaseModel):
@@ -149,11 +153,12 @@ def _stock_yahoo_symbol(symbol: str) -> str:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Autonomx Trading Research Workstation", version="1.2.0")
+    app = FastAPI(title="Autonomx Trading Research Workstation", version="1.3.0")
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="workstation-static")
 
-    @app.get("/", response_class=HTMLResponse)
-    def index() -> str:
-        return INDEX_HTML
+    @app.get("/")
+    def index() -> FileResponse:
+        return FileResponse(INDEX_FILE)
 
     @app.get("/api/health")
     def health() -> dict[str, Any]:
@@ -167,6 +172,7 @@ def create_app() -> FastAPI:
             "workstation": workstation_status(),
             "ideas": idea_registry_status(),
             "backtests": backtest_registry_status(),
+            "static_dir": str(STATIC_DIR),
         }
 
     @app.get("/api/watchlist")
@@ -307,9 +313,6 @@ def create_app() -> FastAPI:
         return {"events": read_journal_events(limit)}
 
     return app
-
-
-INDEX_HTML = """<!doctype html><html><head><meta charset='utf-8' /><meta name='viewport' content='width=device-width, initial-scale=1' /><title>Autonomx Trading Research Workstation</title><script src='https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js'></script><style>body{margin:0;background:#0b1020;color:#e5e7eb;font-family:system-ui,Segoe UI,sans-serif}header{padding:10px 14px;border-bottom:1px solid #263044;background:#080d18;display:flex;justify-content:space-between}main{display:grid;grid-template-columns:210px 1fr 430px;height:calc(100vh - 43px)}aside,section{border-right:1px solid #263044;min-width:0;overflow:auto}aside{padding:12px;background:#111827}.center{display:grid;grid-template-rows:auto 1fr 210px}.right{display:grid;grid-template-rows:auto 1fr;border-right:0}.bar{display:flex;gap:8px;flex-wrap:wrap;padding:10px;background:#131c2f;border-bottom:1px solid #263044}input,select,textarea,button{background:#0b1220;color:#e5e7eb;border:1px solid #334155;border-radius:7px;padding:7px;font:inherit}button{background:#1d4ed8;cursor:pointer;font-weight:600}button.secondary{background:#111827}.watch button{display:block;width:100%;text-align:left;margin:0 0 6px;background:#0b1220}.watch button.active{border-color:#60a5fa}#chart{height:100%;width:100%}.bottom,.panel{padding:10px;background:#080d18;border-top:1px solid #263044}.right .panel{border-top:0;border-bottom:1px solid #263044;background:#131c2f}textarea{width:100%;min-height:80px}.tabs{display:flex;gap:6px;margin-bottom:8px}.tabs button{font-size:12px}pre{white-space:pre-wrap;word-break:break-word;margin:0;font-size:12px;line-height:1.45}.muted{color:#94a3b8;font-size:12px}.label{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin:10px 0 6px}</style></head><body><header><b>Autonomx Trading Research Workstation</b><span id='status' class='muted'>loading...</span></header><main><aside><div class='label'>Watchlist</div><div class='watch' id='watch'></div><div class='label'>Status</div><pre id='risk'></pre></aside><section class='center'><div class='bar'><input id='symbol' value='AAPL'><select id='asset'><option>auto</option><option>stock</option><option>crypto</option></select><input id='exchange' value='NASDAQ'><select id='tf'><option>1m</option><option>5m</option><option>15m</option><option>1h</option><option selected>1D</option><option>1W</option></select><button onclick='loadMarket()'>Load</button><button class='secondary' onclick='analyze()'>AI analyze</button></div><div id='chart'></div><div class='bottom'><div class='tabs'><button onclick='showPayload()'>Payload</button><button onclick='runBacktest()'>Backtest</button><button onclick='compareStrategies()'>Compare</button><button onclick='loadBacktests()'>Backtests</button><button onclick='saveIdea()'>Save idea</button><button onclick='loadIdeas()'>Ideas</button><button onclick='loadJournal()'>Journal</button></div><pre id='output'>Ready.</pre></div></section><section class='right'><div class='panel'><div class='label'>AI question</div><textarea id='question'>Give observations, risks, invalidation levels, and what to backtest next. Do not recommend taking a position.</textarea><button onclick='analyze()'>Analyze current symbol</button><div class='label'>Research idea</div><input id='hypothesis' style='width:100%' placeholder='Hypothesis'><input id='invalidation' style='width:100%;margin-top:6px' placeholder='Invalidation'><input id='backtestPlan' style='width:100%;margin-top:6px' placeholder='Backtest plan'><input id='ideaId' style='width:100%;margin-top:6px' placeholder='Optional idea ID for backtest link'><div class='label'>Backtest</div><select id='strategy'><option>ema_cross</option><option>rsi</option><option>bollinger</option><option>macd</option><option>supertrend</option><option>donchian</option><option>rsi_pullback</option><option>keltner_breakout</option><option>triple_ema</option></select><select id='period'><option>1mo</option><option>3mo</option><option>6mo</option><option selected>1y</option><option>2y</option></select></div><div class='panel' style='overflow:auto'><div class='label'>AI / results</div><pre id='analysis'>Start LM Studio and use Analyze.</pre></div></section></main><script>let chart,candles,volume,lastPayload=null;function $(id){return document.getElementById(id)}async function api(url,opts={}){const r=await fetch(url,opts);if(!r.ok)throw new Error(r.status+' '+r.statusText);return r.json()}function post(url,body){return api(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})}function print(x,target='output'){$(target).textContent=typeof x==='string'?x:JSON.stringify(x,null,2)}function initChart(){chart=LightweightCharts.createChart($('chart'),{layout:{background:{color:'#0b1020'},textColor:'#d1d5db'},grid:{vertLines:{color:'#1f2937'},horzLines:{color:'#1f2937'}}});candles=chart.addCandlestickSeries();volume=chart.addHistogramSeries({priceFormat:{type:'volume'},priceScaleId:''});volume.priceScale().applyOptions({scaleMargins:{top:.82,bottom:0}});window.onresize=()=>chart.resize($('chart').clientWidth,$('chart').clientHeight)}async function boot(){initChart();const h=await api('/api/health');$('status').textContent='LM Studio '+h.lmstudio_base_url;print({workstation:h.workstation,ideas:h.ideas,backtests:h.backtests},'risk');const w=await api('/api/watchlist');$('watch').innerHTML='';w.symbols.forEach(s=>{const b=document.createElement('button');b.textContent=s;b.onclick=()=>{$('symbol').value=s;if(s.includes('USDT')){$('asset').value='crypto';$('exchange').value='BINANCE'}else{$('asset').value='stock';$('exchange').value='NASDAQ'}loadMarket()};$('watch').appendChild(b)});loadMarket()}function activeIsCrypto(){const s=$('symbol').value.toUpperCase();return $('asset').value==='crypto'||s.endsWith('USDT')||s.endsWith('-USD')}async function loadMarket(){const s=$('symbol').value.trim(),tf=$('tf').value;if(activeIsCrypto()){lastPayload=await api(`/api/crypto/candles?symbol=${encodeURIComponent(s)}&venue=binance&interval=${encodeURIComponent(tf.toLowerCase())}&limit=300`);const bars=(lastPayload.bars||[]).map(b=>({time:b.open_time?Math.floor(b.open_time/1000):b.time,open:+b.open,high:+b.high,low:+b.low,close:+b.close,volume:+b.volume}));candles.setData(bars);volume.setData(bars.map(b=>({time:b.time,value:b.volume})))}else{lastPayload=await api(`/api/stock/yahoo-chart?symbol=${encodeURIComponent(s)}&timeframe=${encodeURIComponent(tf)}&limit=300`);let bars=(lastPayload.candles||[]).map(b=>({time:b.time,open:+b.open,high:+b.high,low:+b.low,close:+b.close,volume:+b.volume}));candles.setData(bars);volume.setData(bars.map(b=>({time:b.time,value:b.volume})))}chart.timeScale().fitContent();print(lastPayload)}async function analyze(){print('Analyzing...','analysis');const res=await post('/api/ai/analyze',{symbol:$('symbol').value,asset_type:$('asset').value,exchange:$('exchange').value,timeframe:$('tf').value,question:$('question').value});print(res.analysis?.content||res,'analysis')}async function runBacktest(){const res=await post('/api/backtest/run',{symbol:$('symbol').value,strategy:$('strategy').value,period:$('period').value,include_trade_log:true,include_equity_curve:true,idea_id:$('ideaId').value||null});print(res)}async function compareStrategies(){print(await api(`/api/backtest/compare?symbol=${encodeURIComponent($('symbol').value)}&period=${$('period').value}`))}async function loadBacktests(){print(await api(`/api/backtests?symbol=${encodeURIComponent($('symbol').value)}&limit=100`))}async function saveIdea(){const body={symbol:$('symbol').value,asset_type:activeIsCrypto()?'crypto':'stock',timeframe:$('tf').value,bias:'unknown',hypothesis:$('hypothesis').value,invalidation:$('invalidation').value,backtest_plan:$('backtestPlan').value,source:'workstation'};print(await post('/api/ideas',body))}async function loadIdeas(){print(await api('/api/ideas?limit=100'))}function showPayload(){print(lastPayload||'No payload')}async function loadJournal(){print(await api('/api/journal?limit=100'))}boot().catch(e=>print(e.message))</script></body></html>"""
 
 
 app = create_app()
