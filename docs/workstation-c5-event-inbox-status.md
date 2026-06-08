@@ -8,6 +8,8 @@ This note tracks the research-only local event inbox foundation.
 - PR #29: create/list/status helpers.
 - PR #29: focused unit tests for local event creation, symbol filtering, and status metadata.
 - PR #31: reusable FastAPI route registration helper with route smoke tests.
+- PR #33: documented connector-side direct app inclusion blockers and preserved the status note with doc tests.
+- PR #34: added a separate composable app factory that registers the event routes on the workstation app without editing the main app file, plus smoke tests for status, create, and list flows.
 
 ## Current scope
 
@@ -16,6 +18,7 @@ This note tracks the research-only local event inbox foundation.
 - Events include source, symbol, timeframe, kind, message, metadata, id, and timestamp.
 - The storage path can be overridden with `TRADING_WORKSTATION_EVENT_INBOX`.
 - The route helper exposes create, list, and status endpoints when registered on an app.
+- `create_event_enabled_app()` composes the workstation app with the route helper for smoke coverage and local validation.
 
 ## Deferred follow-up
 
@@ -25,4 +28,4 @@ This note tracks the research-only local event inbox foundation.
 
 ## Next recommended slice
 
-Add UI-side event inbox read/create controls against the reusable route contract once the workstation app hook can be landed, or perform the app hook locally outside the connector path and submit it separately.
+Add UI-side event inbox read/create controls against the reusable route contract once the workstation app hook can be landed, or perform the app hook locally outside the connector path and submit it separately. Until then, use the composable app factory as the safest connector-landed validation path for event route behavior.
