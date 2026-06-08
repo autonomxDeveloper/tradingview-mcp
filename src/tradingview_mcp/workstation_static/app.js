@@ -79,27 +79,9 @@ function chartOptions() {
   };
 }
 
-function ensureRsiChart() {
-  if (rsiChart) return;
-  rsiChart = LightweightCharts.createChart($('rsiChart'), chartOptions());
-  rsiSeries = rsiChart.addLineSeries({ lineWidth: 2, lastValueVisible: true, priceLineVisible: false });
-  rsiTopLine = rsiChart.addLineSeries({ lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
-  rsiBottomLine = rsiChart.addLineSeries({ lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
-}
-
-function ensureMacdChart() {
-  if (macdChart) return;
-  macdChart = LightweightCharts.createChart($('macdChart'), chartOptions());
-  macdHistogram = macdChart.addHistogramSeries({ priceLineVisible: false, lastValueVisible: false });
-  macdSeries = macdChart.addLineSeries({ lineWidth: 2, lastValueVisible: true, priceLineVisible: false });
-  macdSignalSeries = macdChart.addLineSeries({ lineWidth: 1, lastValueVisible: true, priceLineVisible: false });
-}
-
-function ensureAtrChart() {
-  if (atrChart) return;
-  atrChart = LightweightCharts.createChart($('atrChart'), chartOptions());
-  atrSeries = atrChart.addLineSeries({ lineWidth: 2, lastValueVisible: true, priceLineVisible: false });
-}
+function ensureRsiChart() { if (rsiChart) return; rsiChart = LightweightCharts.createChart($('rsiChart'), chartOptions()); rsiSeries = rsiChart.addLineSeries({ lineWidth: 2, lastValueVisible: true, priceLineVisible: false }); rsiTopLine = rsiChart.addLineSeries({ lineWidth: 1, lastValueVisible: false, priceLineVisible: false }); rsiBottomLine = rsiChart.addLineSeries({ lineWidth: 1, lastValueVisible: false, priceLineVisible: false }); }
+function ensureMacdChart() { if (macdChart) return; macdChart = LightweightCharts.createChart($('macdChart'), chartOptions()); macdHistogram = macdChart.addHistogramSeries({ priceLineVisible: false, lastValueVisible: false }); macdSeries = macdChart.addLineSeries({ lineWidth: 2, lastValueVisible: true, priceLineVisible: false }); macdSignalSeries = macdChart.addLineSeries({ lineWidth: 1, lastValueVisible: true, priceLineVisible: false }); }
+function ensureAtrChart() { if (atrChart) return; atrChart = LightweightCharts.createChart($('atrChart'), chartOptions()); atrSeries = atrChart.addLineSeries({ lineWidth: 2, lastValueVisible: true, priceLineVisible: false }); }
 
 async function boot() {
   initChart();
@@ -122,14 +104,8 @@ async function boot() {
   loadMarket();
 }
 
-function activeIsCrypto() {
-  const symbol = $('symbol').value.toUpperCase();
-  return $('asset').value === 'crypto' || symbol.endsWith('USDT') || symbol.endsWith('-USD');
-}
-
-function normalizeBars(rawBars) {
-  return rawBars.filter((bar) => Number.isFinite(bar.open) && Number.isFinite(bar.high) && Number.isFinite(bar.low) && Number.isFinite(bar.close));
-}
+function activeIsCrypto() { const symbol = $('symbol').value.toUpperCase(); return $('asset').value === 'crypto' || symbol.endsWith('USDT') || symbol.endsWith('-USD'); }
+function normalizeBars(rawBars) { return rawBars.filter((bar) => Number.isFinite(bar.open) && Number.isFinite(bar.high) && Number.isFinite(bar.low) && Number.isFinite(bar.close)); }
 
 async function loadMarket() {
   const symbol = $('symbol').value.trim();
@@ -152,99 +128,18 @@ async function loadMarket() {
   print(lastPayload);
 }
 
-function renderChartSeries() {
-  candles.setData(currentBars.map((bar) => ({ time: bar.time, open: bar.open, high: bar.high, low: bar.low, close: bar.close })));
-  volume.setData(currentBars.map((bar) => ({ time: bar.time, value: bar.volume })));
-  applyOverlayData();
-}
-
-function movingAverage(period) {
-  const points = [];
-  let sum = 0;
-  currentBars.forEach((bar, index) => {
-    sum += bar.close;
-    if (index >= period) sum -= currentBars[index - period].close;
-    if (index >= period - 1) points.push({ time: bar.time, value: +(sum / period).toFixed(6) });
-  });
-  return points;
-}
-
-function exponentialMovingAverage(period) {
-  const points = [];
-  const k = 2 / (period + 1);
-  let ema = null;
-  currentBars.forEach((bar, index) => {
-    ema = ema === null ? bar.close : bar.close * k + ema * (1 - k);
-    if (index >= period - 1) points.push({ time: bar.time, value: +ema.toFixed(6) });
-  });
-  return points;
-}
-
-function emaSeries(values, period) {
-  const result = [];
-  const k = 2 / (period + 1);
-  let ema = null;
-  values.forEach((point, index) => {
-    ema = ema === null ? point.value : point.value * k + ema * (1 - k);
-    if (index >= period - 1) result.push({ time: point.time, value: +ema.toFixed(6) });
-  });
-  return result;
-}
-
-function relativeStrengthIndex(period = 14) {
-  const points = [];
-  if (currentBars.length <= period) return points;
-  let gain = 0, loss = 0;
-  for (let i = 1; i <= period; i += 1) {
-    const change = currentBars[i].close - currentBars[i - 1].close;
-    if (change >= 0) gain += change;
-    else loss -= change;
-  }
-  let avgGain = gain / period, avgLoss = loss / period;
-  for (let i = period + 1; i < currentBars.length; i += 1) {
-    const change = currentBars[i].close - currentBars[i - 1].close;
-    avgGain = (avgGain * (period - 1) + Math.max(change, 0)) / period;
-    avgLoss = (avgLoss * (period - 1) + Math.max(-change, 0)) / period;
-    const value = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
-    points.push({ time: currentBars[i].time, value: +value.toFixed(4) });
-  }
-  return points;
-}
-
-function macdValues() {
-  const closes = currentBars.map((bar) => ({ time: bar.time, value: bar.close }));
-  const fast = emaSeries(closes, 12);
-  const slow = emaSeries(closes, 26);
-  const slowByTime = new Map(slow.map((point) => [point.time, point.value]));
-  const macd = fast.filter((point) => slowByTime.has(point.time)).map((point) => ({ time: point.time, value: +(point.value - slowByTime.get(point.time)).toFixed(6) }));
-  const signal = emaSeries(macd, 9);
-  const signalByTime = new Map(signal.map((point) => [point.time, point.value]));
-  const histogram = macd.filter((point) => signalByTime.has(point.time)).map((point) => ({ time: point.time, value: +(point.value - signalByTime.get(point.time)).toFixed(6) }));
-  return { macd, signal, histogram };
-}
-
-function averageTrueRange(period = 14) {
-  const points = [];
-  if (currentBars.length <= period) return points;
-  const ranges = [];
-  for (let i = 1; i < currentBars.length; i += 1) {
-    const bar = currentBars[i];
-    const previous = currentBars[i - 1];
-    ranges.push({ time: bar.time, value: Math.max(bar.high - bar.low, Math.abs(bar.high - previous.close), Math.abs(bar.low - previous.close)) });
-  }
-  let atr = ranges.slice(0, period).reduce((sum, point) => sum + point.value, 0) / period;
-  for (let i = period; i < ranges.length; i += 1) {
-    atr = (atr * (period - 1) + ranges[i].value) / period;
-    points.push({ time: ranges[i].time, value: +atr.toFixed(6) });
-  }
-  return points;
-}
+function renderChartSeries() { candles.setData(currentBars.map((bar) => ({ time: bar.time, open: bar.open, high: bar.high, low: bar.low, close: bar.close }))); volume.setData(currentBars.map((bar) => ({ time: bar.time, value: bar.volume }))); applyOverlayData(); }
+function movingAverage(period) { const points = []; let sum = 0; currentBars.forEach((bar, index) => { sum += bar.close; if (index >= period) sum -= currentBars[index - period].close; if (index >= period - 1) points.push({ time: bar.time, value: +(sum / period).toFixed(6) }); }); return points; }
+function exponentialMovingAverage(period) { const points = []; const k = 2 / (period + 1); let ema = null; currentBars.forEach((bar, index) => { ema = ema === null ? bar.close : bar.close * k + ema * (1 - k); if (index >= period - 1) points.push({ time: bar.time, value: +ema.toFixed(6) }); }); return points; }
+function emaSeries(values, period) { const result = []; const k = 2 / (period + 1); let ema = null; values.forEach((point, index) => { ema = ema === null ? point.value : point.value * k + ema * (1 - k); if (index >= period - 1) result.push({ time: point.time, value: +ema.toFixed(6) }); }); return result; }
+function relativeStrengthIndex(period = 14) { const points = []; if (currentBars.length <= period) return points; let gain = 0, loss = 0; for (let i = 1; i <= period; i += 1) { const change = currentBars[i].close - currentBars[i - 1].close; if (change >= 0) gain += change; else loss -= change; } let avgGain = gain / period, avgLoss = loss / period; for (let i = period + 1; i < currentBars.length; i += 1) { const change = currentBars[i].close - currentBars[i - 1].close; avgGain = (avgGain * (period - 1) + Math.max(change, 0)) / period; avgLoss = (avgLoss * (period - 1) + Math.max(-change, 0)) / period; const value = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss); points.push({ time: currentBars[i].time, value: +value.toFixed(4) }); } return points; }
+function macdValues() { const closes = currentBars.map((bar) => ({ time: bar.time, value: bar.close })); const fast = emaSeries(closes, 12); const slow = emaSeries(closes, 26); const slowByTime = new Map(slow.map((point) => [point.time, point.value])); const macd = fast.filter((point) => slowByTime.has(point.time)).map((point) => ({ time: point.time, value: +(point.value - slowByTime.get(point.time)).toFixed(6) })); const signal = emaSeries(macd, 9); const signalByTime = new Map(signal.map((point) => [point.time, point.value])); const histogram = macd.filter((point) => signalByTime.has(point.time)).map((point) => ({ time: point.time, value: +(point.value - signalByTime.get(point.time)).toFixed(6) })); return { macd, signal, histogram }; }
+function averageTrueRange(period = 14) { const points = []; if (currentBars.length <= period) return points; const ranges = []; for (let i = 1; i < currentBars.length; i += 1) { const bar = currentBars[i]; const previous = currentBars[i - 1]; ranges.push({ time: bar.time, value: Math.max(bar.high - bar.low, Math.abs(bar.high - previous.close), Math.abs(bar.low - previous.close)) }); } let atr = ranges.slice(0, period).reduce((sum, point) => sum + point.value, 0) / period; for (let i = period; i < ranges.length; i += 1) { atr = (atr * (period - 1) + ranges[i].value) / period; points.push({ time: ranges[i].time, value: +atr.toFixed(6) }); } return points; }
 
 function toggleRsiPane() { rsiVisible = !rsiVisible; setPaneVisibility('rsiWrap', rsiVisible); if (rsiVisible) { ensureRsiChart(); renderRsiPane(); rsiChart.resize($('rsiChart').clientWidth, $('rsiChart').clientHeight); rsiChart.timeScale().fitContent(); } }
 function toggleMacdPane() { macdVisible = !macdVisible; setPaneVisibility('macdWrap', macdVisible); if (macdVisible) { ensureMacdChart(); renderMacdPane(); macdChart.resize($('macdChart').clientWidth, $('macdChart').clientHeight); macdChart.timeScale().fitContent(); } }
 function toggleAtrPane() { atrVisible = !atrVisible; setPaneVisibility('atrWrap', atrVisible); if (atrVisible) { ensureAtrChart(); renderAtrPane(); atrChart.resize($('atrChart').clientWidth, $('atrChart').clientHeight); atrChart.timeScale().fitContent(); } }
 function setPaneVisibility(id, visible) { const pane = $(id); if (pane) pane.style.display = visible ? 'block' : 'none'; }
-
 function renderRsiPane() { if (!rsiVisible) return; ensureRsiChart(); const values = relativeStrengthIndex(14); const last = values[values.length - 1]; rsiSeries.setData(values); rsiTopLine.setData(values.map((point) => ({ time: point.time, value: 70 }))); rsiBottomLine.setData(values.map((point) => ({ time: point.time, value: 30 }))); $('rsiLegend').textContent = last ? `RSI 14 ${last.value.toFixed(2)}` : 'RSI 14'; }
 function renderMacdPane() { if (!macdVisible) return; ensureMacdChart(); const values = macdValues(); const lastMacd = values.macd[values.macd.length - 1]; const lastSignal = values.signal[values.signal.length - 1]; macdSeries.setData(values.macd); macdSignalSeries.setData(values.signal); macdHistogram.setData(values.histogram); $('macdLegend').textContent = lastMacd && lastSignal ? `MACD ${lastMacd.value.toFixed(4)} Signal ${lastSignal.value.toFixed(4)}` : 'MACD 12 26 9'; }
 function renderAtrPane() { if (!atrVisible) return; ensureAtrChart(); const values = averageTrueRange(14); const last = values[values.length - 1]; atrSeries.setData(values); $('atrLegend').textContent = last ? `ATR 14 ${last.value.toFixed(4)}` : 'ATR 14'; }
@@ -269,7 +164,6 @@ function restoreDrawings() { try { const loaded = JSON.parse(localStorage.getIte
 function renderDrawings() { renderLevels(); renderHtmlDrawings(); }
 function renderLevels() { priceLineHandles.forEach((handle) => candles.removePriceLine(handle)); priceLineHandles = []; drawings.levels.forEach((level) => { const handle = candles.createPriceLine({ price: level.price, color: levelColor(level.kind), lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: level.label }); priceLineHandles.push(handle); }); }
 function renderHtmlDrawings() { renderZones(); renderGuides(); renderNotes(); }
-
 function renderZones() { const overlay = $('zonesOverlay'); if (!overlay || !chart || !candles) return; overlay.innerHTML = ''; drawings.zones.forEach((zone) => { const x1 = chart.timeScale().timeToCoordinate(zone.startTime), x2 = chart.timeScale().timeToCoordinate(zone.endTime), yHigh = candles.priceToCoordinate(zone.high), yLow = candles.priceToCoordinate(zone.low); if (x1 === null || x2 === null || yHigh === null || yLow === null) return; const el = document.createElement('div'); el.className = `chart-zone ${zone.kind || 'zone'}`; el.style.left = `${Math.max(0, Math.min(x1, x2))}px`; el.style.top = `${Math.max(0, Math.min(yHigh, yLow))}px`; el.style.width = `${Math.max(8, Math.abs(x2 - x1))}px`; el.style.height = `${Math.max(6, Math.abs(yLow - yHigh))}px`; const label = document.createElement('div'); label.className = 'chart-zone-label'; label.textContent = zone.label || zone.kind || 'zone'; el.appendChild(label); overlay.appendChild(el); }); }
 function guideColor(kind) { if (kind === 'support') return '#22c55e'; if (kind === 'resistance') return '#ef4444'; return '#60a5fa'; }
 function renderGuides() { const overlay = $('guidesOverlay'); if (!overlay || !chart || !candles) return; overlay.setAttribute('width', String($('chartWrap').clientWidth)); overlay.setAttribute('height', String($('chartWrap').clientHeight)); overlay.style.position = 'absolute'; overlay.style.inset = '0'; overlay.style.pointerEvents = 'none'; overlay.style.zIndex = '4'; overlay.innerHTML = ''; drawings.guides.forEach((guide) => { const x1 = chart.timeScale().timeToCoordinate(guide.startTime), x2 = chart.timeScale().timeToCoordinate(guide.endTime), y1 = candles.priceToCoordinate(guide.startPrice), y2 = candles.priceToCoordinate(guide.endPrice); if (x1 === null || x2 === null || y1 === null || y2 === null) return; const path = document.createElementNS('http://www.w3.org/2000/svg', 'line'); path.setAttribute('x1', String(x1)); path.setAttribute('y1', String(y1)); path.setAttribute('x2', String(x2)); path.setAttribute('y2', String(y2)); path.setAttribute('stroke', guideColor(guide.kind)); path.setAttribute('stroke-width', '2'); overlay.appendChild(path); const label = document.createElementNS('http://www.w3.org/2000/svg', 'text'); label.setAttribute('x', String((x1 + x2) / 2)); label.setAttribute('y', String((y1 + y2) / 2 - 5)); label.setAttribute('fill', '#e5e7eb'); label.setAttribute('font-size', '11'); label.textContent = guide.label || guide.kind || 'guide'; overlay.appendChild(label); }); }
@@ -284,11 +178,17 @@ function updateLegend(param) { if (!currentBars.length) { $('legend').textConten
 function fmt(value) { if (!Number.isFinite(value)) return '-'; return Math.abs(value) >= 1000 ? value.toFixed(2) : value.toPrecision(6).replace(/0+$/, '').replace(/\.$/, ''); }
 function fmtVolume(value) { if (!Number.isFinite(value)) return '-'; if (value >= 1000000000) return (value / 1000000000).toFixed(2) + 'B'; if (value >= 1000000) return (value / 1000000).toFixed(2) + 'M'; if (value >= 1000) return (value / 1000).toFixed(2) + 'K'; return String(value); }
 
+function layoutCatalogKey() { return 'workstation-layouts'; }
 function layoutStorageKey(name) { return `workstation-layout:${(name || 'default').trim() || 'default'}`; }
 function currentLayoutName() { return ($('layoutName')?.value || 'default').trim() || 'default'; }
+function readLayoutCatalog() { try { return JSON.parse(localStorage.getItem(layoutCatalogKey()) || '[]').filter(Boolean); } catch (_) { return []; } }
+function writeLayoutCatalog(names) { localStorage.setItem(layoutCatalogKey(), JSON.stringify([...new Set(names)].sort())); }
+function rememberLayoutName(name) { const names = readLayoutCatalog(); if (!names.includes(name)) writeLayoutCatalog([...names, name]); }
 function currentLayoutState() { return { symbol: $('symbol').value, asset: $('asset').value, exchange: $('exchange').value, timeframe: $('tf').value, volumeVisible, rsiVisible, macdVisible, atrVisible, overlayState: { ...overlayState } }; }
-function saveLayout() { const name = currentLayoutName(); localStorage.setItem(layoutStorageKey(name), JSON.stringify(currentLayoutState())); print(`Layout saved: ${name}`); }
+function saveLayout() { const name = currentLayoutName(); localStorage.setItem(layoutStorageKey(name), JSON.stringify(currentLayoutState())); rememberLayoutName(name); print(`Layout saved: ${name}`); }
 async function loadLayout() { const name = currentLayoutName(); const raw = localStorage.getItem(layoutStorageKey(name)); if (!raw) { print(`No saved layout named: ${name}`); return; } try { const state = JSON.parse(raw); applyLayoutState(state); print(`Layout loaded: ${name}`); } catch (error) { print(`Could not load layout: ${error.message}`); } }
+function listLayouts() { const names = readLayoutCatalog(); print(names.length ? { layouts: names } : 'No saved layouts.'); }
+function deleteLayout() { const name = currentLayoutName(); localStorage.removeItem(layoutStorageKey(name)); writeLayoutCatalog(readLayoutCatalog().filter((item) => item !== name)); print(`Layout deleted: ${name}`); }
 function resetLayout() { overlayState = { sma20: false, sma50: false, ema21: false }; volumeVisible = true; rsiVisible = false; macdVisible = false; atrVisible = false; setPaneVisibility('rsiWrap', false); setPaneVisibility('macdWrap', false); setPaneVisibility('atrWrap', false); if (volume) volume.applyOptions({ visible: true }); applyOverlayData(); print('Layout reset.'); }
 function applyLayoutState(state) { if (state.symbol) $('symbol').value = state.symbol; if (state.asset) $('asset').value = state.asset; if (state.exchange) $('exchange').value = state.exchange; if (state.timeframe) $('tf').value = state.timeframe; overlayState = { sma20: false, sma50: false, ema21: false, ...(state.overlayState || {}) }; volumeVisible = state.volumeVisible !== false; rsiVisible = !!state.rsiVisible; macdVisible = !!state.macdVisible; atrVisible = !!state.atrVisible; setPaneVisibility('rsiWrap', rsiVisible); setPaneVisibility('macdWrap', macdVisible); setPaneVisibility('atrWrap', atrVisible); if (volume) volume.applyOptions({ visible: volumeVisible }); loadMarket(); }
 

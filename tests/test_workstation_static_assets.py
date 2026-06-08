@@ -72,6 +72,21 @@ def test_layout_controls_are_present():
     assert "applyLayoutState" in js
 
 
+def test_layout_catalog_controls_are_present():
+    client = TestClient(create_app())
+
+    html = client.get("/").text
+    js = client.get("/static/app.js").text
+
+    assert "List layouts" in html
+    assert "Delete layout" in html
+    assert "listLayouts" in js
+    assert "deleteLayout" in js
+    assert "readLayoutCatalog" in js
+    assert "writeLayoutCatalog" in js
+    assert "rememberLayoutName" in js
+
+
 def test_rsi_indicator_pane_controls_are_present():
     client = TestClient(create_app())
 
