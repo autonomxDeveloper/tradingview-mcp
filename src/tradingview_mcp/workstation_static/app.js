@@ -3,7 +3,7 @@ let currentBars = [];
 let volumeVisible = true;
 let overlaySeries = {};
 let overlayState = { sma20: false, sma50: false, ema21: false };
-let drawings = { levels: [], notes: [] };
+let drawings = { levels: [], notes: [], zones: [] };
 let priceLineHandles = [];
 
 function $(id) { return document.getElementById(id); }
@@ -36,7 +36,7 @@ function initChart() {
   chart.subscribeCrosshairMove((param) => updateLegend(param));
   window.onresize = () => {
     chart.resize($('chart').clientWidth, $('chart').clientHeight);
-    renderNotes();
+    renderHtmlDrawings();
   };
 }
 
@@ -170,12 +170,12 @@ function drawingStorageKey() {
 }
 
 function emptyDrawings() {
-  return { levels: [], notes: [] };
+  return { levels: [], notes: [], zones: [] };
 }
 
 function levelColor(kind) {
-  if (kind === 'support') return '#22c55e';
-  if (kind === 'resistance') return '#ef4444';
+  if (kind === 'support' || kind === 'demand') return '#22c55e';
+  if (kind === 'resistance' || kind === 'supply') return '#ef4444';
   if (kind === 'alert') return '#f59e0b';
   return '#60a5fa';
 }
@@ -216,6 +216,23 @@ function addNoteAtLastClose() {
   renderDrawings();
 }
 
+function addZoneFromInput() {
+  if (!currentBars.length) return;
+  const low = Number($('zoneLow').value);
+  const high = Number($('zoneHigh').value);
+  if (!Number.isFinite(low) || !Number.isFinite(high) || low <= 0 || high <= 0 || low === high) {
+    print('Enter two positive, different zone prices.');
+    return;
+  }
+  const last = currentBars[currentBars.length - 1];
+  const visibleStart = currentBars[Math.max(0, currentBars.length - 60)] || currentBars[0];
+  const kind = $('zoneKind').value || 'zone';
+  const label = ($('zoneLabel').value || kind).trim() || kind;
+  drawings.zones.push({ startTime: visibleStart.time, endTime: last.time, low: Math.min(low, high), high: Math.max(low, high), label, kind });
+  persistDrawings();
+  renderDrawings();
+}
+
 function persistDrawings() {
   localStorage.setItem(drawingStorageKey(), JSON.stringify(drawings));
 }
@@ -224,7 +241,7 @@ function restoreDrawings() {
   try {
     const loaded = JSON.parse(localStorage.getItem(drawingStorageKey()) || 'null');
     if (Array.isArray(loaded)) {
-      drawings = { levels: loaded, notes: [] };
+      drawings = { levels: loaded, notes: [], zones: [] };
     } else {
       drawings = { ...emptyDrawings(), ...(loaded || {}) };
     }
@@ -236,7 +253,7 @@ function restoreDrawings() {
 
 function renderDrawings() {
   renderLevels();
-  renderNotes();
+  renderHtmlDrawings();
 }
 
 function renderLevels() {
@@ -252,6 +269,39 @@ function renderLevels() {
       title: level.label,
     });
     priceLineHandles.push(handle);
+  });
+}
+
+function renderHtmlDrawings() {
+  renderZones();
+  renderNotes();
+}
+
+function renderZones() {
+  const overlay = $('zonesOverlay');
+  if (!overlay || !chart || !candles) return;
+  overlay.innerHTML = '';
+  drawings.zones.forEach((zone) => {
+    const x1 = chart.timeScale().timeToCoordinate(zone.startTime);
+    const x2 = chart.timeScale().timeToCoordinate(zone.endTime);
+    const yHigh = candles.priceToCoordinate(zone.high);
+    const yLow = candles.priceToCoordinate(zone.low);
+    if (x1 === null || x2 === null || yHigh === null || yLow === null) return;
+    const left = Math.max(0, Math.min(x1, x2));
+    const width = Math.max(8, Math.abs(x2 - x1));
+    const top = Math.max(0, Math.min(yHigh, yLow));
+    const height = Math.max(6, Math.abs(yLow - yHigh));
+    const el = document.createElement('div');
+    el.className = `chart-zone ${zone.kind || 'zone'}`;
+    el.style.left = `${left}px`;
+    el.style.top = `${top}px`;
+    el.style.width = `${width}px`;
+    el.style.height = `${height}px`;
+    const label = document.createElement('div');
+    label.className = 'chart-zone-label';
+    label.textContent = zone.label || zone.kind || 'zone';
+    el.appendChild(label);
+    overlay.appendChild(el);
   });
 }
 
@@ -304,7 +354,7 @@ function clearLevels() {
 
 function fitChart() {
   chart.timeScale().fitContent();
-  renderNotes();
+  renderHtmlDrawings();
 }
 
 function updateChartMeta() {

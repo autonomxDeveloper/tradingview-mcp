@@ -38,6 +38,11 @@
       <button class="secondary" onclick="addLevelFromLastClose()">Last close</button>
       <input id="noteText" class="note-input" placeholder="chart note" />
       <button class="secondary" onclick="addNoteAtLastClose()">Add note</button>
+      <input id="zoneLow" class="level-input" placeholder="zone low" />
+      <input id="zoneHigh" class="level-input" placeholder="zone high" />
+      <input id="zoneLabel" class="level-label-input" placeholder="zone label" />
+      <select id="zoneKind"><option>zone</option><option>support</option><option>resistance</option><option>supply</option><option>demand</option></select>
+      <button class="secondary" onclick="addZoneFromInput()">Add zone</button>
       <button class="secondary" onclick="clearDrawings()">Clear drawings</button>
       <button class="secondary" onclick="exportDrawings()">Export</button>
       <button class="secondary" onclick="importDrawings()">Import</button>
@@ -45,6 +50,7 @@
     </div>
     <div id="chartWrap">
       <div id="legend" class="legend">Load a symbol to see OHLC.</div>
+      <div id="zonesOverlay" class="zones-overlay"></div>
       <div id="notesOverlay" class="notes-overlay"></div>
       <div id="chart"></div>
     </div>
