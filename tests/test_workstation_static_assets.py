@@ -90,6 +90,23 @@ def test_layout_mode_controls_are_present():
     assert "layout-grid-4" in css
 
 
+def test_layout_sync_controls_are_present():
+    client = TestClient(create_app())
+
+    html = client.get("/").text
+    css = client.get("/static/styles.css").text
+
+    assert "syncSymbol" in html
+    assert "syncTimeframe" in html
+    assert "sync symbol" in html
+    assert "sync timeframe" in html
+    assert "setSymbolSync" in html
+    assert "setTimeframeSync" in html
+    assert "workstationSyncSymbol" in html
+    assert "workstationSyncTimeframe" in html
+    assert "sync-toggle" in css
+
+
 def test_layout_catalog_controls_are_present():
     client = TestClient(create_app())
 
