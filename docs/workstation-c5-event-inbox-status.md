@@ -19,10 +19,10 @@ This note tracks the research-only local event inbox foundation.
 
 ## Deferred follow-up
 
-- Full workstation app inclusion remains pending because the connector blocked the large workstation app rewrite in the foundation slice.
+- Full workstation app inclusion remains pending because connector-side safety checks blocked both the large workstation app rewrite and the smaller direct hook attempt.
 - UI controls and event inbox display remain pending.
 - Webhook ingestion remains pending and must stay research-only.
 
 ## Next recommended slice
 
-Attempt a very small workstation app integration patch that imports and registers the route helper without rewriting the full app file.
+Add UI-side event inbox read/create controls against the reusable route contract once the workstation app hook can be landed, or perform the app hook locally outside the connector path and submit it separately.
