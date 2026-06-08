@@ -145,6 +145,20 @@ def test_slot_shell_injection_supports_secondary_slots():
     assert "No chart loaded." in slot_js
 
 
+def test_slot_readiness_summary_is_present():
+    client = TestClient(create_app())
+
+    css = client.get("/static/styles.css").text
+    slot_js = client.get("/static/slot2_chart.js").text
+
+    assert "slotSummary" in slot_js
+    assert "slotSummaryText" in slot_js
+    assert "updateSlotSummary" in slot_js
+    assert "ensureSlotSummary" in slot_js
+    assert "S2: empty" in slot_js
+    assert "slot-summary" in css
+
+
 def test_layout_sync_controls_are_present():
     client = TestClient(create_app())
 
