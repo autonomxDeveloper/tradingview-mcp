@@ -12,6 +12,7 @@ def test_static_asset_files_exist():
     assert (STATIC_DIR / "app.js").exists()
     assert (STATIC_DIR / "slot2_chart.js").exists()
     assert (STATIC_DIR / "event_client.js").exists()
+    assert (STATIC_DIR / "event_panel_shell.html").exists()
 
 
 def test_index_serves_static_html():
@@ -33,6 +34,7 @@ def test_static_assets_are_mounted():
     js_response = client.get("/static/app.js")
     slot_response = client.get("/static/slot2_chart.js")
     event_response = client.get("/static/event_client.js")
+    shell_response = client.get("/static/event_panel_shell.html")
 
     assert css_response.status_code == 200
     assert "background" in css_response.text
@@ -42,6 +44,8 @@ def test_static_assets_are_mounted():
     assert "renderSlot2Chart" in slot_response.text
     assert event_response.status_code == 200
     assert "eventApi" in event_response.text
+    assert shell_response.status_code == 200
+    assert "event-inbox-panel" in shell_response.text
 
 
 def test_event_client_helper_is_present():
@@ -55,6 +59,21 @@ def test_event_client_helper_is_present():
     assert "eventPayload" in event_js
     assert "normalizeSymbol" in event_js
     assert "research_only" not in event_js
+
+
+def test_event_panel_shell_is_inert():
+    client = TestClient(create_app())
+
+    shell = client.get("/static/event_panel_shell.html").text
+
+    assert "Event inbox" in shell
+    assert "eventSymbol" in shell
+    assert "eventTimeframe" in shell
+    assert "eventKind" in shell
+    assert "eventMessage" in shell
+    assert "eventInboxOutput" in shell
+    assert "disabled" in shell
+    assert "onclick=" not in shell
 
 
 def test_advanced_chart_controls_are_present():
