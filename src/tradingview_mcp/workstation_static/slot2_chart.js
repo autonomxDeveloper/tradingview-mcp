@@ -1,21 +1,21 @@
-let slot2Chart = null;
-let slot2Candles = null;
+const slotCharts = {};
+const slotCandles = {};
 
-function slot2IsCrypto(symbol) {
+function slotIsCrypto(symbol) {
   const clean = String(symbol || '').toUpperCase();
   return clean.endsWith('USDT') || clean.endsWith('-USD');
 }
 
-function slot2ApiUrl(symbol, timeframe) {
+function slotApiUrl(symbol, timeframe) {
   const cleanSymbol = encodeURIComponent(symbol);
   const cleanTf = encodeURIComponent(timeframe || '1D');
-  if (slot2IsCrypto(symbol)) {
+  if (slotIsCrypto(symbol)) {
     return `/api/crypto/candles?symbol=${cleanSymbol}&venue=binance&interval=${cleanTf.toLowerCase()}&limit=160`;
   }
   return `/api/stock/yahoo-chart?symbol=${cleanSymbol}&timeframe=${cleanTf}&limit=160`;
 }
 
-function normalizeSlot2Bars(payload) {
+function normalizeSlotBars(payload) {
   const rawBars = payload.bars || payload.candles || [];
   return rawBars.map((bar) => ({
     time: bar.open_time ? Math.floor(bar.open_time / 1000) : bar.time,
@@ -26,48 +26,52 @@ function normalizeSlot2Bars(payload) {
   })).filter((bar) => Number.isFinite(bar.open) && Number.isFinite(bar.high) && Number.isFinite(bar.low) && Number.isFinite(bar.close));
 }
 
-function ensureSlot2Chart() {
-  const panel = document.getElementById('slot2Chart');
-  if (!panel || slot2Chart) return;
-  slot2Chart = LightweightCharts.createChart(panel, {
+function ensureSlotChart(slot) {
+  const panel = document.getElementById(`slot${slot}Chart`);
+  if (!panel || slotCharts[slot]) return;
+  slotCharts[slot] = LightweightCharts.createChart(panel, {
     layout: { background: { color: '#0b1020' }, textColor: '#cbd5e1' },
     grid: { vertLines: { color: '#1f2937' }, horzLines: { color: '#1f2937' } },
     rightPriceScale: { borderColor: '#334155' },
     timeScale: { borderColor: '#334155', timeVisible: true, secondsVisible: false },
   });
-  slot2Candles = slot2Chart.addCandlestickSeries({ priceLineVisible: true, lastValueVisible: true });
+  slotCandles[slot] = slotCharts[slot].addCandlestickSeries({ priceLineVisible: true, lastValueVisible: true });
 }
 
-async function renderSlot2Chart() {
-  const state = (window.workstationChartSlots || {})[2] || {};
-  const symbol = (state.symbol || document.getElementById('slot2Symbol')?.value || '').trim().toUpperCase();
-  const timeframe = (state.timeframe || document.getElementById('slot2Tf')?.value || '1D').trim() || '1D';
-  const status = document.getElementById('slot2Status');
+async function renderSlotChart(slot) {
+  const state = (window.workstationChartSlots || {})[slot] || {};
+  const symbol = (state.symbol || document.getElementById(`slot${slot}Symbol`)?.value || '').trim().toUpperCase();
+  const timeframe = (state.timeframe || document.getElementById(`slot${slot}Tf`)?.value || '1D').trim() || '1D';
+  const status = document.getElementById(`slot${slot}Status`);
   if (!symbol) {
     if (status) status.textContent = 'Set a symbol first.';
     return;
   }
   if (status) status.textContent = `Loading ${symbol} ${timeframe}...`;
-  const response = await fetch(slot2ApiUrl(symbol, timeframe));
+  const response = await fetch(slotApiUrl(symbol, timeframe));
   if (!response.ok) throw new Error(response.status + ' ' + response.statusText);
   const payload = await response.json();
-  const bars = normalizeSlot2Bars(payload);
-  ensureSlot2Chart();
-  if (slot2Candles) slot2Candles.setData(bars);
-  if (slot2Chart) slot2Chart.timeScale().fitContent();
+  const bars = normalizeSlotBars(payload);
+  ensureSlotChart(slot);
+  if (slotCandles[slot]) slotCandles[slot].setData(bars);
+  if (slotCharts[slot]) slotCharts[slot].timeScale().fitContent();
   if (status) status.textContent = bars.length ? `${symbol} · ${timeframe} · ${bars.length} bars` : `${symbol} · no bars`;
 }
+
+function renderSlot2Chart() { return renderSlotChart(2); }
 
 const originalSlotSetter = window.setChartSlot;
 window.setChartSlot = function(slot) {
   if (originalSlotSetter) originalSlotSetter(slot);
-  if (slot === 2) renderSlot2Chart().catch((error) => {
-    const status = document.getElementById('slot2Status');
+  if ([2, 3, 4].includes(Number(slot))) renderSlotChart(Number(slot)).catch((error) => {
+    const status = document.getElementById(`slot${slot}Status`);
     if (status) status.textContent = error.message;
   });
 };
 
 window.addEventListener('resize', () => {
-  const panel = document.getElementById('slot2Chart');
-  if (slot2Chart && panel) slot2Chart.resize(panel.clientWidth, panel.clientHeight);
+  [2, 3, 4].forEach((slot) => {
+    const panel = document.getElementById(`slot${slot}Chart`);
+    if (slotCharts[slot] && panel) slotCharts[slot].resize(panel.clientWidth, panel.clientHeight);
+  });
 });
