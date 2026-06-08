@@ -34,6 +34,8 @@
       <button class="secondary" onclick="toggleMacdPane()">MACD</button>
       <button class="secondary" onclick="toggleAtrPane()">ATR</button>
       <select id="layoutMode" onchange="setLayoutMode(this.value)"><option value="1">1 chart</option><option value="2">2 split</option><option value="4">4 grid</option></select>
+      <label class="sync-toggle"><input id="syncSymbol" type="checkbox" onchange="setSymbolSync(this.checked)" /> sync symbol</label>
+      <label class="sync-toggle"><input id="syncTimeframe" type="checkbox" onchange="setTimeframeSync(this.checked)" /> sync timeframe</label>
       <button class="secondary" onclick="fitChart()">Auto-fit</button>
       <input id="levelPrice" class="level-input" placeholder="price level" />
       <input id="levelLabel" class="level-label-input" placeholder="label" />
@@ -123,6 +125,8 @@
 <script src="/static/app.js"></script>
 <script>
 window.workstationLayoutMode = '1';
+window.workstationSyncSymbol = false;
+window.workstationSyncTimeframe = false;
 function setLayoutMode(mode) {
   window.workstationLayoutMode = ['1', '2', '4'].includes(String(mode)) ? String(mode) : '1';
   const grid = document.getElementById('chartGrid');
@@ -131,22 +135,38 @@ function setLayoutMode(mode) {
   if (selector) selector.value = window.workstationLayoutMode;
   setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
 }
+function setSymbolSync(enabled) {
+  window.workstationSyncSymbol = !!enabled;
+  const input = document.getElementById('syncSymbol');
+  if (input) input.checked = window.workstationSyncSymbol;
+}
+function setTimeframeSync(enabled) {
+  window.workstationSyncTimeframe = !!enabled;
+  const input = document.getElementById('syncTimeframe');
+  if (input) input.checked = window.workstationSyncTimeframe;
+}
 const originalCurrentLayoutState = window.currentLayoutState;
 window.currentLayoutState = function() {
   const state = originalCurrentLayoutState ? originalCurrentLayoutState() : {};
-  return { ...state, layoutMode: window.workstationLayoutMode || '1' };
+  return { ...state, layoutMode: window.workstationLayoutMode || '1', syncSymbol: !!window.workstationSyncSymbol, syncTimeframe: !!window.workstationSyncTimeframe };
 };
 const originalApplyLayoutState = window.applyLayoutState;
 window.applyLayoutState = function(state) {
   setLayoutMode((state && state.layoutMode) || '1');
+  setSymbolSync(!!(state && state.syncSymbol));
+  setTimeframeSync(!!(state && state.syncTimeframe));
   if (originalApplyLayoutState) originalApplyLayoutState(state || {});
 };
 const originalResetLayout = window.resetLayout;
 window.resetLayout = function() {
   setLayoutMode('1');
+  setSymbolSync(false);
+  setTimeframeSync(false);
   if (originalResetLayout) originalResetLayout();
 };
 setLayoutMode('1');
+setSymbolSync(false);
+setTimeframeSync(false);
 </script>
 </body>
 </html>
