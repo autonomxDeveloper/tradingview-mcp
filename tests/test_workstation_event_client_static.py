@@ -19,6 +19,13 @@ def test_event_client_payload_contract_is_static_and_normalized():
     assert "metadata && typeof metadata === 'object'" in text
 
 
+def test_event_client_symbol_normalizer_falls_back_to_blank_string():
+    text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
+
+    assert "function normalizeSymbol(symbol)" in text
+    assert "return String(symbol || '').trim().toUpperCase();" in text
+
+
 def test_event_client_payload_metadata_falls_back_to_object():
     text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
 
