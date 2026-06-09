@@ -33,6 +33,13 @@ def test_event_client_payload_message_is_trimmed():
     assert "message: String(message || '').trim()" in text
 
 
+def test_event_client_payload_kind_defaults_to_note_when_blank():
+    text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
+
+    assert "kind = 'note'" in text
+    assert "kind: String(kind || 'note').trim() || 'note'" in text
+
+
 def test_event_client_keeps_fetch_wrapper_private():
     text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
     export_lines = [
