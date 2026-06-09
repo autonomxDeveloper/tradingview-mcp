@@ -92,6 +92,63 @@ async function loadJournalTimeline() {
   print({ journal_timeline: rows, filters: ['symbol', 'event_type', 'idea_id'], mode: 'research_only' });
 }
 
+function watchlistSymbols() {
+  return [...document.querySelectorAll('#watch button')].map((button) => button.textContent.trim()).filter(Boolean);
+}
+
+async function refreshWatchlist() {
+  const response = await api('/api/watchlist');
+  const watch = document.getElementById('watch');
+  watch.innerHTML = '';
+  (response.symbols || []).forEach((symbol) => {
+    const button = document.createElement('button');
+    button.textContent = symbol;
+    button.onclick = () => {
+      $('symbol').value = symbol;
+      if (symbol.includes('USDT')) { $('asset').value = 'crypto'; $('exchange').value = 'BINANCE'; }
+      else { $('asset').value = 'stock'; $('exchange').value = 'NASDAQ'; }
+      loadMarket();
+    };
+    watch.appendChild(button);
+  });
+  return response.symbols || [];
+}
+
+async function saveWatchlistSymbols(symbols) {
+  const clean = [...new Set(symbols.map((symbol) => String(symbol || '').trim().toUpperCase()).filter(Boolean))];
+  await post('/api/watchlist', { symbols: clean });
+  await refreshWatchlist();
+  print({ watchlist_saved: clean });
+}
+
+async function addWatchlistSymbol() {
+  const input = document.getElementById('watchlistSymbolInput');
+  const symbol = (input?.value || $('symbol').value || '').trim().toUpperCase();
+  if (!symbol) { print('Enter a symbol to add.'); return; }
+  await saveWatchlistSymbols([...watchlistSymbols(), symbol]);
+  if (input) input.value = '';
+}
+
+async function removeWatchlistSymbol() {
+  const symbol = ($('symbol').value || '').trim().toUpperCase();
+  if (!symbol) { print('Select a symbol to remove.'); return; }
+  await saveWatchlistSymbols(watchlistSymbols().filter((item) => item !== symbol));
+}
+
+function addWatchlistControls() {
+  const watch = document.getElementById('watch');
+  if (!watch || document.getElementById('watchlistControls')) return;
+  const controls = document.createElement('div');
+  controls.id = 'watchlistControls';
+  controls.className = 'watchlist-controls';
+  controls.innerHTML = '<input id="watchlistSymbolInput" placeholder="symbol" /><button>Add</button><button>Remove selected</button><button>Refresh</button>';
+  const buttons = controls.querySelectorAll('button');
+  buttons[0].onclick = addWatchlistSymbol;
+  buttons[1].onclick = removeWatchlistSymbol;
+  buttons[2].onclick = refreshWatchlist;
+  watch.parentNode.insertBefore(controls, watch);
+}
+
 function addExtraButtons() {
   const tabs = document.querySelector('.bottom .tabs');
   if (!tabs) return;
@@ -118,6 +175,7 @@ window.updateChartMeta = function() {
 };
 
 const badgeStyle = document.createElement('style');
-badgeStyle.textContent = '.data-badges{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px}.data-badge{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#cbd5e1;padding:3px 7px;font-size:11px}.data-badge.ok{border-color:#22c55e}.data-badge.warn{border-color:#f59e0b;color:#fbbf24}';
+badgeStyle.textContent = '.data-badges{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px}.data-badge{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#cbd5e1;padding:3px 7px;font-size:11px}.data-badge.ok{border-color:#22c55e}.data-badge.warn{border-color:#f59e0b;color:#fbbf24}.watchlist-controls{display:grid;gap:5px;margin:0 0 8px}.watchlist-controls button,.watchlist-controls input{font-size:12px;padding:5px 7px}';
 document.head.appendChild(badgeStyle);
 addExtraButtons();
+addWatchlistControls();
