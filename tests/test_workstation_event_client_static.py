@@ -26,6 +26,13 @@ def test_event_client_payload_metadata_falls_back_to_object():
     assert "metadata: metadata && typeof metadata === 'object' ? metadata : {}" in text
 
 
+def test_event_client_payload_message_is_trimmed():
+    text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
+
+    assert "message = ''" in text
+    assert "message: String(message || '').trim()" in text
+
+
 def test_event_client_keeps_fetch_wrapper_private():
     text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
     export_lines = [
