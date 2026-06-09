@@ -28,6 +28,7 @@ This note tracks the research-only local event inbox foundation.
 - PR #88: added static browser event client coverage for request wrapper default options.
 - PR #90: added static browser event client coverage for symbol normalizer blank-string fallback.
 - PR #92: added static browser event client coverage for IIFE wrapping and window-scoped API exposure.
+- PR #94: added status-document guard coverage for recent static client checkpoints.
 
 ## Roadmap position
 
