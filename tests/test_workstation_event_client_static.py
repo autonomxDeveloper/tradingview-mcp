@@ -54,6 +54,13 @@ def test_event_client_payload_symbol_uses_normalizer():
     assert "symbol: normalizeSymbol(symbol)" in text
 
 
+def test_event_client_payload_timeframe_defaults_to_blank_and_is_trimmed():
+    text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
+
+    assert "timeframe = ''" in text
+    assert "timeframe: String(timeframe || '').trim()" in text
+
+
 def test_event_client_keeps_fetch_wrapper_private():
     text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
     export_lines = [
