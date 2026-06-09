@@ -18,7 +18,21 @@ async function buildResearchPacket() {
     backtests: backtestResponse.records || [],
     journal: journalResponse.events || [],
   };
+  packet.validation = validateResearchPacket(packet);
   return { packet, markdown: markdownForPacket(packet) };
+}
+
+function validateResearchPacket(packet) {
+  const warnings = [];
+  const snapshot = packet.snapshot || {};
+  if (!snapshot.idea_id) warnings.push('missing linked idea id');
+  if (!String(snapshot.invalidation || '').trim()) warnings.push('missing invalidation');
+  if (!String(snapshot.hypothesis || '').trim()) warnings.push('missing hypothesis');
+  if (!packet.backtests.length) warnings.push('no linked or symbol backtest records');
+  if (!window.lastPayload) warnings.push('no market payload loaded');
+  if (packet.chart_metadata.freshness === 'stale') warnings.push('market payload is stale');
+  if (!String(snapshot.analysis || '').trim()) warnings.push('no AI analysis captured');
+  return { ok: warnings.length === 0, warnings };
 }
 
 function renderResearchPacketPreview(packet, markdown, exportInfo = {}) {
@@ -32,6 +46,7 @@ function renderResearchPacketPreview(packet, markdown, exportInfo = {}) {
     ideas: packet.ideas.length,
     backtests: packet.backtests.length,
     journal_rows: packet.journal.length,
+    validation: packet.validation,
     downloads: {
       json: exportInfo.json_file ? `/api/exports/download/${exportInfo.json_file}` : '',
       markdown: exportInfo.markdown_file ? `/api/exports/download/${exportInfo.markdown_file}` : '',
@@ -42,9 +57,14 @@ function renderResearchPacketPreview(packet, markdown, exportInfo = {}) {
 
 async function exportResearchPacket() {
   const { packet, markdown } = await buildResearchPacket();
-  await post('/api/journal', { event_type: 'research_packet_exported', payload: { symbol: packet.snapshot.symbol, timeframe: packet.snapshot.timeframe, idea_id: packet.snapshot.idea_id } });
+  await post('/api/journal', { event_type: 'research_packet_exported', payload: { symbol: packet.snapshot.symbol, timeframe: packet.snapshot.timeframe, idea_id: packet.snapshot.idea_id, validation: packet.validation } });
   const saved = await post('/api/exports', { name: `${packet.snapshot.symbol}-${packet.snapshot.timeframe}`, packet, markdown });
   renderResearchPacketPreview(packet, markdown, saved.export || {});
+}
+
+async function validateCurrentPacket() {
+  const { packet } = await buildResearchPacket();
+  print({ research_packet_validation: packet.validation, note: packet.validation.ok ? 'packet looks complete' : 'export allowed, but review warnings first' });
 }
 
 async function copyResearchPacketJson() {
@@ -96,10 +116,15 @@ function addPacketPreviewControls() {
   latestButton.id = 'latestExportButton';
   latestButton.textContent = 'Latest export';
   latestButton.onclick = showLatestExport;
+  const validateButton = document.createElement('button');
+  validateButton.id = 'validatePacketButton';
+  validateButton.textContent = 'Validate packet';
+  validateButton.onclick = validateCurrentPacket;
   controls.appendChild(jsonButton);
   controls.appendChild(mdButton);
   controls.appendChild(browseButton);
   controls.appendChild(latestButton);
+  controls.appendChild(validateButton);
 }
 
 addPacketPreviewControls();
