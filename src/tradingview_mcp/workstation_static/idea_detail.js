@@ -6,14 +6,7 @@ async function loadIdeas() {
   const query = statusFilter ? `?status=${encodeURIComponent(statusFilter)}&limit=100` : '?limit=100';
   const response = await api('/api/ideas' + query);
   workstationIdeas = response.ideas || [];
-  const rows = workstationIdeas.map((idea, index) => ({
-    index: index + 1,
-    id: idea.id,
-    symbol: idea.symbol,
-    timeframe: idea.timeframe,
-    status: idea.status,
-    hypothesis: idea.hypothesis,
-  }));
+  const rows = workstationIdeas.map((idea, index) => ({ index: index + 1, id: idea.id, symbol: idea.symbol, timeframe: idea.timeframe, status: idea.status, hypothesis: idea.hypothesis }));
   print({ ideas: rows, dashboard: ideaStatusDashboard(workstationIdeas), hint: 'Use loadIdeaDetail(1), loadWorkspaceIdea(1), or setSelectedIdeaStatus("watching").' });
   if (workstationIdeas.length) loadIdeaDetail(1);
 }
@@ -36,10 +29,7 @@ async function loadIdeaDetail(index = 1) {
   if (!idea) { print('No idea found for that index.'); return; }
   workstationSelectedIdea = idea;
   let backtests = [];
-  try {
-    const response = await api(`/api/backtests?idea_id=${encodeURIComponent(idea.id)}&limit=20`);
-    backtests = response.records || [];
-  } catch (_) { backtests = []; }
+  try { const response = await api(`/api/backtests?idea_id=${encodeURIComponent(idea.id)}&limit=20`); backtests = response.records || []; } catch (_) { backtests = []; }
   print({ selected_idea: idea, linked_backtests: backtests, actions: ['loadWorkspaceIdea()', 'setSelectedIdeaStatus("watching")', 'runBacktest()', 'loadJournal()'] });
 }
 
@@ -102,9 +92,7 @@ async function loadPortfolioResearch() {
   print({ portfolio_research: rows, mode: 'read_only', actions: ['select symbol', 'loadIdeas()', 'saveIdea()'] });
 }
 
-function journalFilterValue(id) {
-  return (document.getElementById(id)?.value || '').trim().toUpperCase();
-}
+function journalFilterValue(id) { return (document.getElementById(id)?.value || '').trim().toUpperCase(); }
 
 async function loadJournalTimeline(options = {}) {
   const response = await api('/api/journal?limit=100');
@@ -128,9 +116,7 @@ async function loadJournalTimeline(options = {}) {
   print({ journal_timeline: rows, filters: { symbol: symbolFilter, event_type: typeFilter, idea_id: ideaFilter }, mode: 'research_only' });
 }
 
-function watchlistSymbols() {
-  return [...document.querySelectorAll('#watch button')].map((button) => button.textContent.trim()).filter(Boolean);
-}
+function watchlistSymbols() { return [...document.querySelectorAll('#watch button')].map((button) => button.textContent.trim()).filter(Boolean); }
 
 async function refreshWatchlist() {
   const response = await api('/api/watchlist');
@@ -320,6 +306,48 @@ function addSnapshotControls() {
   tabs.appendChild(controls);
 }
 
+function markdownForPacket(packet) {
+  return `# Research packet: ${packet.snapshot.symbol} ${packet.snapshot.timeframe}\n\n` +
+    `Generated: ${packet.generated_at_utc}\n\n` +
+    `## Chart metadata\n- Asset: ${packet.snapshot.asset_type}\n- Exchange: ${packet.snapshot.exchange}\n- Source: ${packet.chart_metadata.source || 'unknown'}\n- Freshness: ${packet.chart_metadata.freshness || 'unknown'}\n\n` +
+    `## Idea\n- ID: ${packet.snapshot.idea_id || 'none'}\n- Hypothesis: ${packet.snapshot.hypothesis || 'none'}\n- Invalidation: ${packet.snapshot.invalidation || 'none'}\n- Backtest plan: ${packet.snapshot.backtest_plan || 'none'}\n\n` +
+    `## AI analysis\n${packet.snapshot.analysis || 'No analysis captured.'}\n\n` +
+    `## Backtests\n${packet.backtests.map((record) => `- ${record.id || 'record'} ${record.strategy || ''} ${record.symbol || ''}`).join('\n') || 'No linked backtests.'}\n\n` +
+    `## Recent journal\n${packet.journal.map((row) => `- ${row.event_type || row.type}: ${JSON.stringify(row.payload || {}).slice(0, 160)}`).join('\n') || 'No journal rows.'}\n`;
+}
+
+async function exportResearchPacket() {
+  const snapshot = currentSessionSnapshot();
+  const journalResponse = await api('/api/journal?limit=30');
+  const ideaResponse = await api(`/api/ideas?symbol=${encodeURIComponent(snapshot.symbol)}&limit=20`);
+  const backtestQuery = snapshot.idea_id ? `/api/backtests?idea_id=${encodeURIComponent(snapshot.idea_id)}&limit=20` : `/api/backtests?symbol=${encodeURIComponent(snapshot.symbol)}&limit=20`;
+  const backtestResponse = await api(backtestQuery);
+  const metadata = lastPayload?.metadata || {};
+  const packet = {
+    generated_at_utc: new Date().toISOString(),
+    mode: 'research_only',
+    snapshot,
+    chart_metadata: { text: document.getElementById('chartMeta')?.textContent || '', source: metadata.source || lastPayload?.source || '', freshness: metadata.stale ? 'stale' : 'fresh' },
+    ideas: ideaResponse.ideas || [],
+    backtests: backtestResponse.records || [],
+    journal: journalResponse.events || [],
+  };
+  const markdown = markdownForPacket(packet);
+  await post('/api/journal', { event_type: 'research_packet_exported', payload: { symbol: snapshot.symbol, timeframe: snapshot.timeframe, idea_id: snapshot.idea_id } });
+  print({ research_packet_json: packet, research_packet_markdown: markdown });
+}
+
+function addExportControls() {
+  const tabs = document.querySelector('.bottom .tabs');
+  if (!tabs || document.getElementById('exportControls')) return;
+  const controls = document.createElement('span');
+  controls.id = 'exportControls';
+  controls.className = 'export-controls';
+  controls.innerHTML = '<button>Export packet</button>';
+  controls.querySelector('button').onclick = exportResearchPacket;
+  tabs.appendChild(controls);
+}
+
 function addExtraButtons() {
   const tabs = document.querySelector('.bottom .tabs');
   if (!tabs) return;
@@ -340,10 +368,7 @@ function addExtraButtons() {
 }
 
 const originalMeta = window.updateChartMeta;
-window.updateChartMeta = function() {
-  if (originalMeta) originalMeta();
-  renderDataBadges();
-};
+window.updateChartMeta = function() { if (originalMeta) originalMeta(); renderDataBadges(); };
 
 const originalPersistDrawings = window.persistDrawings;
 window.persistDrawings = function() {
@@ -369,12 +394,13 @@ window.restoreDrawings = function() {
 };
 
 const badgeStyle = document.createElement('style');
-badgeStyle.textContent = '.data-badges{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px}.data-badge{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#cbd5e1;padding:3px 7px;font-size:11px}.data-badge.ok{border-color:#22c55e}.data-badge.warn{border-color:#f59e0b;color:#fbbf24}.watchlist-controls{display:grid;gap:5px;margin:0 0 8px}.watchlist-controls button,.watchlist-controls input,.journal-filters input,.journal-filters button,.idea-lifecycle-controls input,.idea-lifecycle-controls button,.idea-status-controls select,.idea-status-controls button,.drawing-controls button,.snapshot-controls button{font-size:12px;padding:5px 7px}.journal-filters,.idea-lifecycle-controls,.idea-status-controls,.drawing-controls,.snapshot-controls{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}#drawingSyncStatus{color:#94a3b8;font-size:12px;padding:5px 0}';
+badgeStyle.textContent = '.data-badges{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px}.data-badge{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#cbd5e1;padding:3px 7px;font-size:11px}.data-badge.ok{border-color:#22c55e}.data-badge.warn{border-color:#f59e0b;color:#fbbf24}.watchlist-controls{display:grid;gap:5px;margin:0 0 8px}.watchlist-controls button,.watchlist-controls input,.journal-filters input,.journal-filters button,.idea-lifecycle-controls input,.idea-lifecycle-controls button,.idea-status-controls select,.idea-status-controls button,.drawing-controls button,.snapshot-controls button,.export-controls button{font-size:12px;padding:5px 7px}.journal-filters,.idea-lifecycle-controls,.idea-status-controls,.drawing-controls,.snapshot-controls,.export-controls{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}#drawingSyncStatus{color:#94a3b8;font-size:12px;padding:5px 0}';
 document.head.appendChild(badgeStyle);
 addExtraButtons();
 addIdeaStatusFilters();
 addJournalFilters();
 addDrawingControls();
 addSnapshotControls();
+addExportControls();
 addWatchlistControls();
 addIdeaLifecycleControls();
