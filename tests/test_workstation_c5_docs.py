@@ -78,6 +78,14 @@ def test_c5_status_note_tracks_static_client_recent_checkpoints():
     assert "window-scoped API exposure" in text
 
 
+def test_c5_status_note_tracks_latest_status_guard_checkpoint():
+    text = STATUS.read_text(encoding="utf-8")
+
+    assert "PR #94" in text
+    assert "status-document guard coverage" in text
+    assert "recent static client checkpoints" in text
+
+
 def test_c5_status_note_tracks_safe_local_app_hook_handoff():
     text = STATUS.read_text(encoding="utf-8")
 
