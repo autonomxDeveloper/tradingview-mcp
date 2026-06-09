@@ -262,6 +262,64 @@ function addDrawingControls() {
   tabs.appendChild(controls);
 }
 
+function currentSessionSnapshot() {
+  return {
+    symbol: $('symbol').value,
+    timeframe: $('tf').value,
+    asset_type: $('asset').value,
+    exchange: $('exchange').value,
+    layout: window.currentLayoutState ? window.currentLayoutState() : {},
+    drawings,
+    idea_id: $('ideaId').value || workstationSelectedIdea?.id || '',
+    hypothesis: $('hypothesis').value,
+    invalidation: $('invalidation').value,
+    backtest_plan: $('backtestPlan').value,
+    analysis: document.getElementById('analysis')?.textContent || '',
+    output: document.getElementById('output')?.textContent || '',
+  };
+}
+
+async function saveSessionSnapshot() {
+  const snapshot = currentSessionSnapshot();
+  await post('/api/journal', { event_type: 'research_session_snapshot', payload: snapshot });
+  print({ session_snapshot_saved: { symbol: snapshot.symbol, timeframe: snapshot.timeframe, idea_id: snapshot.idea_id } });
+}
+
+async function loadLatestSessionSnapshot() {
+  const response = await api('/api/journal?limit=300');
+  const events = response.events || [];
+  const event = [...events].reverse().find((row) => row.event_type === 'research_session_snapshot');
+  if (!event) { print('No session snapshot found.'); return; }
+  const snapshot = event.payload || {};
+  $('symbol').value = snapshot.symbol || $('symbol').value;
+  $('tf').value = snapshot.timeframe || $('tf').value;
+  $('asset').value = snapshot.asset_type || $('asset').value;
+  $('exchange').value = snapshot.exchange || $('exchange').value;
+  $('ideaId').value = snapshot.idea_id || '';
+  $('hypothesis').value = snapshot.hypothesis || '';
+  $('invalidation').value = snapshot.invalidation || '';
+  $('backtestPlan').value = snapshot.backtest_plan || '';
+  if (window.applyLayoutState) window.applyLayoutState(snapshot.layout || {});
+  drawings = { ...emptyDrawings(), ...(snapshot.drawings || {}) };
+  localStorage.setItem(drawingStorageKey(), JSON.stringify(drawings));
+  renderDrawings();
+  print({ session_snapshot_loaded: { symbol: snapshot.symbol, timeframe: snapshot.timeframe, idea_id: snapshot.idea_id } });
+  loadMarket();
+}
+
+function addSnapshotControls() {
+  const tabs = document.querySelector('.bottom .tabs');
+  if (!tabs || document.getElementById('snapshotControls')) return;
+  const controls = document.createElement('span');
+  controls.id = 'snapshotControls';
+  controls.className = 'snapshot-controls';
+  controls.innerHTML = '<button>Save snapshot</button><button>Load latest snapshot</button>';
+  const buttons = controls.querySelectorAll('button');
+  buttons[0].onclick = saveSessionSnapshot;
+  buttons[1].onclick = loadLatestSessionSnapshot;
+  tabs.appendChild(controls);
+}
+
 function addExtraButtons() {
   const tabs = document.querySelector('.bottom .tabs');
   if (!tabs) return;
@@ -311,11 +369,12 @@ window.restoreDrawings = function() {
 };
 
 const badgeStyle = document.createElement('style');
-badgeStyle.textContent = '.data-badges{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px}.data-badge{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#cbd5e1;padding:3px 7px;font-size:11px}.data-badge.ok{border-color:#22c55e}.data-badge.warn{border-color:#f59e0b;color:#fbbf24}.watchlist-controls{display:grid;gap:5px;margin:0 0 8px}.watchlist-controls button,.watchlist-controls input,.journal-filters input,.journal-filters button,.idea-lifecycle-controls input,.idea-lifecycle-controls button,.idea-status-controls select,.idea-status-controls button,.drawing-controls button{font-size:12px;padding:5px 7px}.journal-filters,.idea-lifecycle-controls,.idea-status-controls,.drawing-controls{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}#drawingSyncStatus{color:#94a3b8;font-size:12px;padding:5px 0}';
+badgeStyle.textContent = '.data-badges{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px}.data-badge{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#cbd5e1;padding:3px 7px;font-size:11px}.data-badge.ok{border-color:#22c55e}.data-badge.warn{border-color:#f59e0b;color:#fbbf24}.watchlist-controls{display:grid;gap:5px;margin:0 0 8px}.watchlist-controls button,.watchlist-controls input,.journal-filters input,.journal-filters button,.idea-lifecycle-controls input,.idea-lifecycle-controls button,.idea-status-controls select,.idea-status-controls button,.drawing-controls button,.snapshot-controls button{font-size:12px;padding:5px 7px}.journal-filters,.idea-lifecycle-controls,.idea-status-controls,.drawing-controls,.snapshot-controls{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}#drawingSyncStatus{color:#94a3b8;font-size:12px;padding:5px 0}';
 document.head.appendChild(badgeStyle);
 addExtraButtons();
 addIdeaStatusFilters();
 addJournalFilters();
 addDrawingControls();
+addSnapshotControls();
 addWatchlistControls();
 addIdeaLifecycleControls();
