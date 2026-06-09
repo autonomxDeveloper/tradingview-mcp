@@ -19,6 +19,13 @@ def test_event_client_payload_contract_is_static_and_normalized():
     assert "metadata && typeof metadata === 'object'" in text
 
 
+def test_event_client_payload_metadata_falls_back_to_object():
+    text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
+
+    assert "metadata = {}" in text
+    assert "metadata: metadata && typeof metadata === 'object' ? metadata : {}" in text
+
+
 def test_event_client_keeps_fetch_wrapper_private():
     text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
     export_lines = [
