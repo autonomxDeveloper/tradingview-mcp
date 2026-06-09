@@ -32,6 +32,7 @@ This note tracks the research-only local event inbox foundation.
 - PR #96: added status-document guard coverage for the PR #94 checkpoint.
 - PR #98: added static browser event client coverage for a single public API export block.
 - PR #100: added status-document guard coverage for the PR #98 checkpoint.
+- PR #102: added static browser event client coverage for unique helper names in the public API export block.
 
 ## Roadmap position
 
