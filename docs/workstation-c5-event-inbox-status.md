@@ -15,6 +15,7 @@ This note tracks the research-only local event inbox foundation.
 - PR #43: added static browser event client contract tests for payload normalization and helper exports.
 - PR #46: added endpoint string coverage for the browser event client helper.
 - PR #63: tightened the static event client export guard so the private fetch wrapper stays out of the public browser API.
+- PR #66: added static browser event client coverage for normalized optional symbol queries and stable limit parameters.
 
 ## Roadmap position
 
@@ -27,6 +28,10 @@ The latest connector-landed work keeps validation on documentation and focused t
 ## Static client export guard
 
 The browser helper exposes only the reviewed event API shape: create, payload normalization, list, symbol normalization, and status helpers. The internal JSON request wrapper remains private to the helper module and is covered by static tests before any UI wiring is attempted.
+
+## Static client list-query guard
+
+The browser helper keeps event listing bounded and deterministic before UI wiring: the optional symbol filter is normalized before it is sent, omitted when blank, and paired with a stable stringified limit parameter.
 
 ## Safe local app-hook handoff
 
