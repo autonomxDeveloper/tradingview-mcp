@@ -58,6 +58,15 @@ def test_c5_status_note_tracks_static_client_test_checkpoints():
     assert "endpoint string coverage" in text
 
 
+def test_c5_status_note_tracks_static_client_export_guard():
+    text = STATUS.read_text(encoding="utf-8")
+
+    assert "PR #63" in text
+    assert "Static client export guard" in text
+    assert "private fetch wrapper" in text
+    assert "public browser API" in text
+
+
 def test_c5_status_note_tracks_roadmap_position():
     text = STATUS.read_text(encoding="utf-8")
 
