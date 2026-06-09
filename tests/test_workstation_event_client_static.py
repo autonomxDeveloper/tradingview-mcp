@@ -49,3 +49,13 @@ def test_event_client_list_events_symbol_query_is_normalized_and_optional():
     assert "if (normalizeSymbol(symbol)) params.set('symbol', normalizeSymbol(symbol));" in text
     assert "params.set('limit', String(limit))" in text
     assert "return requestJson(`/api/events?${params.toString()}`);" in text
+
+
+def test_event_client_create_event_posts_normalized_payload():
+    text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
+
+    assert "async function createEvent(input = {})" in text
+    assert "return requestJson('/api/events', {" in text
+    assert "method: 'POST'" in text
+    assert "headers: { 'Content-Type': 'application/json' }" in text
+    assert "body: JSON.stringify(eventPayload(input))" in text
