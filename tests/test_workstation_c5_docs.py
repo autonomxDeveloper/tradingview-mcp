@@ -67,6 +67,17 @@ def test_c5_status_note_tracks_static_client_export_guard():
     assert "public browser API" in text
 
 
+def test_c5_status_note_tracks_static_client_recent_checkpoints():
+    text = STATUS.read_text(encoding="utf-8")
+
+    assert "PR #88" in text
+    assert "request wrapper default options" in text
+    assert "PR #90" in text
+    assert "symbol normalizer blank-string fallback" in text
+    assert "PR #92" in text
+    assert "window-scoped API exposure" in text
+
+
 def test_c5_status_note_tracks_safe_local_app_hook_handoff():
     text = STATUS.read_text(encoding="utf-8")
 
