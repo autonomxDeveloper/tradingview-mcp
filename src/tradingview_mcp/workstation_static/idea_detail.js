@@ -12,7 +12,7 @@ async function loadIdeas() {
     status: idea.status,
     hypothesis: idea.hypothesis,
   }));
-  print({ ideas: rows, hint: 'Use loadIdeaDetail(1) or loadWorkspaceIdea(1).' });
+  print({ ideas: rows, hint: 'Use loadIdeaDetail(1), loadWorkspaceIdea(1), or setSelectedIdeaStatus("watching").' });
   if (workstationIdeas.length) loadIdeaDetail(1);
 }
 
@@ -25,7 +25,7 @@ async function loadIdeaDetail(index = 1) {
     const response = await api(`/api/backtests?idea_id=${encodeURIComponent(idea.id)}&limit=20`);
     backtests = response.records || [];
   } catch (_) { backtests = []; }
-  print({ selected_idea: idea, linked_backtests: backtests, actions: ['loadWorkspaceIdea()', 'runBacktest()', 'loadJournal()'] });
+  print({ selected_idea: idea, linked_backtests: backtests, actions: ['loadWorkspaceIdea()', 'setSelectedIdeaStatus("watching")', 'runBacktest()', 'loadJournal()'] });
 }
 
 function loadWorkspaceIdea(index) {
@@ -41,6 +41,15 @@ function loadWorkspaceIdea(index) {
   $('ideaId').value = idea.id || '';
   print({ loaded_into_workspace: idea.id, symbol: idea.symbol });
   loadMarket();
+}
+
+async function setSelectedIdeaStatus(status) {
+  const ideaId = $('ideaId').value || workstationSelectedIdea?.id;
+  if (!ideaId) { print('Load or select an idea first.'); return; }
+  const note = document.getElementById('ideaStatusNote')?.value || '';
+  const event = await post('/api/ideas/status', { idea_id: ideaId, status, note });
+  print({ lifecycle_update: event });
+  await loadIdeas();
 }
 
 function ensureDataBadges() {
@@ -172,6 +181,21 @@ function addJournalFilters() {
   tabs.appendChild(controls);
 }
 
+function addIdeaLifecycleControls() {
+  const ideaIdInput = document.getElementById('ideaId');
+  if (!ideaIdInput || document.getElementById('ideaLifecycleControls')) return;
+  const controls = document.createElement('div');
+  controls.id = 'ideaLifecycleControls';
+  controls.className = 'idea-lifecycle-controls';
+  controls.innerHTML = '<input id="ideaStatusNote" placeholder="status note" /><button>Watching</button><button>Invalidated</button><button>Backtested</button><button>Archived</button>';
+  const buttons = controls.querySelectorAll('button');
+  buttons[0].onclick = () => setSelectedIdeaStatus('watching');
+  buttons[1].onclick = () => setSelectedIdeaStatus('invalidated');
+  buttons[2].onclick = () => setSelectedIdeaStatus('backtested');
+  buttons[3].onclick = () => setSelectedIdeaStatus('archived');
+  ideaIdInput.parentNode.insertBefore(controls, ideaIdInput.nextSibling);
+}
+
 function addExtraButtons() {
   const tabs = document.querySelector('.bottom .tabs');
   if (!tabs) return;
@@ -198,8 +222,9 @@ window.updateChartMeta = function() {
 };
 
 const badgeStyle = document.createElement('style');
-badgeStyle.textContent = '.data-badges{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px}.data-badge{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#cbd5e1;padding:3px 7px;font-size:11px}.data-badge.ok{border-color:#22c55e}.data-badge.warn{border-color:#f59e0b;color:#fbbf24}.watchlist-controls{display:grid;gap:5px;margin:0 0 8px}.watchlist-controls button,.watchlist-controls input,.journal-filters input,.journal-filters button{font-size:12px;padding:5px 7px}.journal-filters{display:inline-flex;gap:4px;flex-wrap:wrap}';
+badgeStyle.textContent = '.data-badges{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px}.data-badge{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#cbd5e1;padding:3px 7px;font-size:11px}.data-badge.ok{border-color:#22c55e}.data-badge.warn{border-color:#f59e0b;color:#fbbf24}.watchlist-controls{display:grid;gap:5px;margin:0 0 8px}.watchlist-controls button,.watchlist-controls input,.journal-filters input,.journal-filters button,.idea-lifecycle-controls input,.idea-lifecycle-controls button{font-size:12px;padding:5px 7px}.journal-filters,.idea-lifecycle-controls{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}';
 document.head.appendChild(badgeStyle);
 addExtraButtons();
 addJournalFilters();
 addWatchlistControls();
+addIdeaLifecycleControls();
