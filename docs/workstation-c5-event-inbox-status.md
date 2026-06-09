@@ -19,6 +19,7 @@ This note tracks the research-only local event inbox foundation.
 - PR #68: added static browser event client coverage for create-event POST requests, JSON headers, and normalized payload submission.
 - PR #70: added static browser event client coverage for the read-only status helper and its `/api/events/status` endpoint.
 - PR #72: added static browser event client coverage for request wrapper response handling before JSON parsing.
+- PR #74: added static browser event client coverage for metadata fallback to an object during payload normalization.
 
 ## Roadmap position
 
