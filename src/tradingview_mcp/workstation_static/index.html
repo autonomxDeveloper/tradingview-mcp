@@ -104,6 +104,8 @@
         <button onclick="loadBacktests()">Backtests</button>
         <button onclick="saveIdea()">Save idea</button>
         <button onclick="loadIdeas()">Ideas</button>
+        <button onclick="loadIdeaDetail(1)">Idea detail</button>
+        <button onclick="loadWorkspaceIdea()">Load idea</button>
         <button onclick="scanWatchlist()">Scanner</button>
         <button onclick="loadJournal()">Journal</button>
       </div>
@@ -123,6 +125,8 @@
       </ol>
       <div class="label">Scanner to idea</div>
       <div class="tabs"><button class="secondary" onclick="scanWatchlist()">Scan watchlist</button><button class="secondary" onclick="useTopScannerCandidate()">Use top candidate</button><button class="secondary" onclick="saveIdea()">Save idea</button></div>
+      <div class="label">Idea detail</div>
+      <div class="tabs"><button class="secondary" onclick="loadIdeas()">Refresh ideas</button><button class="secondary" onclick="loadIdeaDetail(1)">First idea</button><button class="secondary" onclick="loadWorkspaceIdea()">Load selected</button></div>
       <p class="workflow-note">Research-only loop: observe, hypothesize, invalidate, backtest, and journal. No order execution or paper trading path.</p>
     </div>
     <div class="panel">
@@ -145,6 +149,7 @@
   </section>
 </main>
 <script src="/static/app.js"></script>
+<script src="/static/idea_detail.js"></script>
 <script>
 window.workstationLayoutMode = '1';
 window.workstationSyncSymbol = false;
