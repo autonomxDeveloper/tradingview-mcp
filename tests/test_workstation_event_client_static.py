@@ -59,3 +59,11 @@ def test_event_client_create_event_posts_normalized_payload():
     assert "method: 'POST'" in text
     assert "headers: { 'Content-Type': 'application/json' }" in text
     assert "body: JSON.stringify(eventPayload(input))" in text
+
+
+def test_event_client_status_reader_uses_status_endpoint_without_mutation():
+    text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
+
+    assert "async function readEventStatus()" in text
+    assert "return requestJson('/api/events/status');" in text
+    assert "readEventStatus" in EXPECTED_EVENT_API_EXPORT
