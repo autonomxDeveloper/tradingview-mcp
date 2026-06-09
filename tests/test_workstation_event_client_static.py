@@ -75,6 +75,13 @@ def test_event_client_keeps_fetch_wrapper_private():
     assert "requestJson" not in export_lines[0]
 
 
+def test_event_client_request_wrapper_defaults_to_empty_options():
+    text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
+
+    assert "async function requestJson(url, options = {})" in text
+    assert "const response = await fetch(url, options);" in text
+
+
 def test_event_client_request_wrapper_fails_closed_on_http_error():
     text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
 
