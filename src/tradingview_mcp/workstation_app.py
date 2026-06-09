@@ -5,6 +5,7 @@ The workstation is research-only. It does not submit or simulate broker actions.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 from pathlib import Path
 from typing import Any, Literal
@@ -143,6 +144,34 @@ def _call_lmstudio(messages: list[dict[str, str]], max_tokens: int = 900) -> dic
     return {"content": choices[0].get("message", {}).get("content", "") if choices else "", "model": payload.get("model") or model, "raw": payload}
 
 
+def _parse_structured_analysis(content: str) -> dict[str, Any]:
+    if not content.strip():
+        return {"parsed": False, "raw": content}
+    cleaned = content.strip()
+    if cleaned.startswith("```"):
+        cleaned = cleaned.strip("`").strip()
+        if cleaned.lower().startswith("json"):
+            cleaned = cleaned[4:].strip()
+    try:
+        payload = json.loads(cleaned)
+    except json.JSONDecodeError:
+        return {"parsed": False, "raw": content}
+    if not isinstance(payload, dict):
+        return {"parsed": False, "raw": content}
+    return {
+        "parsed": True,
+        "summary": str(payload.get("summary", "")),
+        "trend": str(payload.get("trend", "")),
+        "key_levels": payload.get("key_levels", []),
+        "risks": payload.get("risks", []),
+        "invalidation": str(payload.get("invalidation", "")),
+        "backtest_ideas": payload.get("backtest_ideas", []),
+        "confidence": str(payload.get("confidence", "unknown")),
+        "not_financial_advice": bool(payload.get("not_financial_advice", True)),
+        "raw": payload,
+    }
+
+
 def _is_crypto_symbol(symbol: str, asset_type: str = "auto") -> bool:
     clean = symbol.upper()
     return asset_type == "crypto" or clean.endswith(("USDT", "USDC", "-USD", "/USD")) or clean in {"BTC", "ETH", "SOL"}
@@ -242,15 +271,21 @@ def create_app() -> FastAPI:
 
         prompt = (
             "You are a cautious trading research assistant. Do not provide financial advice or tell the user to take a position. "
-            "Give observations, hypotheses, invalidation levels, risks, and backtest ideas.\n\n"
+            "Return only valid JSON with these keys: summary, trend, key_levels, risks, invalidation, backtest_ideas, confidence, not_financial_advice. "
+            "Use observations, hypotheses, invalidation levels, risks, and backtest ideas only. "
+            "confidence must be low, medium, or high. not_financial_advice must be true.\n\n"
             f"Market context:\n{market}\n\nUser question: {request.question}"
         )
         analysis = _call_lmstudio([
-            {"role": "system", "content": "You analyze stocks and crypto with risk-first language."},
+            {"role": "system", "content": "You analyze stocks and crypto with risk-first language and return strict JSON only."},
             {"role": "user", "content": prompt},
         ])
-        event = append_journal_event("ai_analysis", {"request": request.model_dump(), "market": market, "analysis": analysis.get("content", "")})
-        return {"market": market, "analysis": analysis, "journal_event": event}
+        structured_analysis = _parse_structured_analysis(str(analysis.get("content", "")))
+        event = append_journal_event(
+            "ai_analysis",
+            {"request": request.model_dump(), "market": market, "analysis": analysis.get("content", ""), "structured_analysis": structured_analysis},
+        )
+        return {"market": market, "analysis": analysis, "structured_analysis": structured_analysis, "journal_event": event}
 
     @app.post("/api/backtest/run")
     def backtest_run(request: BacktestRequest) -> dict[str, Any]:
