@@ -33,6 +33,14 @@ def test_event_client_keeps_fetch_wrapper_private():
     assert "requestJson" not in export_lines[0]
 
 
+def test_event_client_request_wrapper_fails_closed_on_http_error():
+    text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
+
+    assert "const response = await fetch(url, options);" in text
+    assert "if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);" in text
+    assert "return response.json();" in text
+
+
 def test_event_client_endpoint_strings_are_stable():
     text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
 
