@@ -78,14 +78,37 @@ async function loadPortfolioResearch() {
   print({ portfolio_research: rows, mode: 'read_only', actions: ['select symbol', 'loadIdeas()', 'saveIdea()'] });
 }
 
-function addPortfolioButton() {
+async function loadJournalTimeline() {
+  const response = await api('/api/journal?limit=100');
+  const events = response.events || [];
+  const rows = events.map((event, index) => ({
+    index: index + 1,
+    time: event.timestamp_utc || event.timestamp || '',
+    type: event.event_type || event.type || 'event',
+    symbol: event.payload?.symbol || event.payload?.request?.symbol || '',
+    idea_id: event.payload?.idea_id || event.payload?.id || '',
+    summary: JSON.stringify(event.payload || event).slice(0, 220),
+  }));
+  print({ journal_timeline: rows, filters: ['symbol', 'event_type', 'idea_id'], mode: 'research_only' });
+}
+
+function addExtraButtons() {
   const tabs = document.querySelector('.bottom .tabs');
-  if (!tabs || document.getElementById('portfolioResearchButton')) return;
-  const button = document.createElement('button');
-  button.id = 'portfolioResearchButton';
-  button.textContent = 'Portfolio';
-  button.onclick = loadPortfolioResearch;
-  tabs.appendChild(button);
+  if (!tabs) return;
+  if (!document.getElementById('portfolioResearchButton')) {
+    const button = document.createElement('button');
+    button.id = 'portfolioResearchButton';
+    button.textContent = 'Portfolio';
+    button.onclick = loadPortfolioResearch;
+    tabs.appendChild(button);
+  }
+  if (!document.getElementById('journalTimelineButton')) {
+    const button = document.createElement('button');
+    button.id = 'journalTimelineButton';
+    button.textContent = 'Timeline';
+    button.onclick = loadJournalTimeline;
+    tabs.appendChild(button);
+  }
 }
 
 const originalMeta = window.updateChartMeta;
@@ -97,4 +120,4 @@ window.updateChartMeta = function() {
 const badgeStyle = document.createElement('style');
 badgeStyle.textContent = '.data-badges{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px}.data-badge{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#cbd5e1;padding:3px 7px;font-size:11px}.data-badge.ok{border-color:#22c55e}.data-badge.warn{border-color:#f59e0b;color:#fbbf24}';
 document.head.appendChild(badgeStyle);
-addPortfolioButton();
+addExtraButtons();
