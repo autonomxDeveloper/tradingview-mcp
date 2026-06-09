@@ -47,6 +47,13 @@ def test_event_client_payload_source_defaults_to_manual():
     assert "source," in text
 
 
+def test_event_client_payload_symbol_uses_normalizer():
+    text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
+
+    assert "symbol = ''" in text
+    assert "symbol: normalizeSymbol(symbol)" in text
+
+
 def test_event_client_keeps_fetch_wrapper_private():
     text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
     export_lines = [
