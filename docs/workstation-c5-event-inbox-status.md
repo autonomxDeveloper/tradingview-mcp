@@ -25,6 +25,7 @@ This note tracks the research-only local event inbox foundation.
 - PR #82: added static browser event client coverage for payload symbol normalization.
 - PR #84: added static browser event client coverage for timeframe defaulting and trimming during payload normalization.
 - PR #86: added static browser event client coverage for URLSearchParams list-query construction.
+- PR #88: added static browser event client coverage for request wrapper default options.
 
 ## Roadmap position
 
