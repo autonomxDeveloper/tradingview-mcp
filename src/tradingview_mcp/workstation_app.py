@@ -41,6 +41,7 @@ from tradingview_mcp.core.services.research_idea_service import (
     create_research_idea,
     idea_registry_status,
     list_research_ideas,
+    update_research_idea_status,
 )
 from tradingview_mcp.core.services.screener_service import analyze_coin
 from tradingview_mcp.core.services.workstation_chart_service import get_yahoo_chart
@@ -94,6 +95,12 @@ class LayoutRequest(BaseModel):
 
 class WatchlistRequest(BaseModel):
     symbols: list[str] = Field(default_factory=list)
+
+
+class IdeaStatusRequest(BaseModel):
+    idea_id: str
+    status: Literal["draft", "watching", "invalidated", "backtested", "archived"]
+    note: str = ""
 
 
 class ResearchIdeaRequest(BaseModel):
@@ -362,6 +369,12 @@ def create_app() -> FastAPI:
     def ideas_create(request: ResearchIdeaRequest) -> dict[str, Any]:
         event = create_research_idea(request.model_dump())
         append_journal_event("research_idea_created", event)
+        return event
+
+    @app.post("/api/ideas/status")
+    def ideas_update_status(request: IdeaStatusRequest) -> dict[str, Any]:
+        event = update_research_idea_status(request.idea_id, request.status, request.note)
+        append_journal_event("research_idea_status_updated", event)
         return event
 
     @app.get("/api/ideas")
