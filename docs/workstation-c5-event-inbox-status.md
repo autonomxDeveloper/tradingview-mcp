@@ -17,6 +17,8 @@ This note tracks the research-only local event inbox foundation.
 - PR #63: tightened the static event client export guard so the private fetch wrapper stays out of the public browser API.
 - PR #66: added static browser event client coverage for normalized optional symbol queries and stable limit parameters.
 - PR #68: added static browser event client coverage for create-event POST requests, JSON headers, and normalized payload submission.
+- PR #70: added static browser event client coverage for the read-only status helper and its `/api/events/status` endpoint.
+- PR #72: added static browser event client coverage for request wrapper response handling before JSON parsing.
 
 ## Roadmap position
 
