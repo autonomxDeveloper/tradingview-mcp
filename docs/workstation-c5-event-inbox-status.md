@@ -14,6 +14,7 @@ This note tracks the research-only local event inbox foundation.
 - PR #37: recorded the standalone static event client helper in this status note and extended the doc guard.
 - PR #43: added static browser event client contract tests for payload normalization and helper exports.
 - PR #46: added endpoint string coverage for the browser event client helper.
+- PR #63: tightened the static event client export guard so the private fetch wrapper stays out of the public browser API.
 
 ## Roadmap position
 
@@ -22,6 +23,10 @@ C5 is foundation-complete for the connector-landed path: the local service, rout
 ## Current validation posture
 
 The latest connector-landed work keeps validation on documentation and focused tests. That preserves the safe path while active workstation integration remains outside the allowed connector path.
+
+## Static client export guard
+
+The browser helper exposes only the reviewed event API shape: create, payload normalization, list, symbol normalization, and status helpers. The internal JSON request wrapper remains private to the helper module and is covered by static tests before any UI wiring is attempted.
 
 ## Next connector-safe move
 
