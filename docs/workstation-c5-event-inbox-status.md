@@ -30,6 +30,7 @@ This note tracks the research-only local event inbox foundation.
 - PR #92: added static browser event client coverage for IIFE wrapping and window-scoped API exposure.
 - PR #94: added status-document guard coverage for recent static client checkpoints.
 - PR #96: added status-document guard coverage for the PR #94 checkpoint.
+- PR #98: added static browser event client coverage for a single public API export block.
 
 ## Roadmap position
 
