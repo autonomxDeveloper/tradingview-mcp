@@ -42,3 +42,34 @@ function loadWorkspaceIdea(index) {
   print({ loaded_into_workspace: idea.id, symbol: idea.symbol });
   loadMarket();
 }
+
+function ensureDataBadges() {
+  let badges = document.getElementById('dataBadges');
+  if (badges) return badges;
+  badges = document.createElement('span');
+  badges.id = 'dataBadges';
+  badges.className = 'data-badges';
+  const chartMeta = document.getElementById('chartMeta');
+  if (chartMeta && chartMeta.parentNode) chartMeta.parentNode.insertBefore(badges, chartMeta.nextSibling);
+  return badges;
+}
+
+function renderDataBadges() {
+  const badges = ensureDataBadges();
+  const metadata = lastPayload?.metadata || {};
+  const source = metadata.source || lastPayload?.source || (activeIsCrypto() ? 'binance' : 'yahoo');
+  const freshness = metadata.stale ? 'stale' : 'fresh';
+  const cache = metadata.cache_status || 'request';
+  const venue = activeIsCrypto() ? 'binance' : $('exchange').value;
+  badges.innerHTML = `<span class="data-badge">source ${source}</span><span class="data-badge">cache ${cache}</span><span class="data-badge ${metadata.stale ? 'warn' : 'ok'}">${freshness}</span><span class="data-badge">venue ${venue}</span>`;
+}
+
+const originalMeta = window.updateChartMeta;
+window.updateChartMeta = function() {
+  if (originalMeta) originalMeta();
+  renderDataBadges();
+};
+
+const badgeStyle = document.createElement('style');
+badgeStyle.textContent = '.data-badges{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px}.data-badge{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#cbd5e1;padding:3px 7px;font-size:11px}.data-badge.ok{border-color:#22c55e}.data-badge.warn{border-color:#f59e0b;color:#fbbf24}';
+document.head.appendChild(badgeStyle);
