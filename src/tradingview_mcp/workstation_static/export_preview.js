@@ -53,6 +53,7 @@ function renderResearchPacketPreview(packet, markdown, exportInfo = {}) {
     },
   };
   print({ research_packet_preview: summary, json_copy: 'Use copyResearchPacketJson().', markdown_copy: 'Use copyResearchPacketMarkdown().', markdown_preview: markdown.slice(0, 1800) });
+  renderExportDownloadCards([exportInfo.json_file, exportInfo.markdown_file].filter(Boolean).map((file) => ({ file })));
 }
 
 async function exportResearchPacket() {
@@ -80,9 +81,36 @@ async function copyResearchPacketMarkdown() {
   print({ copied: 'research packet Markdown', bytes: window.latestResearchPacketMarkdown.length });
 }
 
+async function copyExportDownloadUrl(file) {
+  const url = `${window.location.origin}/api/exports/download/${file}`;
+  await navigator.clipboard.writeText(url);
+  print({ copied: 'export download URL', url });
+}
+
+function ensureExportCards() {
+  let container = document.getElementById('exportDownloadCards');
+  if (container) return container;
+  container = document.createElement('div');
+  container.id = 'exportDownloadCards';
+  container.className = 'export-download-cards';
+  const output = document.getElementById('output');
+  output?.parentNode?.insertBefore(container, output);
+  return container;
+}
+
+function renderExportDownloadCards(files) {
+  const container = ensureExportCards();
+  const rows = (files || []).filter((row) => row.file);
+  container.innerHTML = rows.length ? rows.map((row) => {
+    const href = `/api/exports/download/${row.file}`;
+    return `<div class="export-download-card"><a href="${href}" target="_blank" rel="noopener">${row.file}</a><span>${row.size_bytes || ''}</span><button onclick="copyExportDownloadUrl('${row.file}')">Copy URL</button></div>`;
+  }).join('') : '<div class="export-download-card empty">No export files yet.</div>';
+}
+
 async function showLatestExport() {
   const files = (await api('/api/exports')).exports || [];
   const latest = files.slice(-2).map((row) => ({ ...row, download: `/api/exports/download/${row.file}` }));
+  renderExportDownloadCards(latest);
   print({ latest_export_files: latest });
 }
 
@@ -94,7 +122,8 @@ async function renderExportFileBrowser() {
     size_bytes: row.size_bytes,
     download: `/api/exports/download/${row.file}`,
   }));
-  print({ export_files: rows, hint: 'Open a download URL in the browser to save the file.' });
+  renderExportDownloadCards(rows);
+  print({ export_files: rows, hint: 'Use the rendered export cards or copy a download URL.' });
 }
 
 function addPacketPreviewControls() {
@@ -127,4 +156,13 @@ function addPacketPreviewControls() {
   controls.appendChild(validateButton);
 }
 
+function addExportCardStyles() {
+  if (document.getElementById('exportCardStyles')) return;
+  const style = document.createElement('style');
+  style.id = 'exportCardStyles';
+  style.textContent = '.export-download-cards{display:grid;gap:6px;padding:8px;background:#080d15;border-top:1px solid #1e293b}.export-download-card{display:flex;gap:8px;align-items:center;border:1px solid #1e293b;border-radius:8px;padding:7px;background:#0b1220}.export-download-card a{color:#93c5fd;text-decoration:none}.export-download-card span{color:#94a3b8;font-size:12px}.export-download-card button{font-size:12px;padding:4px 7px}.export-download-card.empty{color:#94a3b8}';
+  document.head.appendChild(style);
+}
+
+addExportCardStyles();
 addPacketPreviewControls();
