@@ -111,6 +111,47 @@ def create_research_idea(payload: dict[str, Any]) -> dict[str, Any]:
     return event
 
 
+def _latest_ideas() -> dict[str, dict[str, Any]]:
+    latest: dict[str, dict[str, Any]] = {}
+    for row in _read_jsonl(_idea_path(), limit=5000):
+        if row.get("event_type") == "research_idea_created" and isinstance(row.get("idea"), dict):
+            idea = row["idea"]
+            latest[str(idea.get("id"))] = idea
+        if row.get("event_type") == "research_idea_status_updated" and isinstance(row.get("idea"), dict):
+            idea = row["idea"]
+            latest[str(idea.get("id"))] = idea
+    return latest
+
+
+def update_research_idea_status(idea_id: str, status: str, note: str = "") -> dict[str, Any]:
+    clean_status = str(status or "").strip().lower()
+    latest = _latest_ideas()
+    idea = latest.get(str(idea_id))
+    errors: list[str] = []
+    if not idea:
+        errors.append("idea_id not found")
+    if clean_status not in VALID_IDEA_STATUSES:
+        errors.append("invalid status")
+    updated = dict(idea or {})
+    previous_status = updated.get("status")
+    if not errors:
+        updated["status"] = clean_status
+        updated["updated_at_utc"] = _utc_now()
+    event = {
+        "event_type": "research_idea_status_updated",
+        "timestamp_utc": _utc_now(),
+        "idea_id": str(idea_id),
+        "previous_status": previous_status,
+        "status": clean_status,
+        "note": str(note or ""),
+        "idea": updated,
+        "errors": errors,
+        "accepted": not errors,
+    }
+    _append_jsonl(_idea_path(), event)
+    return event
+
+
 def list_research_ideas(
     *,
     symbol: str | None = None,
@@ -118,8 +159,7 @@ def list_research_ideas(
     asset_type: str | None = None,
     limit: int = 100,
 ) -> list[dict[str, Any]]:
-    rows = _read_jsonl(_idea_path(), limit=5000)
-    ideas = [row.get("idea", {}) for row in rows if row.get("event_type") == "research_idea_created"]
+    ideas = list(_latest_ideas().values())
     if symbol:
         clean_symbol = symbol.strip().upper()
         ideas = [idea for idea in ideas if idea.get("symbol") == clean_symbol]
