@@ -46,6 +46,7 @@ from tradingview_mcp.core.services.research_idea_service import (
 from tradingview_mcp.core.services.screener_service import analyze_coin
 from tradingview_mcp.core.services.workstation_chart_service import get_yahoo_chart
 from tradingview_mcp.core.services.workstation_drawing_service import drawing_status, load_drawings, save_drawings
+from tradingview_mcp.core.services.workstation_export_service import export_status, list_export_files, resolve_export_file, save_export_packet
 from tradingview_mcp.core.services.workstation_journal_service import (
     append_journal_event,
     read_journal_events,
@@ -98,6 +99,12 @@ class DrawingRequest(BaseModel):
     symbol: str
     timeframe: str
     drawings: dict[str, Any] = Field(default_factory=dict)
+
+
+class ExportRequest(BaseModel):
+    name: str = "research-packet"
+    packet: dict[str, Any]
+    markdown: str = ""
 
 
 class WatchlistRequest(BaseModel):
@@ -229,6 +236,7 @@ def create_app() -> FastAPI:
             "backtests": backtest_registry_status(),
             "layouts": layout_status(),
             "drawings": drawing_status(),
+            "exports": export_status(),
             "static_dir": str(STATIC_DIR),
         }
 
@@ -251,6 +259,24 @@ def create_app() -> FastAPI:
         record = save_drawings(request.symbol, request.timeframe, request.drawings)
         append_journal_event("drawings_saved", {"symbol": request.symbol.upper(), "timeframe": request.timeframe})
         return {"drawing_record": record}
+
+    @app.get("/api/exports")
+    def exports_list() -> dict[str, Any]:
+        return {"exports": list_export_files()}
+
+    @app.get("/api/exports/download/{filename}")
+    def exports_download(filename: str) -> FileResponse | dict[str, Any]:
+        try:
+            path = resolve_export_file(filename)
+        except FileNotFoundError:
+            return _json_error("EXPORT_FILE_NOT_FOUND", "Export file was not found")
+        return FileResponse(path, filename=path.name)
+
+    @app.post("/api/exports")
+    def exports_save(request: ExportRequest) -> dict[str, Any]:
+        record = save_export_packet(request.name, request.packet, request.markdown)
+        append_journal_event("research_packet_file_saved", record)
+        return {"export": record, "exports": list_export_files()}
 
     @app.get("/api/layouts")
     def layouts_list() -> dict[str, Any]:
@@ -345,31 +371,14 @@ def create_app() -> FastAPI:
     def backtest_run(request: BacktestRequest) -> dict[str, Any]:
         request_payload = request.model_dump()
         append_journal_event("backtest_run_requested", request_payload)
-        result = run_backtest(
-            request.symbol,
-            request.strategy,
-            request.period,
-            request.initial_capital,
-            request.commission_pct,
-            request.slippage_pct,
-            request.interval,
-            request.include_trade_log,
-            request.include_equity_curve,
-        )
+        result = run_backtest(request.symbol, request.strategy, request.period, request.initial_capital, request.commission_pct, request.slippage_pct, request.interval, request.include_trade_log, request.include_equity_curve)
         record = create_backtest_record(request=request_payload, result=result, idea_id=request.idea_id, notes=request.notes)
         record_id = record.get("record", {}).get("id")
         append_journal_event("backtest_record_created", {"record_id": record_id, "idea_id": request.idea_id})
         promotion_event = None
         if request.idea_id:
-            promotion_event = update_research_idea_status(
-                request.idea_id,
-                "backtested",
-                f"Backtest record {record_id} completed for {request.symbol}.",
-            )
-            append_journal_event(
-                "backtest_promoted_idea",
-                {"record_id": record_id, "idea_id": request.idea_id, "status_event": promotion_event},
-            )
+            promotion_event = update_research_idea_status(request.idea_id, "backtested", f"Backtest record {record_id} completed for {request.symbol}.")
+            append_journal_event("backtest_promoted_idea", {"record_id": record_id, "idea_id": request.idea_id, "status_event": promotion_event})
         return {"result": result, "record": record, "idea_promotion": promotion_event}
 
     @app.get("/api/backtest/compare")
