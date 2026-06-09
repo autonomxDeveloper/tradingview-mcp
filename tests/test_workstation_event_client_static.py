@@ -40,3 +40,12 @@ def test_event_client_endpoint_strings_are_stable():
     assert "'/api/events'" in text
     assert "`/api/events?${params.toString()}`" in text
     assert "params.set('limit', String(limit))" in text
+
+
+def test_event_client_list_events_symbol_query_is_normalized_and_optional():
+    text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
+
+    assert "async function listEvents({ symbol = '', limit = 100 } = {})" in text
+    assert "if (normalizeSymbol(symbol)) params.set('symbol', normalizeSymbol(symbol));" in text
+    assert "params.set('limit', String(limit))" in text
+    assert "return requestJson(`/api/events?${params.toString()}`);" in text
