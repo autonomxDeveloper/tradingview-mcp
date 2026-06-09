@@ -16,6 +16,7 @@ This note tracks the research-only local event inbox foundation.
 - PR #46: added endpoint string coverage for the browser event client helper.
 - PR #63: tightened the static event client export guard so the private fetch wrapper stays out of the public browser API.
 - PR #66: added static browser event client coverage for normalized optional symbol queries and stable limit parameters.
+- PR #68: added static browser event client coverage for create-event POST requests, JSON headers, and normalized payload submission.
 
 ## Roadmap position
 
@@ -32,6 +33,10 @@ The browser helper exposes only the reviewed event API shape: create, payload no
 ## Static client list-query guard
 
 The browser helper keeps event listing bounded and deterministic before UI wiring: the optional symbol filter is normalized before it is sent, omitted when blank, and paired with a stable stringified limit parameter.
+
+## Static client create-event guard
+
+The browser helper keeps event creation research-only and contract-shaped before UI wiring: create calls post only to `/api/events`, send JSON headers, and serialize the normalized `eventPayload(input)` body.
 
 ## Safe local app-hook handoff
 
