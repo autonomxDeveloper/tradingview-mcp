@@ -21,6 +21,7 @@ This note tracks the research-only local event inbox foundation.
 - PR #72: added static browser event client coverage for request wrapper response handling before JSON parsing.
 - PR #74: added static browser event client coverage for metadata fallback to an object during payload normalization.
 - PR #76: added static browser event client coverage for message defaulting and trimming during payload normalization.
+- PR #78: added static browser event client coverage for kind defaulting to `note` during payload normalization.
 
 ## Roadmap position
 
