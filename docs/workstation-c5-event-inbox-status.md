@@ -23,6 +23,10 @@ C5 is foundation-complete for the connector-landed path: the local service, rout
 
 The latest connector-landed work keeps validation on documentation and focused tests. That preserves the safe path while active workstation integration remains outside the allowed connector path.
 
+## Next connector-safe move
+
+Keep the next connector-landed slice focused on small status, helper, or test refinements. Avoid default app wiring until the app hook can be applied through a safe local patch or an allowed minimal connector change.
+
 ## Current scope
 
 - The event inbox stores local research events for review.
