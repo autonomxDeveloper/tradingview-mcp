@@ -334,7 +334,14 @@ async function exportResearchPacket() {
   };
   const markdown = markdownForPacket(packet);
   await post('/api/journal', { event_type: 'research_packet_exported', payload: { symbol: snapshot.symbol, timeframe: snapshot.timeframe, idea_id: snapshot.idea_id } });
-  print({ research_packet_json: packet, research_packet_markdown: markdown });
+  const saved = await post('/api/exports', { name: `${snapshot.symbol}-${snapshot.timeframe}`, packet, markdown });
+  const exportInfo = saved.export || {};
+  print({ research_packet_json: packet, research_packet_markdown: markdown, saved_export: exportInfo, download_links: { json: `/api/exports/download/${exportInfo.json_file || ''}`, markdown: `/api/exports/download/${exportInfo.markdown_file || ''}` } });
+}
+
+async function listExportFiles() {
+  const response = await api('/api/exports');
+  print({ exports: response.exports || [] });
 }
 
 function addExportControls() {
@@ -343,8 +350,10 @@ function addExportControls() {
   const controls = document.createElement('span');
   controls.id = 'exportControls';
   controls.className = 'export-controls';
-  controls.innerHTML = '<button>Export packet</button>';
-  controls.querySelector('button').onclick = exportResearchPacket;
+  controls.innerHTML = '<button>Export packet</button><button>List exports</button>';
+  const buttons = controls.querySelectorAll('button');
+  buttons[0].onclick = exportResearchPacket;
+  buttons[1].onclick = listExportFiles;
   tabs.appendChild(controls);
 }
 
