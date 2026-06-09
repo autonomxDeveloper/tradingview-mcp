@@ -67,6 +67,15 @@ def test_c5_status_note_tracks_static_client_export_guard():
     assert "public browser API" in text
 
 
+def test_c5_status_note_tracks_safe_local_app_hook_handoff():
+    text = STATUS.read_text(encoding="utf-8")
+
+    assert "Safe local app-hook handoff" in text
+    assert "Default app wiring is still pending" in text
+    assert "keep the hook minimal" in text
+    assert "create_event_enabled_app()" in text
+
+
 def test_c5_status_note_tracks_roadmap_position():
     text = STATUS.read_text(encoding="utf-8")
 

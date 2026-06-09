@@ -28,6 +28,10 @@ The latest connector-landed work keeps validation on documentation and focused t
 
 The browser helper exposes only the reviewed event API shape: create, payload normalization, list, symbol normalization, and status helpers. The internal JSON request wrapper remains private to the helper module and is covered by static tests before any UI wiring is attempted.
 
+## Safe local app-hook handoff
+
+Default app wiring is still pending. The local implementation path should keep the hook minimal, preserve the research-only boundary, and validate route behavior with `create_event_enabled_app()` plus the existing route and static-client tests before wiring UI controls.
+
 ## Next connector-safe move
 
 Keep the next connector-landed slice focused on small status, helper, or test refinements. Avoid default app wiring until the app hook can be applied through a safe local patch or an allowed minimal connector change.
