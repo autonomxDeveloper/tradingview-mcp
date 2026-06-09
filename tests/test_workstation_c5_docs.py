@@ -86,6 +86,13 @@ def test_c5_status_note_tracks_latest_status_guard_checkpoint():
     assert "recent static client checkpoints" in text
 
 
+def test_c5_status_note_tracks_single_public_export_checkpoint():
+    text = STATUS.read_text(encoding="utf-8")
+
+    assert "PR #98" in text
+    assert "single public API export block" in text
+
+
 def test_c5_status_note_tracks_safe_local_app_hook_handoff():
     text = STATUS.read_text(encoding="utf-8")
 
