@@ -82,6 +82,14 @@ def test_event_client_keeps_fetch_wrapper_private():
     assert "requestJson" not in export_lines[0]
 
 
+def test_event_client_browser_api_is_wrapped_and_window_scoped():
+    text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
+
+    assert "const eventApi = (() => {" in text
+    assert "})();" in text
+    assert "window.eventApi = eventApi;" in text
+
+
 def test_event_client_request_wrapper_defaults_to_empty_options():
     text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
 
