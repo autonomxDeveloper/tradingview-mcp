@@ -265,7 +265,7 @@ def create_app() -> FastAPI:
         return {"exports": list_export_files()}
 
     @app.get("/api/exports/download/{filename}")
-    def exports_download(filename: str) -> FileResponse | dict[str, Any]:
+    def exports_download(filename: str):
         try:
             path = resolve_export_file(filename)
         except FileNotFoundError:
@@ -361,10 +361,7 @@ def create_app() -> FastAPI:
             {"role": "user", "content": prompt},
         ])
         structured_analysis = _parse_structured_analysis(str(analysis.get("content", "")))
-        event = append_journal_event(
-            "ai_analysis",
-            {"request": request.model_dump(), "market": market, "analysis": analysis.get("content", ""), "structured_analysis": structured_analysis},
-        )
+        event = append_journal_event("ai_analysis", {"request": request.model_dump(), "market": market, "analysis": analysis.get("content", ""), "structured_analysis": structured_analysis})
         return {"market": market, "analysis": analysis, "structured_analysis": structured_analysis, "journal_event": event}
 
     @app.post("/api/backtest/run")
