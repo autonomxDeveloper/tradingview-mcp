@@ -92,6 +92,13 @@ def test_event_client_endpoint_strings_are_stable():
     assert "params.set('limit', String(limit))" in text
 
 
+def test_event_client_list_events_uses_url_search_params():
+    text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
+
+    assert "const params = new URLSearchParams();" in text
+    assert "params.toString()" in text
+
+
 def test_event_client_list_events_symbol_query_is_normalized_and_optional():
     text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
 
