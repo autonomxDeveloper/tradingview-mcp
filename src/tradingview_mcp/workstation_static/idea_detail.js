@@ -249,6 +249,26 @@ window.updateChartMeta = function() {
   renderDataBadges();
 };
 
+const originalPersistDrawings = window.persistDrawings;
+window.persistDrawings = function() {
+  if (originalPersistDrawings) originalPersistDrawings();
+  post('/api/drawings', { symbol: $('symbol').value, timeframe: $('tf').value, drawings }).catch(() => {});
+};
+
+const originalRestoreDrawings = window.restoreDrawings;
+window.restoreDrawings = function() {
+  if (originalRestoreDrawings) originalRestoreDrawings();
+  api(`/api/drawings?symbol=${encodeURIComponent($('symbol').value)}&timeframe=${encodeURIComponent($('tf').value)}`)
+    .then((response) => {
+      if (response.drawings && Object.keys(response.drawings).length) {
+        drawings = { ...emptyDrawings(), ...response.drawings };
+        localStorage.setItem(drawingStorageKey(), JSON.stringify(drawings));
+        renderDrawings();
+      }
+    })
+    .catch(() => {});
+};
+
 const badgeStyle = document.createElement('style');
 badgeStyle.textContent = '.data-badges{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px}.data-badge{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#cbd5e1;padding:3px 7px;font-size:11px}.data-badge.ok{border-color:#22c55e}.data-badge.warn{border-color:#f59e0b;color:#fbbf24}.watchlist-controls{display:grid;gap:5px;margin:0 0 8px}.watchlist-controls button,.watchlist-controls input,.journal-filters input,.journal-filters button,.idea-lifecycle-controls input,.idea-lifecycle-controls button,.idea-status-controls select,.idea-status-controls button{font-size:12px;padding:5px 7px}.journal-filters,.idea-lifecycle-controls,.idea-status-controls{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}';
 document.head.appendChild(badgeStyle);
