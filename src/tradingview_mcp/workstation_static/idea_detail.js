@@ -64,6 +64,30 @@ function renderDataBadges() {
   badges.innerHTML = `<span class="data-badge">source ${source}</span><span class="data-badge">cache ${cache}</span><span class="data-badge ${metadata.stale ? 'warn' : 'ok'}">${freshness}</span><span class="data-badge">venue ${venue}</span>`;
 }
 
+async function loadPortfolioResearch() {
+  const positions = await api('/api/alpaca/positions');
+  const ideas = await api('/api/ideas?limit=200');
+  const ideaRows = ideas.ideas || [];
+  const rawPositions = positions.positions || positions || [];
+  if (positions.error) { print({ portfolio_error: positions.error, note: 'Read-only portfolio panel needs Alpaca credentials.' }); return; }
+  const rows = (Array.isArray(rawPositions) ? rawPositions : []).map((position) => {
+    const symbol = String(position.symbol || '').toUpperCase();
+    const linked = ideaRows.filter((idea) => String(idea.symbol || '').toUpperCase() === symbol);
+    return { symbol, qty: position.qty, market_value: position.market_value, ideas: linked.length, statuses: linked.map((idea) => idea.status) };
+  });
+  print({ portfolio_research: rows, mode: 'read_only', actions: ['select symbol', 'loadIdeas()', 'saveIdea()'] });
+}
+
+function addPortfolioButton() {
+  const tabs = document.querySelector('.bottom .tabs');
+  if (!tabs || document.getElementById('portfolioResearchButton')) return;
+  const button = document.createElement('button');
+  button.id = 'portfolioResearchButton';
+  button.textContent = 'Portfolio';
+  button.onclick = loadPortfolioResearch;
+  tabs.appendChild(button);
+}
+
 const originalMeta = window.updateChartMeta;
 window.updateChartMeta = function() {
   if (originalMeta) originalMeta();
@@ -73,3 +97,4 @@ window.updateChartMeta = function() {
 const badgeStyle = document.createElement('style');
 badgeStyle.textContent = '.data-badges{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px}.data-badge{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#cbd5e1;padding:3px 7px;font-size:11px}.data-badge.ok{border-color:#22c55e}.data-badge.warn{border-color:#f59e0b;color:#fbbf24}';
 document.head.appendChild(badgeStyle);
+addPortfolioButton();
