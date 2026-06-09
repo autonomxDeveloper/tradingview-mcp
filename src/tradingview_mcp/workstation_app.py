@@ -47,12 +47,9 @@ from tradingview_mcp.core.services.screener_service import analyze_coin
 from tradingview_mcp.core.services.workstation_chart_service import get_yahoo_chart
 from tradingview_mcp.core.services.workstation_drawing_service import drawing_status, load_drawings, save_drawings
 from tradingview_mcp.core.services.workstation_export_service import export_status, list_export_files, resolve_export_file, save_export_packet
-from tradingview_mcp.core.services.workstation_journal_service import (
-    append_journal_event,
-    read_journal_events,
-    workstation_status,
-)
+from tradingview_mcp.core.services.workstation_journal_service import append_journal_event, read_journal_events, workstation_status
 from tradingview_mcp.core.services.workstation_layout_service import layout_status, list_layouts, save_layout
+from tradingview_mcp.core.services.workstation_snapshot_service import list_snapshots, save_snapshot, snapshot_status
 from tradingview_mcp.core.services.workstation_watchlist_service import read_watchlist, save_watchlist, watchlist_status
 from tradingview_mcp.core.services.yahoo_finance_service import get_price
 from tradingview_mcp.core.utils.validators import normalize_yahoo_symbol, sanitize_exchange, sanitize_timeframe
@@ -99,6 +96,10 @@ class DrawingRequest(BaseModel):
     symbol: str
     timeframe: str
     drawings: dict[str, Any] = Field(default_factory=dict)
+
+
+class SnapshotRequest(BaseModel):
+    snapshot: dict[str, Any] = Field(default_factory=dict)
 
 
 class ExportRequest(BaseModel):
@@ -159,11 +160,7 @@ def _call_lmstudio(messages: list[dict[str, str]], max_tokens: int = 900) -> dic
     if model:
         body["model"] = model
     try:
-        response = requests.post(
-            f"{_lmstudio_base_url()}/chat/completions",
-            json=body,
-            timeout=float(os.environ.get("LMSTUDIO_TIMEOUT_SECONDS", "120")),
-        )
+        response = requests.post(f"{_lmstudio_base_url()}/chat/completions", json=body, timeout=float(os.environ.get("LMSTUDIO_TIMEOUT_SECONDS", "120")))
     except requests.RequestException as exc:
         return _json_error("LMSTUDIO_REQUEST_FAILED", str(exc), base_url=_lmstudio_base_url())
     try:
@@ -237,6 +234,7 @@ def create_app() -> FastAPI:
             "layouts": layout_status(),
             "drawings": drawing_status(),
             "exports": export_status(),
+            "snapshots": snapshot_status(),
             "static_dir": str(STATIC_DIR),
         }
 
@@ -259,6 +257,16 @@ def create_app() -> FastAPI:
         record = save_drawings(request.symbol, request.timeframe, request.drawings)
         append_journal_event("drawings_saved", {"symbol": request.symbol.upper(), "timeframe": request.timeframe})
         return {"drawing_record": record}
+
+    @app.get("/api/snapshots")
+    def snapshots_list(limit: int = 100) -> dict[str, Any]:
+        return {"snapshots": list_snapshots(limit)}
+
+    @app.post("/api/snapshots")
+    def snapshots_save(request: SnapshotRequest) -> dict[str, Any]:
+        record = save_snapshot(request.snapshot)
+        append_journal_event("research_session_snapshot", record)
+        return {"snapshot": record, "snapshots": list_snapshots(100)}
 
     @app.get("/api/exports")
     def exports_list() -> dict[str, Any]:
@@ -348,12 +356,10 @@ def create_app() -> FastAPI:
             market["technical"] = analyze_coin(tv_symbol, sanitize_exchange(request.exchange, "BINANCE" if is_crypto else "NASDAQ"), sanitize_timeframe(request.timeframe, "1D"))
         except Exception as exc:
             market["technical_error"] = str(exc)
-
         prompt = (
             "You are a cautious trading research assistant. Do not provide financial advice or tell the user to take a position. "
             "Return only valid JSON with these keys: summary, trend, key_levels, risks, invalidation, backtest_ideas, confidence, not_financial_advice. "
-            "Use observations, hypotheses, invalidation levels, risks, and backtest ideas only. "
-            "confidence must be low, medium, or high. not_financial_advice must be true.\n\n"
+            "Use observations, hypotheses, invalidation levels, risks, and backtest ideas only. confidence must be low, medium, or high. not_financial_advice must be true.\n\n"
             f"Market context:\n{market}\n\nUser question: {request.question}"
         )
         analysis = _call_lmstudio([
