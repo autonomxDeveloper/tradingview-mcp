@@ -49,6 +49,7 @@ from tradingview_mcp.core.services.workstation_journal_service import (
     read_journal_events,
     workstation_status,
 )
+from tradingview_mcp.core.services.workstation_layout_service import layout_status, list_layouts, save_layout
 from tradingview_mcp.core.services.yahoo_finance_service import get_price
 from tradingview_mcp.core.utils.validators import normalize_yahoo_symbol, sanitize_exchange, sanitize_timeframe
 
@@ -83,6 +84,11 @@ class BacktestRequest(BaseModel):
 class JournalRequest(BaseModel):
     event_type: str = "research_note"
     payload: dict[str, Any]
+
+
+class LayoutRequest(BaseModel):
+    name: str = "default"
+    state: dict[str, Any]
 
 
 class ResearchIdeaRequest(BaseModel):
@@ -201,12 +207,23 @@ def create_app() -> FastAPI:
             "workstation": workstation_status(),
             "ideas": idea_registry_status(),
             "backtests": backtest_registry_status(),
+            "layouts": layout_status(),
             "static_dir": str(STATIC_DIR),
         }
 
     @app.get("/api/watchlist")
     def watchlist() -> dict[str, Any]:
         return {"symbols": _watchlist()}
+
+    @app.get("/api/layouts")
+    def layouts_list() -> dict[str, Any]:
+        return {"layouts": list_layouts()}
+
+    @app.post("/api/layouts")
+    def layouts_save(request: LayoutRequest) -> dict[str, Any]:
+        record = save_layout(request.name, request.state)
+        append_journal_event("layout_saved", {"name": record.get("name")})
+        return {"layout": record}
 
     @app.get("/api/stock/quote")
     def stock_quote(symbol: str = Query(..., min_length=1, max_length=32)) -> dict[str, Any]:
