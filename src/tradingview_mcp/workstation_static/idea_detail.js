@@ -2,7 +2,9 @@ let workstationIdeas = [];
 let workstationSelectedIdea = null;
 
 async function loadIdeas() {
-  const response = await api('/api/ideas?limit=100');
+  const statusFilter = document.getElementById('ideaStatusFilter')?.value || '';
+  const query = statusFilter ? `?status=${encodeURIComponent(statusFilter)}&limit=100` : '?limit=100';
+  const response = await api('/api/ideas' + query);
   workstationIdeas = response.ideas || [];
   const rows = workstationIdeas.map((idea, index) => ({
     index: index + 1,
@@ -12,8 +14,21 @@ async function loadIdeas() {
     status: idea.status,
     hypothesis: idea.hypothesis,
   }));
-  print({ ideas: rows, hint: 'Use loadIdeaDetail(1), loadWorkspaceIdea(1), or setSelectedIdeaStatus("watching").' });
+  print({ ideas: rows, dashboard: ideaStatusDashboard(workstationIdeas), hint: 'Use loadIdeaDetail(1), loadWorkspaceIdea(1), or setSelectedIdeaStatus("watching").' });
   if (workstationIdeas.length) loadIdeaDetail(1);
+}
+
+function ideaStatusDashboard(ideas = workstationIdeas) {
+  const statuses = ['draft', 'watching', 'invalidated', 'backtested', 'archived'];
+  const counts = Object.fromEntries(statuses.map((status) => [status, 0]));
+  ideas.forEach((idea) => { counts[idea.status] = (counts[idea.status] || 0) + 1; });
+  return { total: ideas.length, counts };
+}
+
+async function showIdeaDashboard() {
+  const response = await api('/api/ideas?limit=500');
+  const ideas = response.ideas || [];
+  print({ idea_lifecycle_dashboard: ideaStatusDashboard(ideas), recent: ideas.slice(-10).map((idea) => ({ id: idea.id, symbol: idea.symbol, status: idea.status, updated_at_utc: idea.updated_at_utc })) });
 }
 
 async function loadIdeaDetail(index = 1) {
@@ -181,6 +196,19 @@ function addJournalFilters() {
   tabs.appendChild(controls);
 }
 
+function addIdeaStatusFilters() {
+  const tabs = document.querySelector('.bottom .tabs');
+  if (!tabs || document.getElementById('ideaStatusControls')) return;
+  const controls = document.createElement('span');
+  controls.id = 'ideaStatusControls';
+  controls.className = 'idea-status-controls';
+  controls.innerHTML = '<select id="ideaStatusFilter"><option value="">all ideas</option><option>draft</option><option>watching</option><option>invalidated</option><option>backtested</option><option>archived</option></select><button>Filter ideas</button><button>Idea dashboard</button>';
+  const buttons = controls.querySelectorAll('button');
+  buttons[0].onclick = loadIdeas;
+  buttons[1].onclick = showIdeaDashboard;
+  tabs.appendChild(controls);
+}
+
 function addIdeaLifecycleControls() {
   const ideaIdInput = document.getElementById('ideaId');
   if (!ideaIdInput || document.getElementById('ideaLifecycleControls')) return;
@@ -222,9 +250,10 @@ window.updateChartMeta = function() {
 };
 
 const badgeStyle = document.createElement('style');
-badgeStyle.textContent = '.data-badges{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px}.data-badge{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#cbd5e1;padding:3px 7px;font-size:11px}.data-badge.ok{border-color:#22c55e}.data-badge.warn{border-color:#f59e0b;color:#fbbf24}.watchlist-controls{display:grid;gap:5px;margin:0 0 8px}.watchlist-controls button,.watchlist-controls input,.journal-filters input,.journal-filters button,.idea-lifecycle-controls input,.idea-lifecycle-controls button{font-size:12px;padding:5px 7px}.journal-filters,.idea-lifecycle-controls{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}';
+badgeStyle.textContent = '.data-badges{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px}.data-badge{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#cbd5e1;padding:3px 7px;font-size:11px}.data-badge.ok{border-color:#22c55e}.data-badge.warn{border-color:#f59e0b;color:#fbbf24}.watchlist-controls{display:grid;gap:5px;margin:0 0 8px}.watchlist-controls button,.watchlist-controls input,.journal-filters input,.journal-filters button,.idea-lifecycle-controls input,.idea-lifecycle-controls button,.idea-status-controls select,.idea-status-controls button{font-size:12px;padding:5px 7px}.journal-filters,.idea-lifecycle-controls,.idea-status-controls{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}';
 document.head.appendChild(badgeStyle);
 addExtraButtons();
+addIdeaStatusFilters();
 addJournalFilters();
 addWatchlistControls();
 addIdeaLifecycleControls();
