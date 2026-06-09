@@ -104,6 +104,7 @@
         <button onclick="loadBacktests()">Backtests</button>
         <button onclick="saveIdea()">Save idea</button>
         <button onclick="loadIdeas()">Ideas</button>
+        <button onclick="scanWatchlist()">Scanner</button>
         <button onclick="loadJournal()">Journal</button>
       </div>
       <pre id="output">Ready.</pre>
@@ -120,6 +121,8 @@
         <li><span>5</span><button class="secondary" onclick="compareStrategies()">Compare strategies</button></li>
         <li><span>6</span><button class="secondary" onclick="loadJournal()">Review journal trail</button></li>
       </ol>
+      <div class="label">Scanner to idea</div>
+      <div class="tabs"><button class="secondary" onclick="scanWatchlist()">Scan watchlist</button><button class="secondary" onclick="useTopScannerCandidate()">Use top candidate</button><button class="secondary" onclick="saveIdea()">Save idea</button></div>
       <p class="workflow-note">Research-only loop: observe, hypothesize, invalidate, backtest, and journal. No order execution or paper trading path.</p>
     </div>
     <div class="panel">
