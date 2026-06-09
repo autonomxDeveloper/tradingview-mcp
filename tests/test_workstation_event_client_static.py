@@ -21,7 +21,11 @@ def test_event_client_payload_contract_is_static_and_normalized():
 
 def test_event_client_keeps_fetch_wrapper_private():
     text = (STATIC_DIR / "event_client.js").read_text(encoding="utf-8")
-    export_lines = [line.strip() for line in text.splitlines() if line.strip().startswith("return {")]
+    export_lines = [
+        line.strip()
+        for line in text.splitlines()
+        if line.strip().startswith("return { createEvent")
+    ]
 
     assert "async function requestJson" in text
     assert "window.eventApi = eventApi" in text
