@@ -45,6 +45,7 @@ from tradingview_mcp.core.services.research_idea_service import (
 )
 from tradingview_mcp.core.services.screener_service import analyze_coin
 from tradingview_mcp.core.services.workstation_chart_service import get_yahoo_chart
+from tradingview_mcp.core.services.workstation_drawing_service import drawing_status, load_drawings, save_drawings
 from tradingview_mcp.core.services.workstation_journal_service import (
     append_journal_event,
     read_journal_events,
@@ -91,6 +92,12 @@ class JournalRequest(BaseModel):
 class LayoutRequest(BaseModel):
     name: str = "default"
     state: dict[str, Any]
+
+
+class DrawingRequest(BaseModel):
+    symbol: str
+    timeframe: str
+    drawings: dict[str, Any] = Field(default_factory=dict)
 
 
 class WatchlistRequest(BaseModel):
@@ -221,6 +228,7 @@ def create_app() -> FastAPI:
             "ideas": idea_registry_status(),
             "backtests": backtest_registry_status(),
             "layouts": layout_status(),
+            "drawings": drawing_status(),
             "static_dir": str(STATIC_DIR),
         }
 
@@ -233,6 +241,16 @@ def create_app() -> FastAPI:
         record = save_watchlist(request.symbols)
         append_journal_event("watchlist_saved", {"count": len(record.get("symbols", []))})
         return {"watchlist": record}
+
+    @app.get("/api/drawings")
+    def drawings_load(symbol: str, timeframe: str = "1D") -> dict[str, Any]:
+        return {"symbol": symbol.strip().upper(), "timeframe": timeframe, "drawings": load_drawings(symbol, timeframe)}
+
+    @app.post("/api/drawings")
+    def drawings_save(request: DrawingRequest) -> dict[str, Any]:
+        record = save_drawings(request.symbol, request.timeframe, request.drawings)
+        append_journal_event("drawings_saved", {"symbol": request.symbol.upper(), "timeframe": request.timeframe})
+        return {"drawing_record": record}
 
     @app.get("/api/layouts")
     def layouts_list() -> dict[str, Any]:
