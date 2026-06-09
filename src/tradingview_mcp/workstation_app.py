@@ -339,8 +339,20 @@ def create_app() -> FastAPI:
             request.include_equity_curve,
         )
         record = create_backtest_record(request=request_payload, result=result, idea_id=request.idea_id, notes=request.notes)
-        append_journal_event("backtest_record_created", {"record_id": record.get("record", {}).get("id"), "idea_id": request.idea_id})
-        return {"result": result, "record": record}
+        record_id = record.get("record", {}).get("id")
+        append_journal_event("backtest_record_created", {"record_id": record_id, "idea_id": request.idea_id})
+        promotion_event = None
+        if request.idea_id:
+            promotion_event = update_research_idea_status(
+                request.idea_id,
+                "backtested",
+                f"Backtest record {record_id} completed for {request.symbol}.",
+            )
+            append_journal_event(
+                "backtest_promoted_idea",
+                {"record_id": record_id, "idea_id": request.idea_id, "status_event": promotion_event},
+            )
+        return {"result": result, "record": record, "idea_promotion": promotion_event}
 
     @app.get("/api/backtest/compare")
     def backtest_compare(symbol: str, period: str = "1y", initial_capital: float = 10000.0, interval: str = "1d") -> dict[str, Any]:
