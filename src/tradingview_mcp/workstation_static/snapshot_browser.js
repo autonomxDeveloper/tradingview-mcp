@@ -1,12 +1,29 @@
+async function saveSessionSnapshot() {
+  const snapshot = currentSessionSnapshot();
+  try {
+    await post('/api/snapshots', { snapshot });
+  } catch (_) {
+    await post('/api/journal', { event_type: 'research_session_snapshot', payload: snapshot });
+  }
+  print({ session_snapshot_saved: { symbol: snapshot.symbol, timeframe: snapshot.timeframe, idea_id: snapshot.idea_id } });
+}
+
 async function listSessionSnapshots() {
-  const response = await api('/api/journal?limit=500');
-  const events = (response.events || []).filter((row) => row.event_type === 'research_session_snapshot');
-  window.workstationSnapshotEvents = events;
-  const rows = events.map((event, index) => {
-    const snapshot = event.payload || {};
+  let records = [];
+  try {
+    const response = await api('/api/snapshots?limit=500');
+    records = response.snapshots || [];
+  } catch (_) {
+    const response = await api('/api/journal?limit=500');
+    records = (response.events || []).filter((row) => row.event_type === 'research_session_snapshot').map((row) => ({ created_at_utc: row.timestamp_utc || row.timestamp || '', snapshot: row.payload || {} }));
+  }
+  window.workstationSnapshotEvents = records;
+  const rows = records.map((record, index) => {
+    const snapshot = record.snapshot || record.payload || {};
     return {
       index: index + 1,
-      time: event.timestamp_utc || event.timestamp || '',
+      id: record.id || '',
+      time: record.created_at_utc || record.timestamp_utc || record.timestamp || '',
       symbol: snapshot.symbol || '',
       timeframe: snapshot.timeframe || '',
       idea_id: snapshot.idea_id || '',
@@ -33,12 +50,19 @@ function applySessionSnapshot(snapshot) {
 async function loadSessionSnapshot(index = 1) {
   if (!window.workstationSnapshotEvents) await listSessionSnapshots();
   const events = window.workstationSnapshotEvents || [];
-  const event = events[Math.max(0, Number(index) - 1)];
-  if (!event) { print('No snapshot found for that index.'); return; }
-  const snapshot = event.payload || {};
+  const record = events[Math.max(0, Number(index) - 1)];
+  if (!record) { print('No snapshot found for that index.'); return; }
+  const snapshot = record.snapshot || record.payload || {};
   applySessionSnapshot(snapshot);
   print({ session_snapshot_loaded: { index: Number(index), symbol: snapshot.symbol, timeframe: snapshot.timeframe, idea_id: snapshot.idea_id } });
   loadMarket();
+}
+
+async function loadLatestSessionSnapshot() {
+  await listSessionSnapshots();
+  const count = (window.workstationSnapshotEvents || []).length;
+  if (!count) { print('No session snapshot found.'); return; }
+  await loadSessionSnapshot(count);
 }
 
 function addSnapshotBrowserControls() {
