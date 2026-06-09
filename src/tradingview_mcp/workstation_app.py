@@ -50,6 +50,7 @@ from tradingview_mcp.core.services.workstation_journal_service import (
     workstation_status,
 )
 from tradingview_mcp.core.services.workstation_layout_service import layout_status, list_layouts, save_layout
+from tradingview_mcp.core.services.workstation_watchlist_service import read_watchlist, save_watchlist, watchlist_status
 from tradingview_mcp.core.services.yahoo_finance_service import get_price
 from tradingview_mcp.core.utils.validators import normalize_yahoo_symbol, sanitize_exchange, sanitize_timeframe
 
@@ -91,6 +92,10 @@ class LayoutRequest(BaseModel):
     state: dict[str, Any]
 
 
+class WatchlistRequest(BaseModel):
+    symbols: list[str] = Field(default_factory=list)
+
+
 class ResearchIdeaRequest(BaseModel):
     symbol: str
     asset_type: Literal["stock", "crypto", "other"] = "stock"
@@ -115,8 +120,8 @@ def _json_error(code: str, message: str, **extra: Any) -> dict[str, Any]:
 
 def _watchlist() -> list[str]:
     raw = os.environ.get("TRADING_WORKSTATION_WATCHLIST", "")
-    items = [item.strip().upper() for item in raw.split(",") if item.strip()]
-    return items or DEFAULT_WATCHLIST
+    env_items = [item.strip().upper() for item in raw.split(",") if item.strip()]
+    return read_watchlist(env_items or DEFAULT_WATCHLIST)
 
 
 def _lmstudio_base_url() -> str:
@@ -202,6 +207,7 @@ def create_app() -> FastAPI:
             "lmstudio_base_url": _lmstudio_base_url(),
             "lmstudio_model": _lmstudio_model(),
             "watchlist": _watchlist(),
+            "watchlist_registry": watchlist_status(DEFAULT_WATCHLIST),
             "crypto_venues": sorted(SUPPORTED_CRYPTO_VENUES),
             "alpaca": get_alpaca_safety_status(),
             "workstation": workstation_status(),
@@ -214,6 +220,12 @@ def create_app() -> FastAPI:
     @app.get("/api/watchlist")
     def watchlist() -> dict[str, Any]:
         return {"symbols": _watchlist()}
+
+    @app.post("/api/watchlist")
+    def watchlist_save(request: WatchlistRequest) -> dict[str, Any]:
+        record = save_watchlist(request.symbols)
+        append_journal_event("watchlist_saved", {"count": len(record.get("symbols", []))})
+        return {"watchlist": record}
 
     @app.get("/api/layouts")
     def layouts_list() -> dict[str, Any]:
