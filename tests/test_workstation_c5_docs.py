@@ -93,6 +93,14 @@ def test_c5_status_note_tracks_single_public_export_checkpoint():
     assert "single public API export block" in text
 
 
+def test_c5_status_note_tracks_unique_export_helper_checkpoint():
+    text = STATUS.read_text(encoding="utf-8")
+
+    assert "PR #102" in text
+    assert "unique helper names" in text
+    assert "public API export block" in text
+
+
 def test_c5_status_note_tracks_safe_local_app_hook_handoff():
     text = STATUS.read_text(encoding="utf-8")
 
