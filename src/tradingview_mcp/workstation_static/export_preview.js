@@ -24,6 +24,7 @@ async function buildResearchPacket() {
 function renderResearchPacketPreview(packet, markdown, exportInfo = {}) {
   window.latestResearchPacket = packet;
   window.latestResearchPacketMarkdown = markdown;
+  window.latestExportFiles = exportInfo;
   const summary = {
     symbol: packet.snapshot.symbol,
     timeframe: packet.snapshot.timeframe,
@@ -59,6 +60,23 @@ async function copyResearchPacketMarkdown() {
   print({ copied: 'research packet Markdown', bytes: window.latestResearchPacketMarkdown.length });
 }
 
+async function showLatestExport() {
+  const files = (await api('/api/exports')).exports || [];
+  const latest = files.slice(-2).map((row) => ({ ...row, download: `/api/exports/download/${row.file}` }));
+  print({ latest_export_files: latest });
+}
+
+async function renderExportFileBrowser() {
+  const files = (await api('/api/exports')).exports || [];
+  const rows = files.map((row, index) => ({
+    index: index + 1,
+    file: row.file,
+    size_bytes: row.size_bytes,
+    download: `/api/exports/download/${row.file}`,
+  }));
+  print({ export_files: rows, hint: 'Open a download URL in the browser to save the file.' });
+}
+
 function addPacketPreviewControls() {
   const controls = document.getElementById('exportControls');
   if (!controls || document.getElementById('copyPacketJsonButton')) return;
@@ -70,8 +88,18 @@ function addPacketPreviewControls() {
   mdButton.id = 'copyPacketMarkdownButton';
   mdButton.textContent = 'Copy Markdown';
   mdButton.onclick = copyResearchPacketMarkdown;
+  const browseButton = document.createElement('button');
+  browseButton.id = 'browseExportsButton';
+  browseButton.textContent = 'Browse exports';
+  browseButton.onclick = renderExportFileBrowser;
+  const latestButton = document.createElement('button');
+  latestButton.id = 'latestExportButton';
+  latestButton.textContent = 'Latest export';
+  latestButton.onclick = showLatestExport;
   controls.appendChild(jsonButton);
   controls.appendChild(mdButton);
+  controls.appendChild(browseButton);
+  controls.appendChild(latestButton);
 }
 
 addPacketPreviewControls();
