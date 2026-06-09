@@ -110,6 +110,18 @@
     </div>
   </section>
   <section class="right">
+    <div class="panel workflow-panel">
+      <div class="label">Research workflow</div>
+      <ol class="workflow-list">
+        <li><span>1</span><button class="secondary" onclick="loadMarket()">Load market snapshot</button></li>
+        <li><span>2</span><button class="secondary" onclick="analyze()">Generate AI observations</button></li>
+        <li><span>3</span><button class="secondary" onclick="saveIdea()">Save hypothesis as idea</button></li>
+        <li><span>4</span><button class="secondary" onclick="runBacktest()">Run linked backtest</button></li>
+        <li><span>5</span><button class="secondary" onclick="compareStrategies()">Compare strategies</button></li>
+        <li><span>6</span><button class="secondary" onclick="loadJournal()">Review journal trail</button></li>
+      </ol>
+      <p class="workflow-note">Research-only loop: observe, hypothesize, invalidate, backtest, and journal. No order execution or paper trading path.</p>
+    </div>
     <div class="panel">
       <div class="label">AI question</div>
       <textarea id="question">Give observations, risks, invalidation levels, and what to backtest next. Do not recommend taking a position.</textarea>
