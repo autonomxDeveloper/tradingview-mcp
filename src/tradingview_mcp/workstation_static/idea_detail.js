@@ -78,18 +78,30 @@ async function loadPortfolioResearch() {
   print({ portfolio_research: rows, mode: 'read_only', actions: ['select symbol', 'loadIdeas()', 'saveIdea()'] });
 }
 
-async function loadJournalTimeline() {
+function journalFilterValue(id) {
+  return (document.getElementById(id)?.value || '').trim().toUpperCase();
+}
+
+async function loadJournalTimeline(options = {}) {
   const response = await api('/api/journal?limit=100');
   const events = response.events || [];
+  const symbolFilter = options.currentSymbol ? ($('symbol').value || '').trim().toUpperCase() : journalFilterValue('journalSymbolFilter');
+  const typeFilter = journalFilterValue('journalTypeFilter').toLowerCase();
+  const ideaFilter = journalFilterValue('journalIdeaFilter');
   const rows = events.map((event, index) => ({
     index: index + 1,
     time: event.timestamp_utc || event.timestamp || '',
     type: event.event_type || event.type || 'event',
-    symbol: event.payload?.symbol || event.payload?.request?.symbol || '',
-    idea_id: event.payload?.idea_id || event.payload?.id || '',
+    symbol: String(event.payload?.symbol || event.payload?.request?.symbol || '').toUpperCase(),
+    idea_id: String(event.payload?.idea_id || event.payload?.id || '').toUpperCase(),
     summary: JSON.stringify(event.payload || event).slice(0, 220),
-  }));
-  print({ journal_timeline: rows, filters: ['symbol', 'event_type', 'idea_id'], mode: 'research_only' });
+  })).filter((row) => {
+    if (symbolFilter && row.symbol !== symbolFilter) return false;
+    if (typeFilter && !String(row.type || '').toLowerCase().includes(typeFilter)) return false;
+    if (ideaFilter && row.idea_id !== ideaFilter) return false;
+    return true;
+  });
+  print({ journal_timeline: rows, filters: { symbol: symbolFilter, event_type: typeFilter, idea_id: ideaFilter }, mode: 'research_only' });
 }
 
 function watchlistSymbols() {
@@ -149,6 +161,17 @@ function addWatchlistControls() {
   watch.parentNode.insertBefore(controls, watch);
 }
 
+function addJournalFilters() {
+  const tabs = document.querySelector('.bottom .tabs');
+  if (!tabs || document.getElementById('journalFilters')) return;
+  const controls = document.createElement('span');
+  controls.id = 'journalFilters';
+  controls.className = 'journal-filters';
+  controls.innerHTML = '<input id="journalSymbolFilter" placeholder="symbol" /><input id="journalTypeFilter" placeholder="event type" /><input id="journalIdeaFilter" placeholder="idea id" /><button>Current symbol</button>';
+  controls.querySelector('button').onclick = () => loadJournalTimeline({ currentSymbol: true });
+  tabs.appendChild(controls);
+}
+
 function addExtraButtons() {
   const tabs = document.querySelector('.bottom .tabs');
   if (!tabs) return;
@@ -175,7 +198,8 @@ window.updateChartMeta = function() {
 };
 
 const badgeStyle = document.createElement('style');
-badgeStyle.textContent = '.data-badges{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px}.data-badge{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#cbd5e1;padding:3px 7px;font-size:11px}.data-badge.ok{border-color:#22c55e}.data-badge.warn{border-color:#f59e0b;color:#fbbf24}.watchlist-controls{display:grid;gap:5px;margin:0 0 8px}.watchlist-controls button,.watchlist-controls input{font-size:12px;padding:5px 7px}';
+badgeStyle.textContent = '.data-badges{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px}.data-badge{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#cbd5e1;padding:3px 7px;font-size:11px}.data-badge.ok{border-color:#22c55e}.data-badge.warn{border-color:#f59e0b;color:#fbbf24}.watchlist-controls{display:grid;gap:5px;margin:0 0 8px}.watchlist-controls button,.watchlist-controls input,.journal-filters input,.journal-filters button{font-size:12px;padding:5px 7px}.journal-filters{display:inline-flex;gap:4px;flex-wrap:wrap}';
 document.head.appendChild(badgeStyle);
 addExtraButtons();
+addJournalFilters();
 addWatchlistControls();
