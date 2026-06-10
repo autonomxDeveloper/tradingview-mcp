@@ -145,15 +145,15 @@
       <textarea id="question">Give observations, risks, invalidation levels, and what to backtest next. Do not recommend taking a position.</textarea>
       <button onclick="analyze()">Analyze current symbol</button>
       <div class="label">Research idea</div>
-      <input id="hypothesis" style="width:100%" placeholder="Hypothesis" />
-      <input id="invalidation" style="width:100%;margin-top:6px" placeholder="Invalidation" />
-      <input id="backtestPlan" style="width:100%;margin-top:6px" placeholder="Backtest plan" />
-      <input id="ideaId" style="width:100%;margin-top:6px" placeholder="Optional idea ID for backtest link" />
+      <input id="hypothesis" class="research-idea-input" placeholder="Hypothesis" />
+      <input id="invalidation" class="research-idea-input" placeholder="Invalidation" />
+      <input id="backtestPlan" class="research-idea-input" placeholder="Backtest plan" />
+      <input id="ideaId" class="research-idea-input" placeholder="Optional idea ID for backtest link" />
       <div class="label">Backtest</div>
       <select id="strategy"><option>ema_cross</option><option>rsi</option><option>bollinger</option><option>macd</option><option>supertrend</option><option>donchian</option><option>rsi_pullback</option><option>keltner_breakout</option><option>triple_ema</option></select>
       <select id="period"><option>1mo</option><option>3mo</option><option>6mo</option><option selected>1y</option><option>2y</option></select>
     </div>
-    <div class="panel" style="overflow:auto">
+    <div class="panel analysis-results-panel">
       <div class="label">AI / results</div>
       <pre id="analysis">Start LM Studio and use Analyze.</pre>
     </div>
