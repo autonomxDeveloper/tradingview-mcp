@@ -226,3 +226,15 @@ def resolve_screener_for_symbol(full_symbol: str, exchange: str) -> str:
     return (EXCHANGE_SCREENER.get(prefix)
             or _TA_ONLY_SCREENERS.get(prefix)
             or "crypto")
+
+
+def _install_workstation_route_hooks() -> None:
+    """Install optional workstation route hooks for apps that import validators."""
+    try:
+        from tradingview_mcp.workstation_ai_paper_execution_routes import install_ai_paper_execution_route_autoregistry
+    except Exception:
+        return
+    install_ai_paper_execution_route_autoregistry()
+
+
+_install_workstation_route_hooks()
