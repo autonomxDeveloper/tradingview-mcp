@@ -71,6 +71,10 @@ window.workstationModules = {
     file: 'ai_paper_audit_export_module.js',
     owns: ['AI paper audit export panel', 'read-only JSON/Markdown audit exports', 'browser copy/download handoff'],
   },
+  aiPaperDashboard: {
+    file: 'ai_paper_dashboard_module.js',
+    owns: ['AI paper dashboard navigation', 'workflow status strip', 'read-only panel focus shortcuts'],
+  },
   aiTradeJournalCoach: {
     file: 'ai_trade_journal_coach_module.js',
     owns: ['AI paper trade journal coaching', 'post-fill process review', 'simulated trade improvement rules'],
@@ -211,6 +215,7 @@ function loadWorkstationModules() {
   loadModuleScript('aiPaperPerformanceModuleScript', '/static/ai_paper_performance_module.js');
   loadModuleScript('aiPaperReviewPacketModuleScript', '/static/ai_paper_review_packet_module.js');
   loadModuleScript('aiPaperAuditExportModuleScript', '/static/ai_paper_audit_export_module.js');
+  loadModuleScript('aiPaperDashboardModuleScript', '/static/ai_paper_dashboard_module.js');
   loadModuleScript('aiTradeJournalCoachModuleScript', '/static/ai_trade_journal_coach_module.js');
   loadModuleScript('aiConfidenceCalibrationModuleScript', '/static/ai_confidence_calibration_module.js');
   loadModuleScript('portfolioModuleScript', '/static/portfolio_module.js');

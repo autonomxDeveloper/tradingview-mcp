@@ -84,6 +84,8 @@
     'aiPaperAuditExport.build': () => callGlobal('buildAiPaperAuditExport'),
     'aiPaperAuditExport.copy': () => callGlobal('copyAiPaperAuditExport'),
     'aiPaperAuditExport.download': () => callGlobal('downloadAiPaperAuditExport'),
+    'aiPaperDashboard.refresh': () => callGlobal('refreshAiPaperDashboard'),
+    'aiPaperDashboard.focus': (element) => callGlobal('focusAiPaperDashboardPanel', actionArgument(element)),
     'ideas.save': () => callGlobal('saveIdea'),
     'ideas.list': () => callGlobal('loadIdeas'),
     'ideas.detail': (element) => callGlobal('loadIdeaDetail', Number(actionArgument(element) || 1)),
