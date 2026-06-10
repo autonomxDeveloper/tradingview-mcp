@@ -85,6 +85,7 @@ Expected safety text includes: `paper_only: true`, `live_execution: false`, `exe
 ### 4. Manual schedules
 
 - Create a manual AI paper schedule with `auto_execute=false`.
+- Confirm schedule list/create/delete calls use `/api/ai/paper-trader/schedules`.
 - Refresh the schedule list.
 - Request a due/manual run.
 - Run the AI decision from the schedule request.
