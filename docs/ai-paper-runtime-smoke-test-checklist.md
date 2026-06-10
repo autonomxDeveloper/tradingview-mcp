@@ -89,7 +89,7 @@ Expected safety text includes: `paper_only: true`, `live_execution: false`, `exe
 - Request a due/manual run.
 - Run the AI decision from the schedule request.
 - Record the last decision manually.
-- Confirm the panel states background loops are disabled and manual decision requests are used.
+- Confirm the panel states background loops are disabled and manual decision requests only are used.
 - Confirm no schedule starts an autonomous background loop.
 
 ### 5. Lifecycle advisory review
