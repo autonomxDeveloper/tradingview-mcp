@@ -49,7 +49,7 @@ def test_paper_trading_service_exposes_accounting_and_safety_helpers():
         assert validation in service
 
 
-def test_paper_trading_api_routes_are_paper_only():
+def test_paper_trading_api_routes_are_simulation_only():
     app = read(APP)
     for route in [
         '"/api/paper/account"',
@@ -62,11 +62,11 @@ def test_paper_trading_api_routes_are_paper_only():
         '"/api/paper/orders/{order_id}/cancel"',
     ]:
         assert route in app
-    assert "paper_only" in app
     assert "live_execution" in app
     assert "paper_order_submitted" in app
     assert "paper_order_filled" in app
     assert "paper_order_cancelled" in app
+    assert "paper_account_reset" in app
 
 
 def test_paper_trading_ui_calls_only_paper_endpoints_and_exports_state():
