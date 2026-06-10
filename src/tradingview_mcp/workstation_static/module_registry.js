@@ -44,7 +44,7 @@ window.workstationModules = {
     owns: ['packet build facade', 'validation', 'file export', 'download cards', 'copy actions', 'legacy export API compatibility'],
   },
   layout: {
-    file: 'inline layout adapter',
+    file: 'layout_module.js',
     owns: ['chart grid mode', 'slot state', 'layout state adapter'],
   },
   cleanup: {
@@ -98,6 +98,7 @@ function loadWorkstationModules() {
   loadModuleScript('scannerModuleScript', '/static/scanner_module.js');
   loadModuleScript('backtestModuleScript', '/static/backtest_module.js');
   loadModuleScript('analysisModuleScript', '/static/analysis_module.js');
+  loadModuleScript('layoutModuleScript', '/static/layout_module.js');
   loadModuleScript('portfolioModuleScript', '/static/portfolio_module.js');
   loadModuleScript('exportModuleScript', '/static/export_module.js');
   loadModuleScript('bootDiagnosticsScript', '/static/boot_diagnostics.js');
