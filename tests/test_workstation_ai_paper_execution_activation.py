@@ -7,8 +7,8 @@ from tradingview_mcp.workstation_ai_paper_execution_routes import WORKSTATION_AP
 from tradingview_mcp.workstation_app import create_app
 
 
-def _route_paths(app: FastAPI) -> set[str]:
-    return {getattr(route, "path", "") for route in app.routes}
+def _route_paths(app: FastAPI) -> list[str]:
+    return [getattr(route, "path", "") for route in app.routes]
 
 
 def test_default_workstation_app_exposes_ai_paper_execution_route():
@@ -34,4 +34,4 @@ def test_route_autoregistry_is_title_scoped_and_idempotent():
     assert "/api/ai/paper-trader/execute" not in _route_paths(other_app)
     assert "/api/ai/paper-trader/execute" in _route_paths(workstation_app)
     assert "/api/ai/paper-trader/execute" in _route_paths(workstation_app_again)
-    assert list(_route_paths(workstation_app)).count("/api/ai/paper-trader/execute") == 1
+    assert _route_paths(workstation_app).count("/api/ai/paper-trader/execute") == 1
