@@ -10,7 +10,6 @@ from typing import Any, Literal
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
-from tradingview_mcp.core.services.ai_market_context_service import build_multi_timeframe_market_context
 from tradingview_mcp.core.services.ai_paper_trader_execution_service import execute_ai_paper_trader_decision
 from tradingview_mcp.core.services.ai_paper_trader_schedule_service import (
     ai_paper_schedule_status,
@@ -117,6 +116,8 @@ def register_ai_paper_execution_routes(app: FastAPI) -> FastAPI:
     if not _has_route(app, "/api/ai/market-context"):
         @app.post("/api/ai/market-context")
         def ai_multi_timeframe_market_context(request: MultiTimeframeContextRequest) -> dict[str, Any]:
+            from tradingview_mcp.core.services.ai_market_context_service import build_multi_timeframe_market_context
+
             context = build_multi_timeframe_market_context(
                 symbol=request.symbol,
                 asset_type=request.asset_type,
