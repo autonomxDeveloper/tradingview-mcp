@@ -18,6 +18,12 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from tradingview_mcp.core.services.ai_paper_trader_service import (
+    ai_paper_trader_prompt,
+    build_ai_paper_trader_context,
+    parse_ai_paper_trader_decision,
+    validate_ai_paper_trader_decision,
+)
 from tradingview_mcp.core.services.alpaca_service import (
     get_alpaca_account,
     get_alpaca_positions,
@@ -83,6 +89,14 @@ class TradeIdeaRequest(AnalyzeRequest):
     chart_context: dict[str, Any] = Field(default_factory=dict)
     profile: str = "swing"
     mode: str = "research_trade_idea"
+
+
+class PaperTraderDecisionRequest(AnalyzeRequest):
+    chart_context: dict[str, Any] = Field(default_factory=dict)
+    timeframes: list[str] = Field(default_factory=lambda: ["5m", "15m", "1h", "1d"])
+    profile: str = "intraday_paper"
+    mode: str = "paper_trader_decision"
+    risk: dict[str, Any] = Field(default_factory=dict)
 
 
 class BacktestRequest(BaseModel):
@@ -532,6 +546,50 @@ def create_app() -> FastAPI:
         structured_trade_idea = _parse_structured_trade_idea(str(trade_idea.get("content", "")))
         event = append_journal_event("ai_trade_idea", {"request": request.model_dump(), "market": market, "trade_idea": trade_idea.get("content", ""), "structured_trade_idea": structured_trade_idea, "simulated_only": True, "live_execution": False})
         return {"market": market, "trade_idea": trade_idea, "structured_trade_idea": structured_trade_idea, "journal_event": event}
+
+    @app.post("/api/ai/paper-trader/decision")
+    def ai_paper_trader_decision(request: PaperTraderDecisionRequest) -> dict[str, Any]:
+        market = _market_context(request.symbol, request.asset_type, request.exchange, request.timeframe)
+        paper_account = paper_account_snapshot()
+        context = build_ai_paper_trader_context(
+            symbol=request.symbol,
+            asset_type=market.get("asset_type", request.asset_type),
+            exchange=request.exchange,
+            active_timeframe=request.timeframe,
+            timeframes=request.timeframes,
+            profile=request.profile,
+            mode=request.mode,
+            market=market,
+            chart_context=request.chart_context,
+            paper_account=paper_account,
+            open_orders=list_paper_orders(50),
+            recent_fills=list_paper_fills(50),
+            risk=request.risk,
+        )
+        ai_response = _call_lmstudio(ai_paper_trader_prompt(context), max_tokens=1000)
+        parsed_decision = parse_ai_paper_trader_decision(str(ai_response.get("content", "")))
+        decision = validate_ai_paper_trader_decision(parsed_decision, context)
+        event = append_journal_event(
+            "ai_paper_trader_decision",
+            {
+                "request": request.model_dump(),
+                "context": context,
+                "ai_response": ai_response.get("content", ""),
+                "decision": decision,
+                "paper_only": True,
+                "live_execution": False,
+                "execution_submitted": False,
+            },
+        )
+        return {
+            "context": context,
+            "ai_response": ai_response,
+            "decision": decision,
+            "journal_event": event,
+            "paper_only": True,
+            "live_execution": False,
+            "execution_submitted": False,
+        }
 
     @app.post("/api/backtest/run")
     def backtest_run(request: BacktestRequest) -> dict[str, Any]:
