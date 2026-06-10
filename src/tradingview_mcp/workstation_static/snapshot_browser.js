@@ -65,20 +65,47 @@ async function loadLatestSessionSnapshot() {
   await loadSessionSnapshot(count);
 }
 
+function ensureSnapshotControls() {
+  let controls = document.getElementById('snapshotControls');
+  if (controls) return controls;
+  controls = document.createElement('span');
+  controls.id = 'snapshotControls';
+  controls.className = 'snapshot-controls';
+  const host = document.getElementById('researchToolsStrip') || document.querySelector('.bottom .tabs');
+  if (host) host.appendChild(controls);
+  return controls;
+}
+
 function addSnapshotBrowserControls() {
-  const controls = document.getElementById('snapshotControls');
-  if (!controls || document.getElementById('snapshotBrowserButton')) return;
-  const listButton = document.createElement('button');
-  listButton.id = 'snapshotBrowserButton';
-  listButton.textContent = 'List snapshots';
-  listButton.onclick = listSessionSnapshots;
-  controls.appendChild(listButton);
+  const controls = ensureSnapshotControls();
+  if (!controls) return;
+  if (!document.getElementById('saveSnapshotButton')) {
+    const saveButton = document.createElement('button');
+    saveButton.id = 'saveSnapshotButton';
+    saveButton.textContent = 'Save snapshot';
+    saveButton.onclick = saveSessionSnapshot;
+    controls.appendChild(saveButton);
+  }
+  if (!document.getElementById('snapshotBrowserButton')) {
+    const listButton = document.createElement('button');
+    listButton.id = 'snapshotBrowserButton';
+    listButton.textContent = 'List snapshots';
+    listButton.onclick = listSessionSnapshots;
+    controls.appendChild(listButton);
+  }
+  if (!document.getElementById('loadLatestSnapshotButton')) {
+    const latestButton = document.createElement('button');
+    latestButton.id = 'loadLatestSnapshotButton';
+    latestButton.textContent = 'Load latest snapshot';
+    latestButton.onclick = loadLatestSessionSnapshot;
+    controls.appendChild(latestButton);
+  }
 }
 
 function bootSnapshotBrowserModule() {
   window.workstationModuleGuard?.missing?.('snapshot-browser', {
     globals: ['currentSessionSnapshot', 'post', 'api', 'print', 'emptyDrawings', 'drawingStorageKey', 'renderDrawings', 'loadMarket'],
-    elements: ['snapshotControls', 'symbol', 'tf', 'asset', 'exchange', 'ideaId', 'hypothesis', 'invalidation', 'backtestPlan'],
+    elements: ['symbol', 'tf', 'asset', 'exchange', 'ideaId', 'hypothesis', 'invalidation', 'backtestPlan'],
   });
   addSnapshotBrowserControls();
 }
