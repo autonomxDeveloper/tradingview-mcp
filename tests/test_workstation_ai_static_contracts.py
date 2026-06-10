@@ -15,6 +15,7 @@ AI_MODULES = [
     "ai_watchlist_scanner_module.js",
     "ai_paper_risk_module.js",
     "ai_paper_trader_module.js",
+    "ai_paper_schedule_module.js",
     "ai_trade_journal_coach_module.js",
     "ai_confidence_calibration_module.js",
 ]
@@ -101,6 +102,35 @@ def test_ai_paper_trader_ui_uses_decision_then_explicit_paper_execution():
     assert "ai_paper_trader_module.js" in registry
     assert "aiPaperTrader.decision" in bindings
     assert "aiPaperTrader.execute" in bindings
+
+
+def test_ai_paper_schedule_ui_is_manual_and_paper_only():
+    module = read_static("ai_paper_schedule_module.js")
+    registry = read_static("module_registry.js")
+    bindings = read_static("ui_bindings.js")
+    for expected in [
+        "/api/ai/paper-trader/schedules",
+        "/api/ai/paper-trader/decision",
+        "background loop disabled",
+        "manual decision requests only",
+        "auto_execute: false",
+        "paper_only: true",
+        "live_execution: false",
+        "Run scheduled decision",
+        "Run AI decision from schedule request",
+        "Record last decision",
+    ]:
+        assert expected in module
+    assert "ai_paper_schedule_module.js" in registry
+    for action in [
+        "aiPaperSchedule.refresh",
+        "aiPaperSchedule.create",
+        "aiPaperSchedule.delete",
+        "aiPaperSchedule.run",
+        "aiPaperSchedule.decision",
+        "aiPaperSchedule.record",
+    ]:
+        assert action in bindings
 
 
 def test_ai_journal_and_calibration_modules_track_review_outcomes_locally():
