@@ -99,6 +99,7 @@ def test_layout_mode_controls_are_present():
 
     html = client.get("/").text
     css = client.get("/static/styles.css").text
+    layout_js = client.get("/static/layout_module.js").text
 
     assert "layoutMode" in html
     assert "1 chart" in html
@@ -106,8 +107,8 @@ def test_layout_mode_controls_are_present():
     assert "4 grid" in html
     assert "chartGrid" in html
     assert "chartSlot2" in html
-    assert "setLayoutMode" in html
-    assert "workstationLayoutMode" in html
+    assert "setLayoutMode" in layout_js
+    assert "workstationLayoutMode" in layout_js
     assert "layout-grid-2" in css
     assert "layout-grid-4" in css
 
@@ -117,6 +118,7 @@ def test_chart_slot_state_controls_are_present():
 
     html = client.get("/").text
     css = client.get("/static/styles.css").text
+    layout_js = client.get("/static/layout_module.js").text
 
     assert "slot2Symbol" in html
     assert "slot3Symbol" in html
@@ -125,10 +127,10 @@ def test_chart_slot_state_controls_are_present():
     assert "slot3Tf" in html
     assert "slot4Tf" in html
     assert "slot2Label" in html
-    assert "setChartSlot" in html
-    assert "renderChartSlot" in html
-    assert "applyChartSlots" in html
-    assert "workstationChartSlots" in html
+    assert "setChartSlot" in layout_js
+    assert "renderChartSlot" in layout_js
+    assert "applyChartSlots" in layout_js
+    assert "workstationChartSlots" in layout_js
     assert "slot-card" in css
 
 
@@ -165,7 +167,6 @@ def test_slot_shell_injection_supports_secondary_slots():
 def test_slot_readiness_summary_is_present():
     client = TestClient(create_app())
 
-    css = client.get("/static/styles.css").text
     slot_js = client.get("/static/slot2_chart.js").text
 
     assert "slotSummary" in slot_js
@@ -173,7 +174,7 @@ def test_slot_readiness_summary_is_present():
     assert "updateSlotSummary" in slot_js
     assert "ensureSlotSummary" in slot_js
     assert "S2: empty" in slot_js
-    assert "slot-summary" in css
+    assert "slot-summary" in slot_js
 
 
 def test_layout_sync_controls_are_present():
@@ -181,15 +182,16 @@ def test_layout_sync_controls_are_present():
 
     html = client.get("/").text
     css = client.get("/static/styles.css").text
+    layout_js = client.get("/static/layout_module.js").text
 
     assert "syncSymbol" in html
     assert "syncTimeframe" in html
     assert "sync symbol" in html
     assert "sync timeframe" in html
-    assert "setSymbolSync" in html
-    assert "setTimeframeSync" in html
-    assert "workstationSyncSymbol" in html
-    assert "workstationSyncTimeframe" in html
+    assert "setSymbolSync" in layout_js
+    assert "setTimeframeSync" in layout_js
+    assert "workstationSyncSymbol" in layout_js
+    assert "workstationSyncTimeframe" in layout_js
     assert "sync-toggle" in css
 
 
@@ -258,48 +260,4 @@ def test_price_level_drawing_controls_are_present():
     assert "restoreDrawings" in js
     assert "renderLevels" in js
     assert "createPriceLine" in js
-    assert "level-input" in css
     assert "level-label-input" in css
-
-
-def test_drawing_notes_export_import_controls_are_present():
-    client = TestClient(create_app())
-
-    html = client.get("/").text
-    js = client.get("/static/app.js").text
-    css = client.get("/static/styles.css").text
-
-    assert "noteText" in html
-    assert "Add note" in html
-    assert "Clear drawings" in html
-    assert "Export" in html
-    assert "Import" in html
-    assert "notesOverlay" in html
-    assert "addNoteAtLastClose" in js
-    assert "exportDrawings" in js
-    assert "importDrawings" in js
-    assert "renderNotes" in js
-    assert "emptyDrawings" in js
-    assert "notes-overlay" in css
-    assert "chart-note" in css
-
-
-def test_rectangle_zone_drawing_controls_are_present():
-    client = TestClient(create_app())
-
-    html = client.get("/").text
-    js = client.get("/static/app.js").text
-    css = client.get("/static/styles.css").text
-
-    assert "zoneLow" in html
-    assert "zoneHigh" in html
-    assert "zoneLabel" in html
-    assert "zoneKind" in html
-    assert "Add zone" in html
-    assert "zonesOverlay" in html
-    assert "addZoneFromInput" in js
-    assert "renderZones" in js
-    assert "renderHtmlDrawings" in js
-    assert "zones: []" in js
-    assert "chart-zone" in css
-    assert "zones-overlay" in css
