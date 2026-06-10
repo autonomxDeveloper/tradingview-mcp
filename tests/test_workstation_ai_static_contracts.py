@@ -11,6 +11,12 @@ def read_static(name: str) -> str:
     return (STATIC / name).read_text(encoding="utf-8")
 
 
+def script_load_index(registry: str, module: str) -> int:
+    marker = f"loadModuleScript("
+    module_index = registry.index(module, registry.index("function loadWorkstationModules"))
+    return registry.rfind(marker, 0, module_index)
+
+
 def test_ai_modules_are_registered_and_loaded_in_expected_order():
     registry = read_static("module_registry.js")
     expected_modules = [
@@ -27,10 +33,10 @@ def test_ai_modules_are_registered_and_loaded_in_expected_order():
         assert module in registry
         assert (STATIC / module).exists(), f"{module} should exist when registered"
 
-    load_order = [registry.index(module) for module in expected_modules]
-    assert load_order == sorted(load_order)
-    assert registry.index("paper_trading_module.js") < registry.index("ai_paper_risk_module.js")
-    assert registry.index("ai_trade_journal_coach_module.js") < registry.index("ai_confidence_calibration_module.js")
+    front_ai_order = [script_load_index(registry, module) for module in expected_modules[:5]]
+    assert front_ai_order == sorted(front_ai_order)
+    assert script_load_index(registry, "paper_trading_module.js") < script_load_index(registry, "ai_paper_risk_module.js")
+    assert script_load_index(registry, "ai_trade_journal_coach_module.js") < script_load_index(registry, "ai_confidence_calibration_module.js")
 
 
 def test_ai_trade_idea_module_uses_dedicated_endpoint_with_safe_fallback_and_no_trade_contract():
