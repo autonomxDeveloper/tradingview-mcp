@@ -120,7 +120,27 @@
         <button data-action="scanner.scan">Scanner</button>
         <button data-action="journal.load">Journal</button>
       </div>
-      <pre id="output">Ready.</pre>
+      <div class="results-surface" aria-label="Research results">
+        <div class="result-tabs" role="tablist" aria-label="Result panes">
+          <button id="resultTab-general" data-result-pane-target="general" role="tab" aria-controls="resultPane-general">Console</button>
+          <button id="resultTab-payload" data-result-pane-target="payload" role="tab" aria-controls="resultPane-payload">Payload</button>
+          <button id="resultTab-scanner" data-result-pane-target="scanner" role="tab" aria-controls="resultPane-scanner">Scanner</button>
+          <button id="resultTab-backtests" data-result-pane-target="backtests" role="tab" aria-controls="resultPane-backtests">Backtests</button>
+          <button id="resultTab-ideas" data-result-pane-target="ideas" role="tab" aria-controls="resultPane-ideas">Ideas</button>
+          <button id="resultTab-journal" data-result-pane-target="journal" role="tab" aria-controls="resultPane-journal">Journal</button>
+          <button id="resultTab-diagnostics" data-result-pane-target="diagnostics" role="tab" aria-controls="resultPane-diagnostics">Diagnostics</button>
+        </div>
+        <div class="result-pane-stack">
+          <pre id="resultPane-general" class="result-pane active-result-pane" role="tabpanel" aria-labelledby="resultTab-general">Ready.</pre>
+          <pre id="resultPane-payload" class="result-pane" role="tabpanel" aria-labelledby="resultTab-payload">Load a market snapshot to view payload data.</pre>
+          <pre id="resultPane-scanner" class="result-pane" role="tabpanel" aria-labelledby="resultTab-scanner">Run the scanner to view candidates.</pre>
+          <pre id="resultPane-backtests" class="result-pane" role="tabpanel" aria-labelledby="resultTab-backtests">Run or list backtests to view results.</pre>
+          <pre id="resultPane-ideas" class="result-pane" role="tabpanel" aria-labelledby="resultTab-ideas">Save or load ideas to view research records.</pre>
+          <pre id="resultPane-journal" class="result-pane" role="tabpanel" aria-labelledby="resultTab-journal">Load the journal to view research history.</pre>
+          <pre id="resultPane-diagnostics" class="result-pane" role="tabpanel" aria-labelledby="resultTab-diagnostics">Open modules or diagnostics to view frontend state.</pre>
+        </div>
+      </div>
+      <pre id="output" class="legacy-output hidden">Ready.</pre>
     </div>
   </section>
   <section class="right">
@@ -160,6 +180,7 @@
   </section>
 </main>
 <script src="/static/app.js"></script>
+<script id="resultsModuleScript" src="/static/results_module.js"></script>
 <script src="/static/idea_module.js"></script>
 <script src="/static/idea_detail.js"></script>
 <script src="/static/snapshot_browser.js"></script>
