@@ -1,0 +1,288 @@
+/* TradingView-style default view
+   Keep the workstation tools, but make the first impression a chart-first stock workstation. */
+:root {
+  --tv-bg: #f5f7fb;
+  --tv-panel: #ffffff;
+  --tv-line: #d9e1ec;
+  --tv-soft-line: #edf2f7;
+  --tv-text: #131722;
+  --tv-muted: #6b7280;
+  --tv-blue: #2962ff;
+  --tv-green: #089981;
+  --tv-red: #f23645;
+}
+
+body.tradingview-chart-first {
+  background: var(--tv-bg);
+  color: var(--tv-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Segoe UI, sans-serif;
+}
+
+body.tradingview-chart-first input,
+body.tradingview-chart-first select,
+body.tradingview-chart-first textarea,
+body.tradingview-chart-first button {
+  background: var(--tv-panel);
+  color: var(--tv-text);
+  border-color: #ccd6e5;
+  border-radius: 6px;
+}
+
+body.tradingview-chart-first button {
+  background: var(--tv-blue);
+  color: #fff;
+  border-color: var(--tv-blue);
+}
+
+body.tradingview-chart-first button.secondary {
+  background: #fff;
+  color: var(--tv-text);
+  border-color: #cfd8e3;
+}
+
+body.tradingview-chart-first header {
+  height: 36px;
+  padding: 0 16px;
+  background: #fff;
+  color: var(--tv-text);
+  border-bottom: 1px solid var(--tv-line);
+  align-items: center;
+}
+
+body.tradingview-chart-first #status {
+  color: #5b6472;
+}
+
+body.tradingview-chart-first main {
+  grid-template-columns: 210px minmax(780px, 1fr) 360px;
+  height: calc(100vh - 37px);
+  background: var(--tv-bg);
+}
+
+body.tradingview-chart-first aside,
+body.tradingview-chart-first section {
+  border-right-color: var(--tv-line);
+}
+
+body.tradingview-chart-first aside {
+  background: #fff;
+  border-right: 1px solid var(--tv-line);
+  color: var(--tv-text);
+}
+
+body.tradingview-chart-first .watch button {
+  background: #fff;
+  color: var(--tv-text);
+  border-color: #d8e0ea;
+  min-height: 34px;
+}
+
+body.tradingview-chart-first .watch button.active {
+  border-color: var(--tv-blue);
+  box-shadow: inset 3px 0 0 var(--tv-blue);
+}
+
+body.tradingview-chart-first #risk {
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid var(--tv-soft-line);
+  border-radius: 8px;
+  padding: 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+body.tradingview-chart-first .center {
+  position: relative;
+  display: grid;
+  grid-template-rows: 42px 42px minmax(560px, 1fr) auto 154px;
+  padding-left: 48px;
+  background: #fff;
+}
+
+body.tradingview-chart-first .center::before {
+  content: "✛\A⌖\A╱\A⌁\A⌬\A⚑\A⌕\A⌘\A☆";
+  white-space: pre;
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 47px;
+  background: #fff;
+  border-right: 1px solid var(--tv-line);
+  color: #4b5563;
+  display: grid;
+  place-items: start center;
+  padding-top: 14px;
+  line-height: 38px;
+  font-size: 18px;
+  z-index: 10;
+}
+
+body.tradingview-chart-first .bar {
+  background: #fff;
+  border-bottom: 1px solid var(--tv-line);
+  color: var(--tv-text);
+  padding: 6px 10px;
+}
+
+body.tradingview-chart-first .topbar {
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+body.tradingview-chart-first .topbar input,
+body.tradingview-chart-first .topbar select {
+  height: 30px;
+  min-width: 78px;
+}
+
+body.tradingview-chart-first #symbol {
+  font-size: 18px;
+  font-weight: 700;
+  min-width: 124px;
+  border-color: transparent;
+}
+
+body.tradingview-chart-first #exchange {
+  max-width: 132px;
+}
+
+body.tradingview-chart-first .chartbar {
+  align-items: center;
+  gap: 5px;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+}
+
+body.tradingview-chart-first .toolbar-section {
+  flex-wrap: nowrap;
+  border-right-color: var(--tv-soft-line);
+}
+
+body.tradingview-chart-first .toolbar-section-label,
+body.tradingview-chart-first .label,
+body.tradingview-chart-first .muted {
+  color: var(--tv-muted);
+}
+
+body.tradingview-chart-first .layout-grid {
+  background: #fff;
+  padding: 0;
+  gap: 0;
+}
+
+body.tradingview-chart-first .chart-cell,
+body.tradingview-chart-first #chartWrap {
+  background: #fff;
+  border: 0;
+  border-radius: 0;
+}
+
+body.tradingview-chart-first #chart {
+  background: #fff;
+}
+
+body.tradingview-chart-first .legend {
+  top: 10px;
+  left: 12px;
+  background: rgba(255, 255, 255, .92);
+  color: var(--tv-text);
+  border: 0;
+  box-shadow: none;
+  font-size: 13px;
+}
+
+body.tradingview-chart-first .legend strong {
+  color: var(--tv-text);
+}
+
+body.tradingview-chart-first .legend .up {
+  color: var(--tv-green);
+}
+
+body.tradingview-chart-first .legend .down {
+  color: var(--tv-red);
+}
+
+body.tradingview-chart-first .chart-zone-label,
+body.tradingview-chart-first .chart-note {
+  color: var(--tv-text);
+  background: rgba(255, 255, 255, .9);
+}
+
+body.tradingview-chart-first .guides-overlay text {
+  fill: var(--tv-text);
+}
+
+body.tradingview-chart-first .indicator-wrap {
+  background: #fff !important;
+  border-top: 1px solid var(--tv-line) !important;
+}
+
+body.tradingview-chart-first .indicator-legend {
+  background: rgba(255, 255, 255, .92) !important;
+  color: var(--tv-text) !important;
+  border-color: var(--tv-soft-line) !important;
+}
+
+body.tradingview-chart-first .bottom,
+body.tradingview-chart-first .panel {
+  background: #fff;
+  color: var(--tv-text);
+  border-top: 1px solid var(--tv-line);
+}
+
+body.tradingview-chart-first .right {
+  background: #fff;
+  border-left: 1px solid var(--tv-line);
+}
+
+body.tradingview-chart-first .right .panel,
+body.tradingview-chart-first .workflow-panel {
+  background: #fff !important;
+  border-bottom: 1px solid var(--tv-line);
+}
+
+body.tradingview-chart-first .workflow-list span {
+  background: #f3f6fb;
+  color: var(--tv-blue);
+  border-color: #d8e0ea;
+}
+
+body.tradingview-chart-first .workflow-note,
+body.tradingview-chart-first .module-control-status {
+  color: #5b6472;
+}
+
+body.tradingview-chart-first .results-surface,
+body.tradingview-chart-first .result-pane,
+body.tradingview-chart-first .legacy-output,
+body.tradingview-chart-first pre {
+  background: #f8fafc;
+  color: #1f2937;
+  border-color: var(--tv-soft-line);
+}
+
+body.tradingview-chart-first .result-tabs button,
+body.tradingview-chart-first .tabs button {
+  border-radius: 999px;
+  padding: 6px 10px;
+}
+
+body.tradingview-chart-first .paper-trading-warning {
+  color: #92400e;
+}
+
+@media (max-width: 1200px) {
+  body.tradingview-chart-first main {
+    grid-template-columns: 170px minmax(620px, 1fr) 320px;
+  }
+
+  body.tradingview-chart-first .center {
+    padding-left: 40px;
+  }
+
+  body.tradingview-chart-first .center::before {
+    width: 39px;
+  }
+}
