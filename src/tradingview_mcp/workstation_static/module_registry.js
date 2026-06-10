@@ -3,6 +3,10 @@ window.workstationModules = {
     file: 'idea_module.js + idea_detail.js',
     owns: ['idea lifecycle', 'status filters', 'legacy idea API compatibility'],
   },
+  scanner: {
+    file: 'scanner_module.js',
+    owns: ['watchlist scanner', 'scanner candidate workspace load', 'research-only scanner hypotheses'],
+  },
   portfolio: {
     file: 'portfolio_module.js',
     owns: ['read-only portfolio research', 'portfolio tab action', 'portfolio-to-idea cross reference'],
@@ -83,6 +87,7 @@ function loadWorkstationModules() {
   loadModuleScript('journalModuleScript', '/static/journal_module.js');
   loadModuleScript('drawingModuleScript', '/static/drawing_module.js');
   loadModuleScript('watchlistModuleScript', '/static/watchlist_module.js');
+  loadModuleScript('scannerModuleScript', '/static/scanner_module.js');
   loadModuleScript('portfolioModuleScript', '/static/portfolio_module.js');
   loadModuleScript('exportModuleScript', '/static/export_module.js');
   loadModuleScript('bootDiagnosticsScript', '/static/boot_diagnostics.js');
