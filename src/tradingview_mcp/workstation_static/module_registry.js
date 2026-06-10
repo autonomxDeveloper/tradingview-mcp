@@ -31,6 +31,10 @@ window.workstationModules = {
     file: 'workspace_cleanup.js',
     owns: ['research tools strip', 'control grouping'],
   },
+  guard: {
+    file: 'module_guard.js',
+    owns: ['module dependency checks', 'missing global/UI anchor warnings'],
+  },
 };
 
 function showFrontendModules() {
@@ -58,6 +62,7 @@ function loadModuleScript(id, src, onload) {
 
 function loadWorkstationModules() {
   addModuleRegistryButton();
+  loadModuleScript('moduleGuardScript', '/static/module_guard.js');
   loadModuleScript('journalModuleScript', '/static/journal_module.js');
   loadModuleScript('drawingModuleScript', '/static/drawing_module.js');
   loadModuleScript('watchlistModuleScript', '/static/watchlist_module.js');
