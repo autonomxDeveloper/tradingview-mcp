@@ -39,4 +39,13 @@ function addModuleRegistryButton() {
   tabs.appendChild(button);
 }
 
+function loadDrawingModule() {
+  if (document.getElementById('drawingModuleScript')) return;
+  const script = document.createElement('script');
+  script.id = 'drawingModuleScript';
+  script.src = '/static/drawing_module.js';
+  document.body.appendChild(script);
+}
+
 addModuleRegistryButton();
+loadDrawingModule();
