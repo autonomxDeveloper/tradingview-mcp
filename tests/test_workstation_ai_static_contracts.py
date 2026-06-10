@@ -21,6 +21,7 @@ AI_MODULES = [
     "ai_paper_history_module.js",
     "ai_paper_performance_module.js",
     "ai_paper_review_packet_module.js",
+    "ai_paper_audit_export_module.js",
     "ai_trade_journal_coach_module.js",
     "ai_confidence_calibration_module.js",
 ]
@@ -295,6 +296,51 @@ def test_ai_paper_review_packet_ui_is_read_only_export():
         "aiPaperReviewPacket.example",
         "aiPaperReviewPacket.build",
         "aiPaperReviewPacket.copy",
+    ]:
+        assert action in bindings
+
+
+def test_ai_paper_audit_export_ui_is_read_only_browser_export():
+    module = read_static("ai_paper_audit_export_module.js")
+    registry = read_static("module_registry.js")
+    bindings = read_static("ui_bindings.js")
+    module_lower = module.lower()
+    for expected in [
+        "/api/ai/paper-trader/audit-export",
+        "buildAiPaperAuditExport",
+        "renderAiPaperAuditExport",
+        "copyAiPaperAuditExport",
+        "downloadAiPaperAuditExport",
+        "syncAuditExportInputs",
+        "loadAuditExportExample",
+        "aiPaperAuditExportPacket",
+        "aiPaperAuditExportReplay",
+        "aiPaperAuditExportMarks",
+        "export_format",
+        "paper_only: true",
+        "live_execution: false",
+        "execution_submitted: false",
+        "read_only: true",
+        "Build audit export",
+        "Copy audit export",
+        "Download audit export",
+        "URL.createObjectURL",
+        "link.download",
+    ]:
+        assert expected in module
+    assert "read-only browser export" in module_lower
+    assert "no llm calls" in module_lower
+    assert "mutate paper state" in module_lower
+    assert "submit simulated orders" in module_lower
+    assert "server file writes" in module_lower
+    assert "live broker endpoints" in module_lower
+    assert "ai_paper_audit_export_module.js" in registry
+    for action in [
+        "aiPaperAuditExport.sync",
+        "aiPaperAuditExport.example",
+        "aiPaperAuditExport.build",
+        "aiPaperAuditExport.copy",
+        "aiPaperAuditExport.download",
     ]:
         assert action in bindings
 
