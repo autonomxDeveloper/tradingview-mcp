@@ -25,45 +25,56 @@
       <button onclick="loadMarket()">Load</button>
       <button class="secondary" onclick="analyze()">AI analyze</button>
     </div>
-    <div class="bar chartbar">
-      <button class="secondary" onclick="toggleOverlay('sma20')">SMA 20</button>
-      <button class="secondary" onclick="toggleOverlay('sma50')">SMA 50</button>
-      <button class="secondary" onclick="toggleOverlay('ema21')">EMA 21</button>
-      <button class="secondary" onclick="toggleVolume()">Volume</button>
-      <button class="secondary" onclick="toggleRsiPane()">RSI</button>
-      <button class="secondary" onclick="toggleMacdPane()">MACD</button>
-      <button class="secondary" onclick="toggleAtrPane()">ATR</button>
-      <select id="layoutMode" onchange="setLayoutMode(this.value)"><option value="1">1 chart</option><option value="2">2 split</option><option value="4">4 grid</option></select>
-      <label class="sync-toggle"><input id="syncSymbol" type="checkbox" onchange="setSymbolSync(this.checked)" /> sync symbol</label>
-      <label class="sync-toggle"><input id="syncTimeframe" type="checkbox" onchange="setTimeframeSync(this.checked)" /> sync timeframe</label>
-      <button class="secondary" onclick="fitChart()">Auto-fit</button>
-      <input id="levelPrice" class="level-input" placeholder="price level" />
-      <input id="levelLabel" class="level-label-input" placeholder="label" />
-      <select id="levelKind"><option>level</option><option>support</option><option>resistance</option><option>alert</option></select>
-      <button class="secondary" onclick="addLevelFromInput()">Add level</button>
-      <button class="secondary" onclick="addLevelFromLastClose()">Last close</button>
-      <input id="noteText" class="note-input" placeholder="chart note" />
-      <button class="secondary" onclick="addNoteAtLastClose()">Add note</button>
-      <input id="zoneLow" class="level-input" placeholder="zone low" />
-      <input id="zoneHigh" class="level-input" placeholder="zone high" />
-      <input id="zoneLabel" class="level-label-input" placeholder="zone label" />
-      <select id="zoneKind"><option>zone</option><option>support</option><option>resistance</option><option>supply</option><option>demand</option></select>
-      <button class="secondary" onclick="addZoneFromInput()">Add zone</button>
-      <input id="guideStartPrice" class="level-input" placeholder="guide start" />
-      <input id="guideEndPrice" class="level-input" placeholder="guide end" />
-      <input id="guideLabel" class="level-label-input" placeholder="guide label" />
-      <select id="guideKind"><option>guide</option><option>support</option><option>resistance</option></select>
-      <button class="secondary" onclick="addGuideFromInput()">Add guide</button>
-      <button class="secondary" onclick="clearDrawings()">Clear drawings</button>
-      <button class="secondary" onclick="exportDrawings()">Export</button>
-      <button class="secondary" onclick="importDrawings()">Import</button>
-      <input id="layoutName" class="level-label-input" placeholder="layout name" />
-      <button class="secondary" onclick="saveLayout()">Save layout</button>
-      <button class="secondary" onclick="loadLayout()">Load layout</button>
-      <button class="secondary" onclick="resetLayout()">Reset layout</button>
-      <button class="secondary" onclick="listLayouts()">List layouts</button>
-      <button class="secondary" onclick="deleteLayout()">Delete layout</button>
-      <span id="chartMeta" class="muted"></span>
+    <div class="bar chartbar" aria-label="Chart workstation controls">
+      <div class="toolbar-section chart-controls" aria-label="Chart controls">
+        <span class="toolbar-section-label">Chart</span>
+        <button class="secondary" onclick="toggleOverlay('sma20')">SMA 20</button>
+        <button class="secondary" onclick="toggleOverlay('sma50')">SMA 50</button>
+        <button class="secondary" onclick="toggleOverlay('ema21')">EMA 21</button>
+        <button class="secondary" onclick="toggleVolume()">Volume</button>
+        <button class="secondary" onclick="toggleRsiPane()">RSI</button>
+        <button class="secondary" onclick="toggleMacdPane()">MACD</button>
+        <button class="secondary" onclick="toggleAtrPane()">ATR</button>
+        <button class="secondary" onclick="fitChart()">Auto-fit</button>
+      </div>
+      <div class="toolbar-section drawing-controls" aria-label="Drawing controls">
+        <span class="toolbar-section-label">Draw</span>
+        <input id="levelPrice" class="level-input" placeholder="price level" />
+        <input id="levelLabel" class="level-label-input" placeholder="label" />
+        <select id="levelKind"><option>level</option><option>support</option><option>resistance</option><option>alert</option></select>
+        <button class="secondary" onclick="addLevelFromInput()">Add level</button>
+        <button class="secondary" onclick="addLevelFromLastClose()">Last close</button>
+        <input id="noteText" class="note-input" placeholder="chart note" />
+        <button class="secondary" onclick="addNoteAtLastClose()">Add note</button>
+        <input id="zoneLow" class="level-input" placeholder="zone low" />
+        <input id="zoneHigh" class="level-input" placeholder="zone high" />
+        <input id="zoneLabel" class="level-label-input" placeholder="zone label" />
+        <select id="zoneKind"><option>zone</option><option>support</option><option>resistance</option><option>supply</option><option>demand</option></select>
+        <button class="secondary" onclick="addZoneFromInput()">Add zone</button>
+        <input id="guideStartPrice" class="level-input" placeholder="guide start" />
+        <input id="guideEndPrice" class="level-input" placeholder="guide end" />
+        <input id="guideLabel" class="level-label-input" placeholder="guide label" />
+        <select id="guideKind"><option>guide</option><option>support</option><option>resistance</option></select>
+        <button class="secondary" onclick="addGuideFromInput()">Add guide</button>
+        <button class="secondary" onclick="clearDrawings()">Clear drawings</button>
+        <button class="secondary" onclick="exportDrawings()">Export</button>
+        <button class="secondary" onclick="importDrawings()">Import</button>
+      </div>
+      <div class="toolbar-section layout-controls" aria-label="Layout controls">
+        <span class="toolbar-section-label">Layout</span>
+        <select id="layoutMode" onchange="setLayoutMode(this.value)"><option value="1">1 chart</option><option value="2">2 split</option><option value="4">4 grid</option></select>
+        <label class="sync-toggle"><input id="syncSymbol" type="checkbox" onchange="setSymbolSync(this.checked)" /> sync symbol</label>
+        <label class="sync-toggle"><input id="syncTimeframe" type="checkbox" onchange="setTimeframeSync(this.checked)" /> sync timeframe</label>
+        <input id="layoutName" class="level-label-input" placeholder="layout name" />
+        <button class="secondary" onclick="saveLayout()">Save layout</button>
+        <button class="secondary" onclick="loadLayout()">Load layout</button>
+        <button class="secondary" onclick="resetLayout()">Reset layout</button>
+        <button class="secondary" onclick="listLayouts()">List layouts</button>
+        <button class="secondary" onclick="deleteLayout()">Delete layout</button>
+      </div>
+      <div class="toolbar-section metadata-controls" aria-label="Chart metadata">
+        <span id="chartMeta" class="muted"></span>
+      </div>
     </div>
     <div id="chartGrid" class="layout-grid layout-grid-1">
       <div id="chartWrap" class="chart-cell active-chart-cell">
