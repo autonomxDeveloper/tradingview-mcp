@@ -23,6 +23,10 @@ window.workstationModules = {
     file: 'accessibility_module.js',
     owns: ['accessible names', 'live regions', 'keyboard result tabs', 'focus and pressed states'],
   },
+  dataProviders: {
+    file: 'data_provider_module.js',
+    owns: ['stock provider selector', 'crypto venue selector', 'chart data request routing', 'provider licensing status'],
+  },
   liveRefresh: {
     file: 'live_refresh_module.js',
     owns: ['live refresh controls', 'polling scheduler', 'chart freshness status'],
@@ -108,6 +112,7 @@ function loadWorkstationModules() {
   addModuleRegistryButton();
   loadModuleScript('resultsModuleScript', '/static/results_module.js');
   loadModuleScript('accessibilityModuleScript', '/static/accessibility_module.js');
+  loadModuleScript('dataProviderModuleScript', '/static/data_provider_module.js');
   loadModuleScript('moduleGuardScript', '/static/module_guard.js');
   loadModuleScript('dataBadgeModuleScript', '/static/data_badge_module.js');
   loadModuleScript('journalModuleScript', '/static/journal_module.js');
