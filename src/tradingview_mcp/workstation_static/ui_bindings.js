@@ -66,6 +66,8 @@
     'aiPaperSchedule.decision': () => callGlobal('runAiDecisionFromSchedule'),
     'aiPaperSchedule.record': (element) => callGlobal('recordAiPaperScheduleRun', actionArgument(element)),
     'aiPaperLifecycle.review': () => callGlobal('runAiPaperLifecycleReview'),
+    'aiPaperReplay.example': () => callGlobal('loadAiPaperReplayExample'),
+    'aiPaperReplay.run': () => callGlobal('runAiPaperReplay'),
     'ideas.save': () => callGlobal('saveIdea'),
     'ideas.list': () => callGlobal('loadIdeas'),
     'ideas.detail': (element) => callGlobal('loadIdeaDetail', Number(actionArgument(element) || 1)),
