@@ -19,6 +19,7 @@ AI_MODULES = [
     "ai_paper_lifecycle_module.js",
     "ai_paper_replay_module.js",
     "ai_paper_history_module.js",
+    "ai_paper_performance_module.js",
     "ai_trade_journal_coach_module.js",
     "ai_confidence_calibration_module.js",
 ]
@@ -217,6 +218,44 @@ def test_ai_paper_history_ui_is_read_only_and_loads_replay_records():
     assert "does not submit simulated orders" in module_lower
     assert "ai_paper_history_module.js" in registry
     for action in ["aiPaperHistory.refresh", "aiPaperHistory.loadReplay", "aiPaperHistory.loadOne"]:
+        assert action in bindings
+
+
+def test_ai_paper_performance_ui_is_read_only_reporting():
+    module = read_static("ai_paper_performance_module.js")
+    registry = read_static("module_registry.js")
+    bindings = read_static("ui_bindings.js")
+    module_lower = module.lower()
+    for expected in [
+        "/api/ai/paper-trader/performance",
+        "runAiPaperPerformanceSummary",
+        "loadAiPaperPerformanceExample",
+        "loadReplayResultIntoPerformance",
+        "loadHistoryIntoPerformance",
+        "renderAiPaperPerformance",
+        "paper_only: true",
+        "live_execution: false",
+        "execution_submitted: false",
+        "read_only: true",
+        "Summarize performance",
+        "win_rate",
+        "average_mfe_pct",
+        "average_mae_pct",
+        "aiPaperPerformanceReplay",
+        "aiPaperPerformanceHistory",
+    ]:
+        assert expected in module
+    assert "read-only reporting" in module_lower
+    assert "does not mutate paper state" in module_lower
+    assert "submit simulated orders" in module_lower
+    assert "live broker endpoints" in module_lower
+    assert "ai_paper_performance_module.js" in registry
+    for action in [
+        "aiPaperPerformance.example",
+        "aiPaperPerformance.fromReplay",
+        "aiPaperPerformance.fromHistory",
+        "aiPaperPerformance.run",
+    ]:
         assert action in bindings
 
 
