@@ -21,8 +21,34 @@ window.workstationIdeaModule.rows = function rows(ideas = window.workstationIdea
   }));
 };
 
+window.workstationIdeaModule.ensureStatusControls = function ensureStatusControls() {
+  const tabs = document.querySelector('.bottom .tabs');
+  if (!tabs) return null;
+  let controls = document.getElementById('ideaStatusControls');
+  if (controls) return controls;
+  controls = document.createElement('span');
+  controls.id = 'ideaStatusControls';
+  controls.className = 'idea-status-controls module-control-group idea-module-controls';
+  controls.innerHTML = '<select id="ideaStatusFilter"><option value="">all ideas</option><option>draft</option><option>watching</option><option>invalidated</option><option>backtested</option><option>archived</option></select><button>Filter ideas</button><button>Idea dashboard</button>';
+  tabs.appendChild(controls);
+  return controls;
+};
+
+window.workstationIdeaModule.ensureLifecycleControls = function ensureLifecycleControls() {
+  const ideaIdInput = document.getElementById('ideaId');
+  if (!ideaIdInput) return null;
+  let controls = document.getElementById('ideaLifecycleControls');
+  if (controls) return controls;
+  controls = document.createElement('div');
+  controls.id = 'ideaLifecycleControls';
+  controls.className = 'idea-lifecycle-controls module-control-group idea-module-controls';
+  controls.innerHTML = '<input id="ideaStatusNote" placeholder="status note" /><button>Watching</button><button>Invalidated</button><button>Backtested</button><button>Archived</button>';
+  ideaIdInput.parentNode.insertBefore(controls, ideaIdInput.nextSibling);
+  return controls;
+};
+
 window.workstationIdeaModule.bindStatusControls = function bindStatusControls() {
-  const controls = document.getElementById('ideaStatusControls');
+  const controls = window.workstationIdeaModule.ensureStatusControls();
   if (!controls) return;
   const buttons = controls.querySelectorAll('button');
   if (buttons[0]) buttons[0].onclick = window.loadIdeas;
@@ -30,7 +56,7 @@ window.workstationIdeaModule.bindStatusControls = function bindStatusControls() 
 };
 
 window.workstationIdeaModule.bindLifecycleControls = function bindLifecycleControls() {
-  const controls = document.getElementById('ideaLifecycleControls');
+  const controls = window.workstationIdeaModule.ensureLifecycleControls();
   if (!controls) return;
   const buttons = controls.querySelectorAll('button');
   if (buttons[0]) buttons[0].onclick = () => window.setSelectedIdeaStatus('watching');
@@ -48,7 +74,7 @@ window.workstationModules = window.workstationModules || [];
 window.workstationModules.push({
   id: 'ideas',
   file: 'idea_module.js',
-  owns: ['idea dashboard helpers', 'idea control binding', 'legacy idea API compatibility'],
+  owns: ['idea dashboard helpers', 'idea status controls', 'idea lifecycle controls', 'legacy idea API compatibility'],
 });
 
 if (window.registerWorkbenchBoot) {

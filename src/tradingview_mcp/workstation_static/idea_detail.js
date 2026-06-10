@@ -157,34 +157,6 @@ async function removeWatchlistSymbol() {
   await saveWatchlistSymbols(watchlistSymbols().filter((item) => item !== symbol));
 }
 
-function addIdeaStatusFilters() {
-  const tabs = document.querySelector('.bottom .tabs');
-  if (!tabs || document.getElementById('ideaStatusControls')) return;
-  const controls = document.createElement('span');
-  controls.id = 'ideaStatusControls';
-  controls.className = 'idea-status-controls';
-  controls.innerHTML = '<select id="ideaStatusFilter"><option value="">all ideas</option><option>draft</option><option>watching</option><option>invalidated</option><option>backtested</option><option>archived</option></select><button>Filter ideas</button><button>Idea dashboard</button>';
-  const buttons = controls.querySelectorAll('button');
-  buttons[0].onclick = loadIdeas;
-  buttons[1].onclick = showIdeaDashboard;
-  tabs.appendChild(controls);
-}
-
-function addIdeaLifecycleControls() {
-  const ideaIdInput = document.getElementById('ideaId');
-  if (!ideaIdInput || document.getElementById('ideaLifecycleControls')) return;
-  const controls = document.createElement('div');
-  controls.id = 'ideaLifecycleControls';
-  controls.className = 'idea-lifecycle-controls';
-  controls.innerHTML = '<input id="ideaStatusNote" placeholder="status note" /><button>Watching</button><button>Invalidated</button><button>Backtested</button><button>Archived</button>';
-  const buttons = controls.querySelectorAll('button');
-  buttons[0].onclick = () => setSelectedIdeaStatus('watching');
-  buttons[1].onclick = () => setSelectedIdeaStatus('invalidated');
-  buttons[2].onclick = () => setSelectedIdeaStatus('backtested');
-  buttons[3].onclick = () => setSelectedIdeaStatus('archived');
-  ideaIdInput.parentNode.insertBefore(controls, ideaIdInput.nextSibling);
-}
-
 async function saveServerDrawings() {
   await post('/api/drawings', { symbol: $('symbol').value, timeframe: $('tf').value, drawings });
   const status = document.getElementById('drawingSyncStatus');
@@ -341,5 +313,3 @@ const badgeStyle = document.createElement('style');
 badgeStyle.textContent = '.data-badges{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px}.data-badge{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#cbd5e1;padding:3px 7px;font-size:11px}.data-badge.ok{border-color:#22c55e}.data-badge.warn{border-color:#f59e0b;color:#fbbf24}';
 document.head.appendChild(badgeStyle);
 addExtraButtons();
-addIdeaStatusFilters();
-addIdeaLifecycleControls();
