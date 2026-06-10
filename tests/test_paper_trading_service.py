@@ -1,15 +1,23 @@
 from __future__ import annotations
 
-import importlib
+import importlib.util
+from pathlib import Path
 
 import pytest
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SERVICE_PATH = ROOT / "src" / "tradingview_mcp" / "core" / "services" / "paper_trading_service.py"
 
 
 def load_service(monkeypatch, tmp_path):
     state_path = tmp_path / "paper_state.json"
     monkeypatch.setenv("TRADING_WORKSTATION_PAPER_TRADING", str(state_path))
-    module = importlib.import_module("tradingview_mcp.core.services.paper_trading_service")
-    return importlib.reload(module)
+    spec = importlib.util.spec_from_file_location("paper_trading_service_under_test", SERVICE_PATH)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_paper_account_buy_fill_and_mark_to_market(monkeypatch, tmp_path):
