@@ -15,6 +15,10 @@ window.workstationModules = {
     file: 'analysis_module.js',
     owns: ['AI analysis request payloads', 'analysis loading state', 'analysis response rendering'],
   },
+  aiTradeIdeas: {
+    file: 'ai_trade_idea_module.js',
+    owns: ['AI research trade idea prompt', 'chart-context trade idea cards', 'idea and paper ticket handoff'],
+  },
   results: {
     file: 'results_module.js',
     owns: ['structured result panes', 'legacy print routing', 'action-to-pane hints'],
@@ -129,6 +133,7 @@ function loadWorkstationModules() {
   loadModuleScript('scannerModuleScript', '/static/scanner_module.js');
   loadModuleScript('backtestModuleScript', '/static/backtest_module.js');
   loadModuleScript('analysisModuleScript', '/static/analysis_module.js');
+  loadModuleScript('aiTradeIdeaModuleScript', '/static/ai_trade_idea_module.js');
   loadModuleScript('layoutModuleScript', '/static/layout_module.js');
   loadModuleScript('liveRefreshModuleScript', '/static/live_refresh_module.js');
   loadModuleScript('cryptoStreamModuleScript', '/static/crypto_stream_module.js');
