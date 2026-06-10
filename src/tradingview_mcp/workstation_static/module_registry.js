@@ -39,6 +39,10 @@ window.workstationModules = {
     file: 'boot_diagnostics.js',
     owns: ['boot diagnostics view', 'loaded script listing', 'recent guard warning view'],
   },
+  legacyBindingPrune: {
+    file: 'legacy_binding_prune.js',
+    owns: ['post-boot binding normalization', 'module-owned handler rebind pass'],
+  },
 };
 
 function showFrontendModules() {
@@ -72,6 +76,7 @@ function loadWorkstationModules() {
   loadModuleScript('watchlistModuleScript', '/static/watchlist_module.js');
   loadModuleScript('exportModuleScript', '/static/export_module.js');
   loadModuleScript('bootDiagnosticsScript', '/static/boot_diagnostics.js');
+  loadModuleScript('legacyBindingPruneScript', '/static/legacy_binding_prune.js');
   if (window.workstationBoot) window.workstationBoot.run();
 }
 
