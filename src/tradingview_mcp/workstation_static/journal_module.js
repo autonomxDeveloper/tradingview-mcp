@@ -24,6 +24,7 @@ window.journalModule = {
     print({ journal_timeline: rows, filters: { symbol: symbolFilter, event_type: typeFilter, idea_id: ideaFilter }, mode: 'research_only' });
   },
   bindFilters() {
+    window.workstationModuleGuard?.missing('journal', { globals: ['api', '$', 'print'], elements: ['journalFilters'] });
     const button = document.querySelector('#journalFilters button');
     if (button) button.onclick = () => window.journalModule.loadTimeline({ currentSymbol: true });
   },

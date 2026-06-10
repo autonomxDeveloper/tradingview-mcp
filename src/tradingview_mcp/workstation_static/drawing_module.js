@@ -32,6 +32,7 @@ window.workstationDrawingModule.clearServer = async function clearServer() {
 };
 
 window.workstationDrawingModule.bindControls = function bindControls() {
+  window.workstationModuleGuard?.missing('drawings', { globals: ['api', 'post', '$', 'emptyDrawings', 'renderDrawings'], elements: ['drawingControls', 'drawingSyncStatus'] });
   const controls = document.getElementById('drawingControls');
   if (!controls) return;
   const buttons = controls.querySelectorAll('button');

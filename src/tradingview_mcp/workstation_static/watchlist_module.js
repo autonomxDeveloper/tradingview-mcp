@@ -52,6 +52,7 @@ window.workstationWatchlistModule.removeSelected = async function removeSelected
 };
 
 window.workstationWatchlistModule.bindControls = function bindControls() {
+  window.workstationModuleGuard?.missing('watchlist', { globals: ['api', 'post', '$', 'loadMarket', 'print'], elements: ['watch', 'watchlistControls'] });
   const controls = document.getElementById('watchlistControls');
   if (!controls) return;
   const buttons = controls.querySelectorAll('button');
