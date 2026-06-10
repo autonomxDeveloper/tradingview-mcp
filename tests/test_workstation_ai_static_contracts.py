@@ -16,6 +16,7 @@ AI_MODULES = [
     "ai_paper_risk_module.js",
     "ai_paper_trader_module.js",
     "ai_paper_schedule_module.js",
+    "ai_paper_lifecycle_module.js",
     "ai_trade_journal_coach_module.js",
     "ai_confidence_calibration_module.js",
 ]
@@ -132,6 +133,32 @@ def test_ai_paper_schedule_ui_is_manual_and_paper_only():
         "aiPaperSchedule.record",
     ]:
         assert action in bindings
+
+
+def test_ai_paper_lifecycle_ui_is_advisory_and_paper_only():
+    module = read_static("ai_paper_lifecycle_module.js")
+    registry = read_static("module_registry.js")
+    bindings = read_static("ui_bindings.js")
+    module_lower = module.lower()
+    for expected in [
+        "/api/ai/paper-trader/lifecycle",
+        "runAiPaperLifecycleReview",
+        "renderAiPaperLifecycleReview",
+        "paper_only: true",
+        "live_execution: false",
+        "execution_submitted: false",
+        "Run lifecycle review",
+        "hold",
+        "review_close",
+        "tighten_stop_review",
+        "cancel_stale_order_review",
+    ]:
+        assert expected in module
+    assert "advisory only" in module_lower
+    assert "no paper order action is submitted automatically" in module_lower
+    assert "do not submit, fill, cancel, or live-execute orders" in module_lower
+    assert "ai_paper_lifecycle_module.js" in registry
+    assert "aiPaperLifecycle.review" in bindings
 
 
 def test_ai_journal_and_calibration_modules_track_review_outcomes_locally():
