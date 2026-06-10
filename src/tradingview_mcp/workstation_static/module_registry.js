@@ -11,6 +11,10 @@ window.workstationModules = {
     file: 'backtest_module.js',
     owns: ['run backtest action', 'strategy comparison action', 'backtest list view'],
   },
+  analysis: {
+    file: 'analysis_module.js',
+    owns: ['AI analysis request payloads', 'analysis loading state', 'analysis response rendering'],
+  },
   portfolio: {
     file: 'portfolio_module.js',
     owns: ['read-only portfolio research', 'portfolio tab action', 'portfolio-to-idea cross reference'],
@@ -93,6 +97,7 @@ function loadWorkstationModules() {
   loadModuleScript('watchlistModuleScript', '/static/watchlist_module.js');
   loadModuleScript('scannerModuleScript', '/static/scanner_module.js');
   loadModuleScript('backtestModuleScript', '/static/backtest_module.js');
+  loadModuleScript('analysisModuleScript', '/static/analysis_module.js');
   loadModuleScript('portfolioModuleScript', '/static/portfolio_module.js');
   loadModuleScript('exportModuleScript', '/static/export_module.js');
   loadModuleScript('bootDiagnosticsScript', '/static/boot_diagnostics.js');
