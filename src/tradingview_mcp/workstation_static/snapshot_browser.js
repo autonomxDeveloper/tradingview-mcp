@@ -75,4 +75,12 @@ function addSnapshotBrowserControls() {
   controls.appendChild(listButton);
 }
 
-addSnapshotBrowserControls();
+function bootSnapshotBrowserModule() {
+  addSnapshotBrowserControls();
+}
+
+if (window.registerWorkbenchBoot) {
+  window.registerWorkbenchBoot('snapshot-browser', bootSnapshotBrowserModule);
+} else {
+  setTimeout(bootSnapshotBrowserModule, 0);
+}
