@@ -1,6 +1,7 @@
 """Local browser workstation for charting, research, backtests, ideas, and LM Studio analysis.
 
-The workstation is research-only. It does not submit or simulate broker actions.
+The workstation is research-first. It can simulate local paper-trading actions,
+but it does not submit live broker orders.
 """
 from __future__ import annotations
 
@@ -36,6 +37,16 @@ from tradingview_mcp.core.services.crypto_live_service import (
     get_crypto_candles,
     get_crypto_live_ticker,
     get_crypto_order_book,
+)
+from tradingview_mcp.core.services.paper_trading_service import (
+    cancel_paper_order,
+    fill_paper_order,
+    list_paper_fills,
+    list_paper_orders,
+    paper_account_snapshot,
+    paper_trading_status,
+    reset_paper_account,
+    submit_paper_order,
 )
 from tradingview_mcp.core.services.research_idea_service import (
     create_research_idea,
@@ -134,6 +145,33 @@ class ResearchIdeaRequest(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class PaperOrderRequest(BaseModel):
+    symbol: str = Field(..., min_length=1, max_length=32)
+    side: Literal["buy", "sell"]
+    quantity: float = Field(..., gt=0)
+    order_type: Literal["market", "limit", "stop"] = "market"
+    asset_type: Literal["stock", "crypto", "other"] = "stock"
+    limit_price: float | None = Field(default=None, gt=0)
+    stop_price: float | None = Field(default=None, gt=0)
+    idea_id: str | None = None
+    notes: str = ""
+
+
+class PaperFillRequest(BaseModel):
+    fill_price: float = Field(..., gt=0)
+    fill_quantity: float | None = Field(default=None, gt=0)
+    source: str = "manual_api"
+
+
+class PaperResetRequest(BaseModel):
+    initial_cash: float = Field(default=10000.0, ge=0)
+    currency: str = "USD"
+
+
+class PaperMarksRequest(BaseModel):
+    marks: dict[str, float] = Field(default_factory=dict)
+
+
 def _json_error(code: str, message: str, **extra: Any) -> dict[str, Any]:
     payload: dict[str, Any] = {"error": {"code": code, "message": message}}
     payload["error"].update(extra)
@@ -228,6 +266,7 @@ def create_app() -> FastAPI:
             "watchlist_registry": watchlist_status(DEFAULT_WATCHLIST),
             "crypto_venues": sorted(SUPPORTED_CRYPTO_VENUES),
             "alpaca": get_alpaca_safety_status(),
+            "paper_trading": paper_trading_status(),
             "workstation": workstation_status(),
             "ideas": idea_registry_status(),
             "backtests": backtest_registry_status(),
@@ -406,6 +445,71 @@ def create_app() -> FastAPI:
             return get_alpaca_positions()
         except RuntimeError as exc:
             return _json_error("MISSING_ALPACA_CREDENTIALS", str(exc))
+
+    @app.get("/api/paper/account")
+    def paper_account() -> dict[str, Any]:
+        return paper_account_snapshot()
+
+    @app.post("/api/paper/account/mark-to-market")
+    def paper_account_mark_to_market(request: PaperMarksRequest) -> dict[str, Any]:
+        return paper_account_snapshot(request.marks)
+
+    @app.get("/api/paper/positions")
+    def paper_positions() -> dict[str, Any]:
+        snapshot = paper_account_snapshot()
+        return {"positions": snapshot.get("positions", []), "account": snapshot.get("account", {})}
+
+    @app.get("/api/paper/orders")
+    def paper_orders(limit: int = 100) -> dict[str, Any]:
+        return {"orders": list_paper_orders(limit)}
+
+    @app.get("/api/paper/fills")
+    def paper_fills(limit: int = 100) -> dict[str, Any]:
+        return {"fills": list_paper_fills(limit)}
+
+    @app.post("/api/paper/orders")
+    def paper_order_submit(request: PaperOrderRequest) -> dict[str, Any]:
+        try:
+            order = submit_paper_order(
+                request.symbol,
+                request.side,
+                request.quantity,
+                request.order_type,
+                request.asset_type,
+                request.limit_price,
+                request.stop_price,
+                request.idea_id,
+                request.notes,
+            )
+        except ValueError as exc:
+            return _json_error("PAPER_ORDER_REJECTED", str(exc))
+        append_journal_event("paper_order_submitted", {"order": order, "simulated": True, "live_execution": False})
+        return {"order": order, "account": paper_account_snapshot()}
+
+    @app.post("/api/paper/orders/{order_id}/fill")
+    def paper_order_fill(order_id: str, request: PaperFillRequest) -> dict[str, Any]:
+        try:
+            result = fill_paper_order(order_id, request.fill_price, request.fill_quantity, request.source)
+        except ValueError as exc:
+            return _json_error("PAPER_FILL_REJECTED", str(exc), order_id=order_id)
+        append_journal_event("paper_order_filled", {"order_id": order_id, "fill": result.get("fill"), "simulated": True, "live_execution": False})
+        return result
+
+    @app.post("/api/paper/orders/{order_id}/cancel")
+    def paper_order_cancel(order_id: str) -> dict[str, Any]:
+        try:
+            order = cancel_paper_order(order_id)
+        except ValueError as exc:
+            return _json_error("PAPER_CANCEL_REJECTED", str(exc), order_id=order_id)
+        append_journal_event("paper_order_cancelled", {"order": order, "simulated": True, "live_execution": False})
+        return {"order": order, "account": paper_account_snapshot()}
+
+    @app.post("/api/paper/reset")
+    def paper_reset(request: PaperResetRequest) -> dict[str, Any]:
+        state = reset_paper_account(request.initial_cash, request.currency)
+        snapshot = paper_account_snapshot()
+        append_journal_event("paper_account_reset", {"initial_cash": request.initial_cash, "currency": request.currency, "simulated": True, "live_execution": False})
+        return {"state": state, "account": snapshot}
 
     @app.post("/api/ideas")
     def ideas_create(request: ResearchIdeaRequest) -> dict[str, Any]:
