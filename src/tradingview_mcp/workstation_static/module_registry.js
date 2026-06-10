@@ -19,6 +19,10 @@ window.workstationModules = {
     file: 'results_module.js',
     owns: ['structured result panes', 'legacy print routing', 'action-to-pane hints'],
   },
+  accessibility: {
+    file: 'accessibility_module.js',
+    owns: ['accessible names', 'live regions', 'keyboard result tabs', 'focus and pressed states'],
+  },
   portfolio: {
     file: 'portfolio_module.js',
     owns: ['read-only portfolio research', 'portfolio tab action', 'portfolio-to-idea cross reference'],
@@ -99,6 +103,7 @@ function loadModuleScript(id, src, onload) {
 function loadWorkstationModules() {
   addModuleRegistryButton();
   loadModuleScript('resultsModuleScript', '/static/results_module.js');
+  loadModuleScript('accessibilityModuleScript', '/static/accessibility_module.js');
   loadModuleScript('moduleGuardScript', '/static/module_guard.js');
   loadModuleScript('dataBadgeModuleScript', '/static/data_badge_module.js');
   loadModuleScript('journalModuleScript', '/static/journal_module.js');
