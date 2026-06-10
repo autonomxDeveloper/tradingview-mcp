@@ -228,6 +228,7 @@
     refreshPaperTrading().catch((error) => setPaperStatus(`Paper trading unavailable: ${error.message || error}`));
   }
 
+  window.paperTradingState = paperState;
   window.refreshPaperTrading = refreshPaperTrading;
   window.submitPaperOrder = submitPaperOrder;
   window.fillPaperOrder = fillPaperOrder;
