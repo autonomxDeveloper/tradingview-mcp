@@ -265,27 +265,4 @@ function addExtraButtons() {
 const originalMeta = window.updateChartMeta;
 window.updateChartMeta = function() { if (originalMeta) originalMeta(); if (window.renderDataBadges) window.renderDataBadges(); };
 
-const originalPersistDrawings = window.persistDrawings;
-window.persistDrawings = function() {
-  if (originalPersistDrawings) originalPersistDrawings();
-  post('/api/drawings', { symbol: $('symbol').value, timeframe: $('tf').value, drawings })
-    .then(() => { const status = document.getElementById('drawingSyncStatus'); if (status) status.textContent = 'drawings autosaved'; })
-    .catch(() => { const status = document.getElementById('drawingSyncStatus'); if (status) status.textContent = 'server unavailable, local fallback'; });
-};
-
-const originalRestoreDrawings = window.restoreDrawings;
-window.restoreDrawings = function() {
-  if (originalRestoreDrawings) originalRestoreDrawings();
-  api(`/api/drawings?symbol=${encodeURIComponent($('symbol').value)}&timeframe=${encodeURIComponent($('tf').value)}`)
-    .then((response) => {
-      if (response.drawings && Object.keys(response.drawings).length) {
-        drawings = { ...emptyDrawings(), ...response.drawings };
-        localStorage.setItem(drawingStorageKey(), JSON.stringify(drawings));
-        renderDrawings();
-        const status = document.getElementById('drawingSyncStatus'); if (status) status.textContent = 'drawings restored from server';
-      }
-    })
-    .catch(() => { const status = document.getElementById('drawingSyncStatus'); if (status) status.textContent = 'using local drawings'; });
-};
-
 addExtraButtons();
