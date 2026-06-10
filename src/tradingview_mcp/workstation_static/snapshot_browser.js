@@ -76,6 +76,10 @@ function addSnapshotBrowserControls() {
 }
 
 function bootSnapshotBrowserModule() {
+  window.workstationModuleGuard?.missing?.('snapshot-browser', {
+    globals: ['currentSessionSnapshot', 'post', 'api', 'print', 'emptyDrawings', 'drawingStorageKey', 'renderDrawings', 'loadMarket'],
+    elements: ['snapshotControls', 'symbol', 'tf', 'asset', 'exchange', 'ideaId', 'hypothesis', 'invalidation', 'backtestPlan'],
+  });
   addSnapshotBrowserControls();
 }
 
