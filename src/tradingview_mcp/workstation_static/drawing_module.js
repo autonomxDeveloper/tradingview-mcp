@@ -70,6 +70,32 @@ window.workstationDrawingModule.clearServer = async function clearServer() {
   window.workstationDrawingModule.setStatus('server drawings cleared');
 };
 
+window.workstationDrawingModule.installAutosync = function installAutosync() {
+  if (window.workstationDrawingModule.autosyncInstalled) return;
+  window.workstationDrawingModule.autosyncInstalled = true;
+  const originalPersistDrawings = window.persistDrawings;
+  window.persistDrawings = function persistDrawingsWithServerSync() {
+    if (originalPersistDrawings) originalPersistDrawings();
+    post('/api/drawings', window.workstationDrawingModule.payload())
+      .then(() => window.workstationDrawingModule.setStatus('drawings autosaved'))
+      .catch(() => window.workstationDrawingModule.setStatus('server unavailable, local fallback'));
+  };
+  const originalRestoreDrawings = window.restoreDrawings;
+  window.restoreDrawings = function restoreDrawingsWithServerSync() {
+    if (originalRestoreDrawings) originalRestoreDrawings();
+    api(`/api/drawings?symbol=${encodeURIComponent($('symbol').value)}&timeframe=${encodeURIComponent($('tf').value)}`)
+      .then((response) => {
+        if (response.drawings && Object.keys(response.drawings).length) {
+          drawings = { ...emptyDrawings(), ...response.drawings };
+          localStorage.setItem(drawingStorageKey(), JSON.stringify(drawings));
+          renderDrawings();
+          window.workstationDrawingModule.setStatus('drawings restored from server');
+        }
+      })
+      .catch(() => window.workstationDrawingModule.setStatus('using local drawings'));
+  };
+};
+
 window.workstationDrawingModule.bindControls = function bindControls() {
   window.workstationModuleGuard?.missing('drawings', { globals: ['api', 'post', '$', 'emptyDrawings', 'renderDrawings'], elements: ['researchToolsStrip'] });
   const controls = window.workstationDrawingModule.ensureControls();
@@ -77,6 +103,7 @@ window.workstationDrawingModule.bindControls = function bindControls() {
   document.getElementById('loadServerDrawingsButton')?.addEventListener('click', window.workstationDrawingModule.load, { once: false });
   document.getElementById('saveServerDrawingsButton')?.addEventListener('click', window.workstationDrawingModule.save, { once: false });
   document.getElementById('clearServerDrawingsButton')?.addEventListener('click', window.workstationDrawingModule.clearServer, { once: false });
+  window.workstationDrawingModule.installAutosync();
 };
 
 window.saveServerDrawings = window.workstationDrawingModule.save;
