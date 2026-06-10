@@ -1,3 +1,152 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Autonomx Trading Research Workstation</title>
+  <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+<header><b>Autonomx Trading Research Workstation</b><span id="status" class="muted">loading...</span></header>
+<main>
+  <aside>
+    <div class="label">Watchlist</div>
+    <div class="watch" id="watch"></div>
+    <div class="label">Status</div>
+    <pre id="risk"></pre>
+  </aside>
+  <section class="center">
+    <div class="bar topbar">
+      <input id="symbol" value="AAPL" />
+      <select id="asset"><option>auto</option><option>stock</option><option>crypto</option></select>
+      <input id="exchange" value="NASDAQ" />
+      <select id="tf"><option>1m</option><option>5m</option><option>15m</option><option>1h</option><option selected>1D</option><option>1W</option></select>
+      <button onclick="loadMarket()">Load</button>
+      <button class="secondary" onclick="analyze()">AI analyze</button>
+    </div>
+    <div class="bar chartbar">
+      <button class="secondary" onclick="toggleOverlay('sma20')">SMA 20</button>
+      <button class="secondary" onclick="toggleOverlay('sma50')">SMA 50</button>
+      <button class="secondary" onclick="toggleOverlay('ema21')">EMA 21</button>
+      <button class="secondary" onclick="toggleVolume()">Volume</button>
+      <button class="secondary" onclick="toggleRsiPane()">RSI</button>
+      <button class="secondary" onclick="toggleMacdPane()">MACD</button>
+      <button class="secondary" onclick="toggleAtrPane()">ATR</button>
+      <select id="layoutMode" onchange="setLayoutMode(this.value)"><option value="1">1 chart</option><option value="2">2 split</option><option value="4">4 grid</option></select>
+      <label class="sync-toggle"><input id="syncSymbol" type="checkbox" onchange="setSymbolSync(this.checked)" /> sync symbol</label>
+      <label class="sync-toggle"><input id="syncTimeframe" type="checkbox" onchange="setTimeframeSync(this.checked)" /> sync timeframe</label>
+      <button class="secondary" onclick="fitChart()">Auto-fit</button>
+      <input id="levelPrice" class="level-input" placeholder="price level" />
+      <input id="levelLabel" class="level-label-input" placeholder="label" />
+      <select id="levelKind"><option>level</option><option>support</option><option>resistance</option><option>alert</option></select>
+      <button class="secondary" onclick="addLevelFromInput()">Add level</button>
+      <button class="secondary" onclick="addLevelFromLastClose()">Last close</button>
+      <input id="noteText" class="note-input" placeholder="chart note" />
+      <button class="secondary" onclick="addNoteAtLastClose()">Add note</button>
+      <input id="zoneLow" class="level-input" placeholder="zone low" />
+      <input id="zoneHigh" class="level-input" placeholder="zone high" />
+      <input id="zoneLabel" class="level-label-input" placeholder="zone label" />
+      <select id="zoneKind"><option>zone</option><option>support</option><option>resistance</option><option>supply</option><option>demand</option></select>
+      <button class="secondary" onclick="addZoneFromInput()">Add zone</button>
+      <input id="guideStartPrice" class="level-input" placeholder="guide start" />
+      <input id="guideEndPrice" class="level-input" placeholder="guide end" />
+      <input id="guideLabel" class="level-label-input" placeholder="guide label" />
+      <select id="guideKind"><option>guide</option><option>support</option><option>resistance</option></select>
+      <button class="secondary" onclick="addGuideFromInput()">Add guide</button>
+      <button class="secondary" onclick="clearDrawings()">Clear drawings</button>
+      <button class="secondary" onclick="exportDrawings()">Export</button>
+      <button class="secondary" onclick="importDrawings()">Import</button>
+      <input id="layoutName" class="level-label-input" placeholder="layout name" />
+      <button class="secondary" onclick="saveLayout()">Save layout</button>
+      <button class="secondary" onclick="loadLayout()">Load layout</button>
+      <button class="secondary" onclick="resetLayout()">Reset layout</button>
+      <button class="secondary" onclick="listLayouts()">List layouts</button>
+      <button class="secondary" onclick="deleteLayout()">Delete layout</button>
+      <span id="chartMeta" class="muted"></span>
+    </div>
+    <div id="chartGrid" class="layout-grid layout-grid-1">
+      <div id="chartWrap" class="chart-cell active-chart-cell">
+        <div id="legend" class="legend">Load a symbol to see OHLC.</div>
+        <div id="zonesOverlay" class="zones-overlay"></div>
+        <svg id="guidesOverlay" class="guides-overlay"></svg>
+        <div id="notesOverlay" class="notes-overlay"></div>
+        <div id="chart"></div>
+      </div>
+      <div id="chartSlot2" class="chart-cell placeholder-chart-cell">
+        <div class="slot-card"><b>Slot 2</b><span id="slot2Label">Unassigned</span><input id="slot2Symbol" placeholder="symbol" /><input id="slot2Tf" placeholder="timeframe" /><button class="secondary" onclick="setChartSlot(2)">Set slot</button><span id="slot2Status">No chart loaded.</span></div>
+        <div id="slot2Chart" class="slot-chart"></div>
+      </div>
+      <div id="chartSlot3" class="chart-cell placeholder-chart-cell">
+        <div class="slot-card"><b>Slot 3</b><span id="slot3Label">Unassigned</span><input id="slot3Symbol" placeholder="symbol" /><input id="slot3Tf" placeholder="timeframe" /><button class="secondary" onclick="setChartSlot(3)">Set slot</button></div>
+      </div>
+      <div id="chartSlot4" class="chart-cell placeholder-chart-cell">
+        <div class="slot-card"><b>Slot 4</b><span id="slot4Label">Unassigned</span><input id="slot4Symbol" placeholder="symbol" /><input id="slot4Tf" placeholder="timeframe" /><button class="secondary" onclick="setChartSlot(4)">Set slot</button></div>
+      </div>
+    </div>
+    <div id="rsiWrap" class="indicator-wrap hidden">
+      <div id="rsiLegend" class="indicator-legend">RSI 14</div>
+      <div id="rsiChart"></div>
+    </div>
+    <div id="macdWrap" class="indicator-wrap hidden">
+      <div id="macdLegend" class="indicator-legend">MACD 12 26 9</div>
+      <div id="macdChart"></div>
+    </div>
+    <div id="atrWrap" class="indicator-wrap hidden">
+      <div id="atrLegend" class="indicator-legend">ATR 14</div>
+      <div id="atrChart"></div>
+    </div>
+    <div class="bottom">
+      <div class="tabs">
+        <button onclick="showPayload()">Payload</button>
+        <button onclick="runBacktest()">Backtest</button>
+        <button onclick="compareStrategies()">Compare</button>
+        <button onclick="loadBacktests()">Backtests</button>
+        <button onclick="saveIdea()">Save idea</button>
+        <button onclick="loadIdeas()">Ideas</button>
+        <button onclick="loadIdeaDetail(1)">Idea detail</button>
+        <button onclick="loadWorkspaceIdea()">Load idea</button>
+        <button onclick="scanWatchlist()">Scanner</button>
+        <button onclick="loadJournal()">Journal</button>
+      </div>
+      <pre id="output">Ready.</pre>
+    </div>
+  </section>
+  <section class="right">
+    <div class="panel workflow-panel">
+      <div class="label">Research workflow</div>
+      <ol class="workflow-list">
+        <li><span>1</span><button class="secondary" onclick="loadMarket()">Load market snapshot</button></li>
+        <li><span>2</span><button class="secondary" onclick="analyze()">Generate AI observations</button></li>
+        <li><span>3</span><button class="secondary" onclick="saveIdea()">Save hypothesis as idea</button></li>
+        <li><span>4</span><button class="secondary" onclick="runBacktest()">Run linked backtest</button></li>
+        <li><span>5</span><button class="secondary" onclick="compareStrategies()">Compare strategies</button></li>
+        <li><span>6</span><button class="secondary" onclick="loadJournal()">Review journal trail</button></li>
+      </ol>
+      <div class="label">Scanner to idea</div>
+      <div class="tabs"><button class="secondary" onclick="scanWatchlist()">Scan watchlist</button><button class="secondary" onclick="useTopScannerCandidate()">Use top candidate</button><button class="secondary" onclick="saveIdea()">Save idea</button></div>
+      <div class="label">Idea detail</div>
+      <div class="tabs"><button class="secondary" onclick="loadIdeas()">Refresh ideas</button><button class="secondary" onclick="loadIdeaDetail(1)">First idea</button><button class="secondary" onclick="loadWorkspaceIdea()">Load selected</button></div>
+      <p class="workflow-note">Research-only loop: observe, hypothesize, invalidate, backtest, and journal. No order execution or paper trading path.</p>
+    </div>
+    <div class="panel">
+      <div class="label">AI question</div>
+      <textarea id="question">Give observations, risks, invalidation levels, and what to backtest next. Do not recommend taking a position.</textarea>
+      <button onclick="analyze()">Analyze current symbol</button>
+      <div class="label">Research idea</div>
+      <input id="hypothesis" style="width:100%" placeholder="Hypothesis" />
+      <input id="invalidation" style="width:100%;margin-top:6px" placeholder="Invalidation" />
+      <input id="backtestPlan" style="width:100%;margin-top:6px" placeholder="Backtest plan" />
+      <input id="ideaId" style="width:100%;margin-top:6px" placeholder="Optional idea ID for backtest link" />
+      <div class="label">Backtest</div>
+      <select id="strategy"><option>ema_cross</option><option>rsi</option><option>bollinger</option><option>macd</option><option>supertrend</option><option>donchian</option><option>rsi_pullback</option><option>keltner_breakout</option><option>triple_ema</option></select>
+      <select id="period"><option>1mo</option><option>3mo</option><option>6mo</option><option selected>1y</option><option>2y</option></select>
+    </div>
+    <div class="panel" style="overflow:auto">
+      <div class="label">AI / results</div>
+      <pre id="analysis">Start LM Studio and use Analyze.</pre>
+    </div>
+  </section>
 </main>
 <script src="/static/app.js"></script>
 <script src="/static/idea_module.js"></script>
