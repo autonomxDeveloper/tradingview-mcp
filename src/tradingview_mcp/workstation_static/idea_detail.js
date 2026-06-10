@@ -191,44 +191,6 @@ async function loadLatestSessionSnapshot() {
   loadMarket();
 }
 
-function markdownForPacket(packet) {
-  return `# Research packet: ${packet.snapshot.symbol} ${packet.snapshot.timeframe}\n\n` +
-    `Generated: ${packet.generated_at_utc}\n\n` +
-    `## Chart metadata\n- Asset: ${packet.snapshot.asset_type}\n- Exchange: ${packet.snapshot.exchange}\n- Source: ${packet.chart_metadata.source || 'unknown'}\n- Freshness: ${packet.chart_metadata.freshness || 'unknown'}\n\n` +
-    `## Idea\n- ID: ${packet.snapshot.idea_id || 'none'}\n- Hypothesis: ${packet.snapshot.hypothesis || 'none'}\n- Invalidation: ${packet.snapshot.invalidation || 'none'}\n- Backtest plan: ${packet.snapshot.backtest_plan || 'none'}\n\n` +
-    `## AI analysis\n${packet.snapshot.analysis || 'No analysis captured.'}\n\n` +
-    `## Backtests\n${packet.backtests.map((record) => `- ${record.id || 'record'} ${record.strategy || ''} ${record.symbol || ''}`).join('\n') || 'No linked backtests.'}\n\n` +
-    `## Recent journal\n${packet.journal.map((row) => `- ${row.event_type || row.type}: ${JSON.stringify(row.payload || {}).slice(0, 160)}`).join('\n') || 'No journal rows.'}\n`;
-}
-
-async function exportResearchPacket() {
-  const snapshot = currentSessionSnapshot();
-  const journalResponse = await api('/api/journal?limit=30');
-  const ideaResponse = await api(`/api/ideas?symbol=${encodeURIComponent(snapshot.symbol)}&limit=20`);
-  const backtestQuery = snapshot.idea_id ? `/api/backtests?idea_id=${encodeURIComponent(snapshot.idea_id)}&limit=20` : `/api/backtests?symbol=${encodeURIComponent(snapshot.symbol)}&limit=20`;
-  const backtestResponse = await api(backtestQuery);
-  const metadata = lastPayload?.metadata || {};
-  const packet = {
-    generated_at_utc: new Date().toISOString(),
-    mode: 'research_only',
-    snapshot,
-    chart_metadata: { text: document.getElementById('chartMeta')?.textContent || '', source: metadata.source || lastPayload?.source || '', freshness: metadata.stale ? 'stale' : 'fresh' },
-    ideas: ideaResponse.ideas || [],
-    backtests: backtestResponse.records || [],
-    journal: journalResponse.events || [],
-  };
-  const markdown = markdownForPacket(packet);
-  await post('/api/journal', { event_type: 'research_packet_exported', payload: { symbol: snapshot.symbol, timeframe: snapshot.timeframe, idea_id: snapshot.idea_id } });
-  const saved = await post('/api/exports', { name: `${snapshot.symbol}-${snapshot.timeframe}`, packet, markdown });
-  const exportInfo = saved.export || {};
-  print({ research_packet_json: packet, research_packet_markdown: markdown, saved_export: exportInfo, download_links: { json: `/api/exports/download/${exportInfo.json_file || ''}`, markdown: `/api/exports/download/${exportInfo.markdown_file || ''}` } });
-}
-
-async function listExportFiles() {
-  const response = await api('/api/exports');
-  print({ exports: response.exports || [] });
-}
-
 function addExtraButtons() {
   const tabs = document.querySelector('.bottom .tabs');
   if (!tabs) return;
