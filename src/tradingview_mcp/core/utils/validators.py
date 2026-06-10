@@ -245,6 +245,13 @@ def _install_workstation_route_hooks() -> None:
     if install_ai_paper_history_route_autoregistry is not None:
         install_ai_paper_history_route_autoregistry()
         installed_any = True
+    try:
+        from tradingview_mcp.workstation_ai_paper_performance_routes import install_ai_paper_performance_route_autoregistry
+    except Exception:
+        install_ai_paper_performance_route_autoregistry = None
+    if install_ai_paper_performance_route_autoregistry is not None:
+        install_ai_paper_performance_route_autoregistry()
+        installed_any = True
     return installed_any
 
 
