@@ -10,6 +10,45 @@ window.workstationDrawingModule.setStatus = function setStatus(message) {
   if (status) status.textContent = message;
 };
 
+window.workstationDrawingModule.button = function button(label, handler) {
+  const element = document.createElement('button');
+  element.className = 'secondary';
+  element.textContent = label;
+  element.onclick = handler;
+  return element;
+};
+
+window.workstationDrawingModule.ensureControls = function ensureControls() {
+  let controls = document.getElementById('drawingControls');
+  if (!controls) {
+    controls = document.createElement('span');
+    controls.id = 'drawingControls';
+    controls.className = 'module-control-group drawing-control-group';
+    const target = document.getElementById('researchToolsStrip') || document.querySelector('.bottom .tabs');
+    if (target) target.appendChild(controls);
+  }
+  if (!controls) return null;
+  if (!document.getElementById('loadServerDrawingsButton')) {
+    const load = window.workstationDrawingModule.button('Load drawings', window.workstationDrawingModule.load);
+    load.id = 'loadServerDrawingsButton';
+    const save = window.workstationDrawingModule.button('Save drawings', window.workstationDrawingModule.save);
+    save.id = 'saveServerDrawingsButton';
+    const clear = window.workstationDrawingModule.button('Clear server drawings', window.workstationDrawingModule.clearServer);
+    clear.id = 'clearServerDrawingsButton';
+    controls.appendChild(load);
+    controls.appendChild(save);
+    controls.appendChild(clear);
+  }
+  if (!document.getElementById('drawingSyncStatus')) {
+    const status = document.createElement('span');
+    status.id = 'drawingSyncStatus';
+    status.className = 'muted';
+    status.textContent = 'drawings local fallback ready';
+    controls.appendChild(status);
+  }
+  return controls;
+};
+
 window.workstationDrawingModule.save = async function save() {
   await post('/api/drawings', window.workstationDrawingModule.payload());
   window.workstationDrawingModule.setStatus('drawings saved');
@@ -32,13 +71,12 @@ window.workstationDrawingModule.clearServer = async function clearServer() {
 };
 
 window.workstationDrawingModule.bindControls = function bindControls() {
-  window.workstationModuleGuard?.missing('drawings', { globals: ['api', 'post', '$', 'emptyDrawings', 'renderDrawings'], elements: ['drawingControls', 'drawingSyncStatus'] });
-  const controls = document.getElementById('drawingControls');
+  window.workstationModuleGuard?.missing('drawings', { globals: ['api', 'post', '$', 'emptyDrawings', 'renderDrawings'], elements: ['researchToolsStrip'] });
+  const controls = window.workstationDrawingModule.ensureControls();
   if (!controls) return;
-  const buttons = controls.querySelectorAll('button');
-  if (buttons[0]) buttons[0].onclick = window.workstationDrawingModule.load;
-  if (buttons[1]) buttons[1].onclick = window.workstationDrawingModule.save;
-  if (buttons[2]) buttons[2].onclick = window.workstationDrawingModule.clearServer;
+  document.getElementById('loadServerDrawingsButton')?.addEventListener('click', window.workstationDrawingModule.load, { once: false });
+  document.getElementById('saveServerDrawingsButton')?.addEventListener('click', window.workstationDrawingModule.save, { once: false });
+  document.getElementById('clearServerDrawingsButton')?.addEventListener('click', window.workstationDrawingModule.clearServer, { once: false });
 };
 
 window.saveServerDrawings = window.workstationDrawingModule.save;
