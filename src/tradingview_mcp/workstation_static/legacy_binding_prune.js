@@ -1,32 +1,40 @@
 function pruneLegacyBindings() {
-  const rebinding = [];
+  const normalized = [];
+  const metrics = [];
+  const runModule = (name, fn, selectors = []) => {
+    const before = selectors.filter((selector) => document.querySelector(selector)).length;
+    fn();
+    const after = selectors.filter((selector) => document.querySelector(selector)).length;
+    normalized.push(name);
+    metrics.push({ module: name, anchors_present_before: before, anchors_present_after: after, selectors });
+  };
   if (window.workstationIdeaModule?.boot) {
-    window.workstationIdeaModule.boot();
-    rebinding.push('ideas');
+    runModule('ideas', () => window.workstationIdeaModule.boot(), ['#ideaStatusFilter', '#ideaDashboardButton', '#ideaStatusNote']);
   }
   if (window.workstationDrawingModule?.bindControls) {
-    window.workstationDrawingModule.bindControls();
-    rebinding.push('drawings');
+    runModule('drawings', () => window.workstationDrawingModule.bindControls(), ['#drawingControls', '#loadServerDrawingsButton', '#saveServerDrawingsButton']);
   }
   if (window.workstationWatchlistModule?.bindControls) {
-    window.workstationWatchlistModule.bindControls();
-    rebinding.push('watchlist');
+    runModule('watchlist', () => window.workstationWatchlistModule.bindControls(), ['#watchlistControls', '#watchlistSymbolInput']);
   }
   if (window.journalModule?.bindControls) {
-    window.journalModule.bindControls();
-    rebinding.push('journal');
+    runModule('journal', () => window.journalModule.bindControls(), ['#journalFilters', '#journalSymbolFilter', '#journalTypeFilter', '#journalIdeaFilter']);
   }
   if (window.exportModule?.bindControls) {
-    window.exportModule.bindControls();
-    rebinding.push('exports');
+    runModule('exports', () => window.exportModule.bindControls(), ['#exportControls', '#copyPacketJsonButton', '#browseExportsButton']);
   }
-  window.workstationLegacyBindingPrune = { rebinding, at: new Date().toISOString() };
+  window.workstationLegacyBindingPrune = {
+    normalized,
+    metrics,
+    count: normalized.length,
+    at: new Date().toISOString(),
+  };
 }
 
 window.workstationModules = window.workstationModules || {};
 window.workstationModules.legacyBindingPrune = {
   file: 'legacy_binding_prune.js',
-  owns: ['post-boot binding normalization', 'module-owned handler rebind pass'],
+  owns: ['post-boot binding normalization', 'module-owned handler rebind pass', 'legacy binding metrics'],
 };
 
 if (window.registerWorkbenchBoot) window.registerWorkbenchBoot('legacy-binding-prune', pruneLegacyBindings);
