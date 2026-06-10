@@ -1,5 +1,6 @@
 (function() {
   let lastTradeIdeaResponse = null;
+  let lastSavedIdeaId = null;
 
   function safeJsonParse(content) {
     if (!content || typeof content !== 'string') return null;
@@ -69,11 +70,26 @@
     };
     setTradeIdeaStatus('Generating AI trade idea...');
     print('Generating AI trade idea...', 'analysis');
-    const response = await post('/api/ai/analyze', payload);
-    const parsed = safeJsonParse(response.analysis?.content || '') || response.structured_analysis?.raw || response.structured_analysis || response;
+    const response = await callTradeIdeaEndpoint(payload);
+    const parsed = safeJsonParse(response.trade_idea?.content || response.analysis?.content || '') || response.structured_trade_idea?.raw || response.structured_analysis?.raw || response.structured_analysis || response;
+    lastSavedIdeaId = null;
     lastTradeIdeaResponse = { response, parsed, context };
     renderTradeIdeaCard(parsed, response);
     return lastTradeIdeaResponse;
+  }
+
+  async function callTradeIdeaEndpoint(payload) {
+    try {
+      return await post('/api/ai/trade-idea', {
+        ...payload,
+        chart_context: collectTradeIdeaContext(),
+        mode: 'research_trade_idea',
+      });
+    } catch (error) {
+      const message = String(error && error.message ? error.message : error);
+      if (!message.includes('404')) throw error;
+      return post('/api/ai/analyze', payload);
+    }
   }
 
   function renderTradeIdeaCard(parsed, response) {
@@ -106,17 +122,106 @@
         <div class="ai-trade-section"><b>Backtest ideas</b>${listItems(parsed.backtest_ideas)}</div>
         <div class="ai-trade-actions">
           <button type="button" class="secondary" id="applyTradeIdeaToIdeaForm">Apply to idea form</button>
+          <button type="button" class="secondary" id="saveAiTradeIdeaButton">Save AI idea</button>
+          <button type="button" class="secondary" id="backtestAiTradeIdeaButton">Backtest this</button>
           <button type="button" class="secondary" id="applyTradeIdeaToPaperTicket">Prefill paper ticket</button>
           <button type="button" class="secondary" id="copyTradeIdeaJson">Copy JSON</button>
         </div>
-        <p class="workflow-note">Research-only AI output. Use paper trading for simulation; no live broker orders are submitted.</p>
+        <p class="workflow-note">Research-only AI output. Save/backtest first, then use paper trading for simulation; no live broker orders are submitted.</p>
       </div>
     `;
     document.getElementById('applyTradeIdeaToIdeaForm')?.addEventListener('click', applyTradeIdeaToIdeaForm);
+    document.getElementById('saveAiTradeIdeaButton')?.addEventListener('click', () => saveTradeIdeaAsIdea().catch(showTradeIdeaError));
+    document.getElementById('backtestAiTradeIdeaButton')?.addEventListener('click', () => backtestTradeIdea().catch(showTradeIdeaError));
     document.getElementById('applyTradeIdeaToPaperTicket')?.addEventListener('click', applyTradeIdeaToPaperTicket);
     document.getElementById('copyTradeIdeaJson')?.addEventListener('click', copyTradeIdeaJson);
     print(parsed, 'analysis');
-    setTradeIdeaStatus(`AI trade idea generated${response?.analysis?.model ? ` by ${response.analysis.model}` : ''}.`);
+    setTradeIdeaStatus(`AI trade idea generated${response?.analysis?.model || response?.trade_idea?.model ? ` by ${response.analysis?.model || response.trade_idea?.model}` : ''}.`);
+  }
+
+  function normalizeIdeaBias(value) {
+    const bias = String(value || '').toLowerCase();
+    return ['bullish', 'bearish', 'neutral', 'range'].includes(bias) ? bias : 'unknown';
+  }
+
+  function normalizeIdeaAsset(value) {
+    const asset = String(value || '').toLowerCase();
+    return ['stock', 'crypto'].includes(asset) ? asset : 'other';
+  }
+
+  function buildResearchIdeaPayload() {
+    if (!lastTradeIdeaResponse) throw new Error('Generate an AI trade idea first.');
+    const parsed = lastTradeIdeaResponse.parsed || {};
+    const tradeIdea = parsed.trade_idea || {};
+    const context = lastTradeIdeaResponse.context || collectTradeIdeaContext();
+    const symbol = ($('symbol')?.value || context.chart?.symbol || '').trim().toUpperCase();
+    const setup = tradeIdea.setup_type || parsed.setup_type || 'ai_trade_idea';
+    return {
+      symbol,
+      asset_type: normalizeIdeaAsset($('asset')?.value || context.chart?.asset_type),
+      timeframe: $('tf')?.value || context.chart?.timeframe || '1D',
+      status: 'draft',
+      bias: normalizeIdeaBias(tradeIdea.bias || parsed.trend),
+      setup_type: String(setup),
+      hypothesis: textOf(parsed.summary || `${symbol} ${setup}`, `${symbol} AI trade idea`),
+      invalidation: textOf(tradeIdea.stop_or_invalidation || parsed.invalidation, 'Review AI output for invalidation.'),
+      risk_notes: textOf(parsed.risks, ''),
+      backtest_plan: textOf(parsed.backtest_ideas, 'Backtest the setup before considering simulated paper trading.'),
+      source: 'ai_trade_idea',
+      links: [],
+      metadata: {
+        ai_trade_idea: parsed,
+        chart_context: context,
+        no_live_orders: true,
+        simulated_only: true,
+      },
+    };
+  }
+
+  async function saveTradeIdeaAsIdea() {
+    const payload = buildResearchIdeaPayload();
+    setTradeIdeaStatus('Saving AI trade idea as research idea...');
+    const result = await post('/api/ideas', payload);
+    const ideaId = result?.idea?.id || result?.record?.id || result?.id || result?.event?.id || result?.payload?.id || '';
+    lastSavedIdeaId = ideaId || lastSavedIdeaId;
+    if ($('ideaId') && ideaId) $('ideaId').value = ideaId;
+    applyTradeIdeaToIdeaForm();
+    setTradeIdeaStatus(ideaId ? `Saved AI trade idea as research idea ${ideaId}.` : 'Saved AI trade idea as research idea.');
+    print(result, 'ideas');
+    return result;
+  }
+
+  async function backtestTradeIdea() {
+    if (!lastTradeIdeaResponse) throw new Error('Generate an AI trade idea first.');
+    const parsed = lastTradeIdeaResponse.parsed || {};
+    const tradeIdea = parsed.trade_idea || {};
+    const ideaId = lastSavedIdeaId || $('ideaId')?.value || null;
+    const payload = {
+      symbol: ($('symbol')?.value || '').trim().toUpperCase(),
+      strategy: $('strategy')?.value || 'ema_cross',
+      period: $('period')?.value || '1y',
+      initial_capital: 10000,
+      commission_pct: 0.1,
+      slippage_pct: 0.05,
+      interval: normalizeBacktestInterval($('tf')?.value || tradeIdea.timeframe || '1D'),
+      include_trade_log: true,
+      include_equity_curve: true,
+      idea_id: ideaId || null,
+      notes: `AI trade idea backtest: ${textOf(tradeIdea.setup_type || parsed.summary, '')}`,
+    };
+    setTradeIdeaStatus('Running backtest for AI trade idea...');
+    const result = await post('/api/backtest/run', payload);
+    setTradeIdeaStatus('Backtest completed for AI trade idea. Review results before any paper simulation.');
+    print(result, 'backtests');
+    return result;
+  }
+
+  function normalizeBacktestInterval(timeframe) {
+    const value = String(timeframe || '').toLowerCase();
+    if (value === '1d' || value === '1day') return '1d';
+    if (value === '1w' || value === '1week') return '1wk';
+    if (['1m', '5m', '15m', '30m', '60m', '1h'].includes(value)) return value === '1h' ? '60m' : value;
+    return '1d';
   }
 
   function applyTradeIdeaToIdeaForm() {
@@ -136,7 +241,7 @@
     if ($('paperSide') && ['long', 'buy'].includes(direction)) $('paperSide').value = 'buy';
     if ($('paperSide') && ['short', 'sell'].includes(direction)) $('paperSide').value = 'sell';
     if ($('paperOrderType')) $('paperOrderType').value = 'limit';
-    if ($('paperIdeaId')) $('paperIdeaId').value = $('ideaId')?.value || '';
+    if ($('paperIdeaId')) $('paperIdeaId').value = lastSavedIdeaId || $('ideaId')?.value || '';
     if ($('paperNotes')) $('paperNotes').value = `AI paper idea: ${textOf(tradeIdea.setup_type || lastTradeIdeaResponse.parsed?.summary, '')}`;
     setTradeIdeaStatus('Paper ticket prefilled where possible. Set quantity/price and review before submitting a simulated order.');
   }
@@ -151,6 +256,12 @@
       print(text, 'analysis');
       setTradeIdeaStatus('Clipboard unavailable; JSON printed in AI panel.');
     }
+  }
+
+  function showTradeIdeaError(error) {
+    const message = String(error && error.message ? error.message : error);
+    setTradeIdeaStatus(message);
+    print(message, 'analysis');
   }
 
   function setTradeIdeaStatus(message) {
@@ -187,7 +298,7 @@
     const status = document.createElement('div');
     status.id = 'aiTradeIdeaStatus';
     status.className = 'module-control-status';
-    status.textContent = 'AI trade ideas are research-only and can be copied to idea/paper workflows.';
+    status.textContent = 'AI trade ideas are research-only and can be saved, backtested, or copied to paper workflows.';
     panel.appendChild(status);
   }
 
@@ -214,6 +325,8 @@
   window.collectTradeIdeaContext = collectTradeIdeaContext;
   window.generateTradeIdea = generateTradeIdea;
   window.renderTradeIdeaCard = renderTradeIdeaCard;
+  window.saveTradeIdeaAsIdea = saveTradeIdeaAsIdea;
+  window.backtestTradeIdea = backtestTradeIdea;
 
   if (window.workstationBoot) window.workstationBoot.register('ai-trade-ideas', bootAiTradeIdeaModule);
   else if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootAiTradeIdeaModule);
