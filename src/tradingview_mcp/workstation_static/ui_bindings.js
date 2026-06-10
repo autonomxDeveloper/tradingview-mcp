@@ -57,6 +57,8 @@
     'paper.cancel': () => callGlobal('cancelPaperOrder'),
     'paper.reset': () => callGlobal('resetPaperTrading'),
     'paper.mark': () => callGlobal('markPaperToMarket'),
+    'aiPaperTrader.decision': () => callGlobal('runAiPaperTraderDecision'),
+    'aiPaperTrader.execute': () => callGlobal('executeAiPaperDecision'),
     'ideas.save': () => callGlobal('saveIdea'),
     'ideas.list': () => callGlobal('loadIdeas'),
     'ideas.detail': (element) => callGlobal('loadIdeaDetail', Number(actionArgument(element) || 1)),

@@ -14,6 +14,7 @@ AI_MODULES = [
     "ai_backtest_review_module.js",
     "ai_watchlist_scanner_module.js",
     "ai_paper_risk_module.js",
+    "ai_paper_trader_module.js",
     "ai_trade_journal_coach_module.js",
     "ai_confidence_calibration_module.js",
 ]
@@ -78,6 +79,28 @@ def test_ai_paper_risk_review_wraps_submit_and_preserves_paper_boundary():
     ]:
         assert expected in module
     assert "no live broker order will be submitted" in module.lower()
+
+
+def test_ai_paper_trader_ui_uses_decision_then_explicit_paper_execution():
+    module = read_static("ai_paper_trader_module.js")
+    registry = read_static("module_registry.js")
+    bindings = read_static("ui_bindings.js")
+    for expected in [
+        "/api/ai/paper-trader/decision",
+        "/api/ai/paper-trader/execute",
+        "decisionIsExecutable",
+        "aiPaperExecuteAck",
+        "no live order will be placed",
+        "paper_only: true",
+        "live_execution: false",
+        "execution_submitted",
+        "Get AI paper decision",
+        "Execute simulated paper decision",
+    ]:
+        assert expected in module
+    assert "ai_paper_trader_module.js" in registry
+    assert "aiPaperTrader.decision" in bindings
+    assert "aiPaperTrader.execute" in bindings
 
 
 def test_ai_journal_and_calibration_modules_track_review_outcomes_locally():
