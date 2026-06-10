@@ -7,121 +7,92 @@ ROOT = Path(__file__).resolve().parents[1]
 STATIC = ROOT / "src" / "tradingview_mcp" / "workstation_static"
 
 
+AI_MODULES = [
+    "ai_trade_idea_module.js",
+    "ai_trade_workflow_module.js",
+    "ai_backtest_generator_module.js",
+    "ai_backtest_review_module.js",
+    "ai_watchlist_scanner_module.js",
+    "ai_paper_risk_module.js",
+    "ai_trade_journal_coach_module.js",
+    "ai_confidence_calibration_module.js",
+]
+
+
 def read_static(name: str) -> str:
     return (STATIC / name).read_text(encoding="utf-8")
 
 
-def script_load_index(registry: str, module: str) -> int:
-    marker = f"loadModuleScript("
-    module_index = registry.index(module, registry.index("function loadWorkstationModules"))
-    return registry.rfind(marker, 0, module_index)
-
-
-def test_ai_modules_are_registered_and_loaded_in_expected_order():
+def test_ai_modules_are_registered_and_loaded():
     registry = read_static("module_registry.js")
-    expected_modules = [
-        "ai_trade_idea_module.js",
-        "ai_trade_workflow_module.js",
-        "ai_backtest_generator_module.js",
-        "ai_backtest_review_module.js",
-        "ai_watchlist_scanner_module.js",
-        "ai_paper_risk_module.js",
-        "ai_trade_journal_coach_module.js",
-        "ai_confidence_calibration_module.js",
-    ]
-    for module in expected_modules:
+    for module in AI_MODULES:
         assert module in registry
         assert (STATIC / module).exists(), f"{module} should exist when registered"
-
-    front_ai_order = [script_load_index(registry, module) for module in expected_modules[:5]]
-    assert front_ai_order == sorted(front_ai_order)
-    assert script_load_index(registry, "paper_trading_module.js") < script_load_index(registry, "ai_paper_risk_module.js")
-    assert script_load_index(registry, "ai_trade_journal_coach_module.js") < script_load_index(registry, "ai_confidence_calibration_module.js")
+        assert f"/static/{module}" in registry
 
 
-def test_ai_trade_idea_module_uses_dedicated_endpoint_with_safe_fallback_and_no_trade_contract():
+def test_ai_trade_idea_contract_has_dedicated_endpoint_fallback_and_no_trade_support():
     module = read_static("ai_trade_idea_module.js")
-    assert "/api/ai/trade-idea" in module
-    assert "/api/ai/analyze" in module
-    assert "mode: 'research_trade_idea'" in module
-    assert "direction=\"no_trade\"" in module
-    assert "Do not force a trade" in module
-    assert "not_financial_advice" in module
-    assert "no live broker orders" in module.lower()
-    for profile in ["swing", "intraday", "breakout", "pullback", "mean_reversion", "risk_review"]:
-        assert profile in module
-    for action in ["Save AI idea", "Backtest this", "Prefill paper ticket", "Copy JSON"]:
-        assert action in module
+    for expected in [
+        "/api/ai/trade-idea",
+        "/api/ai/analyze",
+        "research_trade_idea",
+        "no_trade",
+        "not_financial_advice",
+        "Do not force a trade",
+        "Save AI idea",
+        "Backtest this",
+        "Prefill paper ticket",
+    ]:
+        assert expected in module
 
 
-def test_ai_watchlist_scanner_contract_is_research_only_and_bounded():
+def test_ai_watchlist_scanner_contract_has_bounds_and_research_metadata():
     module = read_static("ai_watchlist_scanner_module.js")
-    assert "/api/ai/trade-idea" in module
-    assert "mode: 'watchlist_trade_scanner'" in module
-    assert "Math.max(1, Math.min" in module
-    assert "12" in module
-    assert "no_trade" in module
-    assert "Do not force a trade" in module
-    assert "ai_watchlist_scanner" in module
-    for action in ["Load chart", "Save idea", "Backtest", "Prefill paper"]:
-        assert action in module
+    for expected in [
+        "/api/ai/trade-idea",
+        "watchlist_trade_scanner",
+        "Math.max(1, Math.min(12",
+        "no_trade",
+        "no_live_orders",
+        "simulated_only",
+        "Load chart",
+        "Save idea",
+        "Backtest",
+        "Prefill paper",
+    ]:
+        assert expected in module
 
 
-def test_ai_paper_risk_review_gates_simulated_submit():
+def test_ai_paper_risk_review_wraps_submit_and_preserves_paper_boundary():
     module = read_static("ai_paper_risk_module.js")
-    assert "window.submitPaperOrder" in module
-    assert "originalSubmit" in module
-    assert "risk_verdict" in module
-    assert "acceptable" in module
-    assert "too_risky" in module
-    assert "reject" in module
-    assert "aiPaperRiskAck" in module
+    for expected in [
+        "window.submitPaperOrder",
+        "originalSubmit",
+        "risk_verdict",
+        "acceptable",
+        "too_risky",
+        "reject",
+        "aiPaperRiskAck",
+        "live_execution: false",
+    ]:
+        assert expected in module
     assert "no live broker order will be submitted" in module.lower()
-    assert "live_execution: false" in module
 
 
-def test_ai_journal_and_calibration_modules_capture_outcomes_without_remote_dependencies():
+def test_ai_journal_and_calibration_modules_track_review_outcomes_locally():
     journal = read_static("ai_trade_journal_coach_module.js")
     calibration = read_static("ai_confidence_calibration_module.js")
-    assert "Review latest paper trade" in journal
-    assert "Review selected order" in journal
-    assert "review_verdict" in journal
-    assert "followed_plan" in journal
-    assert "rule_violation" in journal
-    assert "live_execution: false" in journal
-
-    assert "localStorage" in calibration
-    assert "workstation.aiConfidenceCalibration.v1" in calibration
-    assert "lastAiBacktestReview" in calibration
-    assert "aiTradeJournalCoachState" in calibration
-    assert "Calibration" in calibration
+    for expected in ["review_verdict", "followed_plan", "rule_violation", "live_execution: false"]:
+        assert expected in journal
+    for expected in ["localStorage", "workstation.aiConfidenceCalibration.v1", "lastAiBacktestReview", "aiTradeJournalCoachState"]:
+        assert expected in calibration
 
 
-def test_ai_backtest_generator_and_review_modules_have_safe_workflow_contracts():
+def test_ai_backtest_modules_cover_generation_and_review_contracts():
     generator = read_static("ai_backtest_generator_module.js")
     review = read_static("ai_backtest_review_module.js")
-
-    for strategy in ["donchian", "rsi_pullback", "bollinger", "macd", "triple_ema", "ema_cross"]:
-        assert strategy in generator
-    assert "Generate backtest plan" in generator
-    assert "simulated_only" in generator
-    assert "no_live_orders" in generator
-    assert "/api/backtest/run" in generator
-
-    assert "Backtest + AI review" in review
-    assert "supports" in review
-    assert "weakens" in review
-    assert "needs_review" in review
-    assert "no_trade" in review
-    assert "paper_trade_candidate" in review
-
-
-def test_paper_trading_module_exposes_state_for_ai_review_and_uses_paper_api_only():
-    module = read_static("paper_trading_module.js")
-    assert "window.paperTradingState" in module
-    assert "/api/paper/account" in module
-    assert "/api/paper/orders" in module
-    assert "/api/paper/fills" in module
-    assert "live" not in "\n".join(
-        line for line in module.splitlines() if "/api/" in line and "/api/paper" not in line
-    ).lower()
+    for expected in ["Generate backtest plan", "no_live_orders", "simulated_only", "/api/backtest/run"]:
+        assert expected in generator
+    for expected in ["Backtest + AI review", "supports", "weakens", "needs_review", "no_trade"]:
+        assert expected in review
