@@ -20,8 +20,8 @@ window.workstationModules = {
     owns: ['snapshot API save/list/load', 'journal fallback'],
   },
   exports: {
-    file: 'export_preview.js',
-    owns: ['packet build', 'validation', 'file export', 'download cards', 'copy actions'],
+    file: 'export_module.js + export_preview.js',
+    owns: ['packet build facade', 'validation', 'file export', 'download cards', 'copy actions', 'legacy export API compatibility'],
   },
   layout: {
     file: 'inline layout adapter',
@@ -59,3 +59,4 @@ addModuleRegistryButton();
 loadModuleScript('journalModuleScript', '/static/journal_module.js');
 loadModuleScript('drawingModuleScript', '/static/drawing_module.js');
 loadModuleScript('watchlistModuleScript', '/static/watchlist_module.js');
+loadModuleScript('exportModuleScript', '/static/export_module.js');
