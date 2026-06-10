@@ -47,6 +47,10 @@ window.workstationModules = {
     file: 'layout_module.js',
     owns: ['chart grid mode', 'slot state', 'layout state adapter'],
   },
+  uiBindings: {
+    file: 'ui_bindings.js',
+    owns: ['data-action event binding', 'declarative control dispatch', 'legacy global handler bridge'],
+  },
   cleanup: {
     file: 'workspace_cleanup.js',
     owns: ['research tools strip', 'control grouping'],
@@ -103,6 +107,7 @@ function loadWorkstationModules() {
   loadModuleScript('exportModuleScript', '/static/export_module.js');
   loadModuleScript('bootDiagnosticsScript', '/static/boot_diagnostics.js');
   loadModuleScript('legacyBindingPruneScript', '/static/legacy_binding_prune.js');
+  loadModuleScript('uiBindingsScript', '/static/ui_bindings.js');
   if (window.workstationBoot) window.workstationBoot.run();
 }
 
