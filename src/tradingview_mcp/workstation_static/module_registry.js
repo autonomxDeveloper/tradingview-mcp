@@ -39,6 +39,10 @@ window.workstationModules = {
     file: 'ai_paper_risk_module.js',
     owns: ['AI paper order risk review', 'paper submit review gate', 'simulated-order safety checks'],
   },
+  aiPaperDashboard: {
+    file: 'ai_paper_dashboard_module.js',
+    owns: ['AI paper dashboard navigation', 'read-only panel status strip', 'paper workflow consolidation'],
+  },
   aiPaperTrader: {
     file: 'ai_paper_trader_module.js',
     owns: ['AI paper-trader decision panel', 'guardrail display', 'explicit simulated execution handoff'],
@@ -203,6 +207,7 @@ function loadWorkstationModules() {
   loadModuleScript('cryptoStreamModuleScript', '/static/crypto_stream_module.js');
   loadModuleScript('paperTradingModuleScript', '/static/paper_trading_module.js');
   loadModuleScript('aiPaperRiskModuleScript', '/static/ai_paper_risk_module.js');
+  loadModuleScript('aiPaperDashboardModuleScript', '/static/ai_paper_dashboard_module.js');
   loadModuleScript('aiPaperTraderModuleScript', '/static/ai_paper_trader_module.js');
   loadModuleScript('aiPaperScheduleModuleScript', '/static/ai_paper_schedule_module.js');
   loadModuleScript('aiPaperLifecycleModuleScript', '/static/ai_paper_lifecycle_module.js');
