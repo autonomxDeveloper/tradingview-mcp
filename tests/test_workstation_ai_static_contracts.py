@@ -90,7 +90,7 @@ def test_ai_paper_trader_ui_uses_decision_then_explicit_paper_execution():
         "/api/ai/paper-trader/execute",
         "decisionIsExecutable",
         "aiPaperExecuteAck",
-        "No live order will be placed",
+        "no live order will be placed",
         "paper_only: true",
         "live_execution: false",
         "execution_submitted",
