@@ -157,31 +157,6 @@ async function removeWatchlistSymbol() {
   await saveWatchlistSymbols(watchlistSymbols().filter((item) => item !== symbol));
 }
 
-function addWatchlistControls() {
-  const watch = document.getElementById('watch');
-  if (!watch || document.getElementById('watchlistControls')) return;
-  const controls = document.createElement('div');
-  controls.id = 'watchlistControls';
-  controls.className = 'watchlist-controls';
-  controls.innerHTML = '<input id="watchlistSymbolInput" placeholder="symbol" /><button>Add</button><button>Remove selected</button><button>Refresh</button>';
-  const buttons = controls.querySelectorAll('button');
-  buttons[0].onclick = addWatchlistSymbol;
-  buttons[1].onclick = removeWatchlistSymbol;
-  buttons[2].onclick = refreshWatchlist;
-  watch.parentNode.insertBefore(controls, watch);
-}
-
-function addJournalFilters() {
-  const tabs = document.querySelector('.bottom .tabs');
-  if (!tabs || document.getElementById('journalFilters')) return;
-  const controls = document.createElement('span');
-  controls.id = 'journalFilters';
-  controls.className = 'journal-filters';
-  controls.innerHTML = '<input id="journalSymbolFilter" placeholder="symbol" /><input id="journalTypeFilter" placeholder="event type" /><input id="journalIdeaFilter" placeholder="idea id" /><button>Current symbol</button>';
-  controls.querySelector('button').onclick = () => loadJournalTimeline({ currentSymbol: true });
-  tabs.appendChild(controls);
-}
-
 function addIdeaStatusFilters() {
   const tabs = document.querySelector('.bottom .tabs');
   if (!tabs || document.getElementById('ideaStatusControls')) return;
@@ -234,20 +209,6 @@ async function clearServerDrawings() {
   if (status) status.textContent = 'server drawings cleared';
 }
 
-function addDrawingControls() {
-  const tabs = document.querySelector('.bottom .tabs');
-  if (!tabs || document.getElementById('drawingControls')) return;
-  const controls = document.createElement('span');
-  controls.id = 'drawingControls';
-  controls.className = 'drawing-controls';
-  controls.innerHTML = '<button>Load drawings</button><button>Save drawings</button><button>Clear server drawings</button><span id="drawingSyncStatus">drawings local+server</span>';
-  const buttons = controls.querySelectorAll('button');
-  buttons[0].onclick = loadServerDrawings;
-  buttons[1].onclick = saveServerDrawings;
-  buttons[2].onclick = clearServerDrawings;
-  tabs.appendChild(controls);
-}
-
 function currentSessionSnapshot() {
   return {
     symbol: $('symbol').value,
@@ -293,19 +254,6 @@ async function loadLatestSessionSnapshot() {
   loadMarket();
 }
 
-function addSnapshotControls() {
-  const tabs = document.querySelector('.bottom .tabs');
-  if (!tabs || document.getElementById('snapshotControls')) return;
-  const controls = document.createElement('span');
-  controls.id = 'snapshotControls';
-  controls.className = 'snapshot-controls';
-  controls.innerHTML = '<button>Save snapshot</button><button>Load latest snapshot</button>';
-  const buttons = controls.querySelectorAll('button');
-  buttons[0].onclick = saveSessionSnapshot;
-  buttons[1].onclick = loadLatestSessionSnapshot;
-  tabs.appendChild(controls);
-}
-
 function markdownForPacket(packet) {
   return `# Research packet: ${packet.snapshot.symbol} ${packet.snapshot.timeframe}\n\n` +
     `Generated: ${packet.generated_at_utc}\n\n` +
@@ -342,19 +290,6 @@ async function exportResearchPacket() {
 async function listExportFiles() {
   const response = await api('/api/exports');
   print({ exports: response.exports || [] });
-}
-
-function addExportControls() {
-  const tabs = document.querySelector('.bottom .tabs');
-  if (!tabs || document.getElementById('exportControls')) return;
-  const controls = document.createElement('span');
-  controls.id = 'exportControls';
-  controls.className = 'export-controls';
-  controls.innerHTML = '<button>Export packet</button><button>List exports</button>';
-  const buttons = controls.querySelectorAll('button');
-  buttons[0].onclick = exportResearchPacket;
-  buttons[1].onclick = listExportFiles;
-  tabs.appendChild(controls);
 }
 
 function addExtraButtons() {
@@ -403,13 +338,8 @@ window.restoreDrawings = function() {
 };
 
 const badgeStyle = document.createElement('style');
-badgeStyle.textContent = '.data-badges{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px}.data-badge{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#cbd5e1;padding:3px 7px;font-size:11px}.data-badge.ok{border-color:#22c55e}.data-badge.warn{border-color:#f59e0b;color:#fbbf24}.watchlist-controls{display:grid;gap:5px;margin:0 0 8px}.watchlist-controls button,.watchlist-controls input,.journal-filters input,.journal-filters button,.idea-lifecycle-controls input,.idea-lifecycle-controls button,.idea-status-controls select,.idea-status-controls button,.drawing-controls button,.snapshot-controls button,.export-controls button{font-size:12px;padding:5px 7px}.journal-filters,.idea-lifecycle-controls,.idea-status-controls,.drawing-controls,.snapshot-controls,.export-controls{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}#drawingSyncStatus{color:#94a3b8;font-size:12px;padding:5px 0}';
+badgeStyle.textContent = '.data-badges{display:inline-flex;gap:4px;flex-wrap:wrap;margin-left:6px}.data-badge{border:1px solid #334155;border-radius:999px;background:#0b1220;color:#cbd5e1;padding:3px 7px;font-size:11px}.data-badge.ok{border-color:#22c55e}.data-badge.warn{border-color:#f59e0b;color:#fbbf24}';
 document.head.appendChild(badgeStyle);
 addExtraButtons();
 addIdeaStatusFilters();
-addJournalFilters();
-addDrawingControls();
-addSnapshotControls();
-addExportControls();
-addWatchlistControls();
 addIdeaLifecycleControls();
