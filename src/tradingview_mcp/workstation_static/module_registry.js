@@ -1,7 +1,11 @@
 window.workstationModules = {
   ideas: {
     file: 'idea_module.js + idea_detail.js',
-    owns: ['idea lifecycle', 'status filters', 'portfolio research', 'legacy idea API compatibility'],
+    owns: ['idea lifecycle', 'status filters', 'legacy idea API compatibility'],
+  },
+  portfolio: {
+    file: 'portfolio_module.js',
+    owns: ['read-only portfolio research', 'portfolio tab action', 'portfolio-to-idea cross reference'],
   },
   dataBadges: {
     file: 'data_badge_module.js',
@@ -79,6 +83,7 @@ function loadWorkstationModules() {
   loadModuleScript('journalModuleScript', '/static/journal_module.js');
   loadModuleScript('drawingModuleScript', '/static/drawing_module.js');
   loadModuleScript('watchlistModuleScript', '/static/watchlist_module.js');
+  loadModuleScript('portfolioModuleScript', '/static/portfolio_module.js');
   loadModuleScript('exportModuleScript', '/static/export_module.js');
   loadModuleScript('bootDiagnosticsScript', '/static/boot_diagnostics.js');
   loadModuleScript('legacyBindingPruneScript', '/static/legacy_binding_prune.js');
