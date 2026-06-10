@@ -20,6 +20,7 @@ AI_MODULES = [
     "ai_paper_replay_module.js",
     "ai_paper_history_module.js",
     "ai_paper_performance_module.js",
+    "ai_paper_review_packet_module.js",
     "ai_trade_journal_coach_module.js",
     "ai_confidence_calibration_module.js",
 ]
@@ -255,6 +256,45 @@ def test_ai_paper_performance_ui_is_read_only_reporting():
         "aiPaperPerformance.fromReplay",
         "aiPaperPerformance.fromHistory",
         "aiPaperPerformance.run",
+    ]:
+        assert action in bindings
+
+
+def test_ai_paper_review_packet_ui_is_read_only_export():
+    module = read_static("ai_paper_review_packet_module.js")
+    registry = read_static("module_registry.js")
+    bindings = read_static("ui_bindings.js")
+    module_lower = module.lower()
+    for expected in [
+        "/api/ai/paper-trader/review-packet",
+        "buildAiPaperReviewPacket",
+        "renderAiPaperReviewPacket",
+        "copyAiPaperReviewPacket",
+        "syncReviewPacketInputs",
+        "loadReviewPacketExample",
+        "aiPaperReviewPacketReplay",
+        "aiPaperReviewPacketMarks",
+        "paper_only: true",
+        "live_execution: false",
+        "execution_submitted: false",
+        "read_only: true",
+        "Build review packet",
+        "Copy packet JSON",
+        "win_rate",
+        "total_realized_pnl",
+    ]:
+        assert expected in module
+    assert "read-only audit/export" in module_lower
+    assert "no llm calls" in module_lower
+    assert "mutate paper state" in module_lower
+    assert "submit simulated orders" in module_lower
+    assert "live broker endpoints" in module_lower
+    assert "ai_paper_review_packet_module.js" in registry
+    for action in [
+        "aiPaperReviewPacket.sync",
+        "aiPaperReviewPacket.example",
+        "aiPaperReviewPacket.build",
+        "aiPaperReviewPacket.copy",
     ]:
         assert action in bindings
 
