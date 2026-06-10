@@ -228,13 +228,21 @@ def resolve_screener_for_symbol(full_symbol: str, exchange: str) -> str:
     return get_market_type(exchange)
 
 
-def _install_ai_paper_review_packet_hook() -> None:
-    """Install the optional AI paper review packet route hook."""
-    try:
-        from tradingview_mcp.workstation_ai_paper_review_packet_routes import install_ai_paper_review_packet_route_autoregistry
-    except Exception:
-        return
-    install_ai_paper_review_packet_route_autoregistry()
+def _install_workstation_route_hooks() -> None:
+    """Install optional workstation route hooks for apps that import validators."""
+    hook_paths = [
+        ("tradingview_mcp.workstation_ai_paper_execution_routes", "install_ai_paper_execution_route_autoregistry"),
+        ("tradingview_mcp.workstation_ai_paper_history_routes", "install_ai_paper_history_route_autoregistry"),
+        ("tradingview_mcp.workstation_ai_paper_performance_routes", "install_ai_paper_performance_route_autoregistry"),
+        ("tradingview_mcp.workstation_ai_paper_review_packet_routes", "install_ai_paper_review_packet_route_autoregistry"),
+    ]
+    for module_name, function_name in hook_paths:
+        try:
+            module = __import__(module_name, fromlist=[function_name])
+            installer = getattr(module, function_name)
+        except Exception:
+            continue
+        installer()
 
 
-_install_ai_paper_review_packet_hook()
+_install_workstation_route_hooks()
