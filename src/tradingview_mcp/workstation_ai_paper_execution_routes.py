@@ -64,6 +64,13 @@ class PaperTraderLifecycleRequest(BaseModel):
     marks: dict[str, float] = Field(default_factory=dict)
 
 
+class PaperTraderReplayRequest(BaseModel):
+    """Deterministic replay request for saved AI paper decisions."""
+
+    decisions: list[dict[str, Any]] = Field(default_factory=list)
+    marks_by_symbol: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
+
+
 class PaperTraderScheduleRequest(BaseModel):
     name: str = "AI paper schedule"
     enabled: bool = True
@@ -244,6 +251,24 @@ def register_ai_paper_execution_routes(app: FastAPI) -> FastAPI:
                 },
             )
             return {"lifecycle": lifecycle, "journal_event": event, "paper_only": True, "live_execution": False, "execution_submitted": False}
+
+    if not _has_route(app, "/api/ai/paper-trader/replay"):
+        @app.post("/api/ai/paper-trader/replay")
+        def ai_paper_trader_replay(request: PaperTraderReplayRequest) -> dict[str, Any]:
+            from tradingview_mcp.core.services.ai_paper_replay_service import replay_ai_paper_decisions
+
+            replay = replay_ai_paper_decisions(request.decisions, request.marks_by_symbol)
+            event = append_journal_event(
+                "ai_paper_trader_replay",
+                {
+                    "decision_count": len(request.decisions),
+                    "summary": replay.get("summary", {}),
+                    "paper_only": True,
+                    "live_execution": False,
+                    "execution_submitted": False,
+                },
+            )
+            return {"replay": replay, "journal_event": event, "paper_only": True, "live_execution": False, "execution_submitted": False}
 
     if not _has_route(app, "/api/ai/market-context"):
         @app.post("/api/ai/market-context")
