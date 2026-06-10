@@ -31,4 +31,5 @@ window.journalModule = {
 
 window.journalFilterValue = window.journalModule.filterValue;
 window.loadJournalTimeline = window.journalModule.loadTimeline;
-setTimeout(() => window.journalModule.bindFilters(), 0);
+if (window.workstationBoot) window.workstationBoot.register('journal-module', () => window.journalModule.bindFilters());
+else setTimeout(() => window.journalModule.bindFilters(), 0);

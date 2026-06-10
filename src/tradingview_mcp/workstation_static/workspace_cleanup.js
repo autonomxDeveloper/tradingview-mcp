@@ -26,4 +26,5 @@ function cleanupWorkspaceControls() {
   addResearchToolsStrip();
 }
 
-setTimeout(cleanupWorkspaceControls, 0);
+if (window.workstationBoot) window.workstationBoot.register('workspace-cleanup', cleanupWorkspaceControls);
+else setTimeout(cleanupWorkspaceControls, 0);

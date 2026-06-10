@@ -43,4 +43,5 @@ window.workstationDrawingModule.bindControls = function bindControls() {
 window.saveServerDrawings = window.workstationDrawingModule.save;
 window.loadServerDrawings = window.workstationDrawingModule.load;
 window.clearServerDrawings = window.workstationDrawingModule.clearServer;
-window.workstationDrawingModule.bindControls();
+if (window.workstationBoot) window.workstationBoot.register('drawing-module', () => window.workstationDrawingModule.bindControls());
+else window.workstationDrawingModule.bindControls();
