@@ -10,6 +10,7 @@ from typing import Any, Literal
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
+from tradingview_mcp.core.services.ai_market_context_service import build_multi_timeframe_market_context
 from tradingview_mcp.core.services.ai_paper_trader_execution_service import execute_ai_paper_trader_decision
 from tradingview_mcp.core.services.ai_paper_trader_schedule_service import (
     ai_paper_schedule_status,
@@ -59,6 +60,14 @@ class PaperTraderScheduleRunRecordRequest(BaseModel):
     result: dict[str, Any] = Field(default_factory=dict)
 
 
+class MultiTimeframeContextRequest(BaseModel):
+    symbol: str = Field(..., min_length=1, max_length=32)
+    asset_type: Literal["stock", "crypto", "other"] = "stock"
+    exchange: str = "NASDAQ"
+    timeframes: list[str] = Field(default_factory=lambda: ["5m", "15m", "1h", "1D"])
+    limit: int = Field(default=120, ge=20, le=300)
+
+
 def _json_error(code: str, message: str, **extra: Any) -> dict[str, Any]:
     payload: dict[str, Any] = {"error": {"code": code, "message": message}}
     payload["error"].update(extra)
@@ -104,6 +113,22 @@ def register_ai_paper_execution_routes(app: FastAPI) -> FastAPI:
                 "live_execution": False,
                 "execution_submitted": bool(result.get("execution_submitted")),
             }
+
+    if not _has_route(app, "/api/ai/market-context"):
+        @app.post("/api/ai/market-context")
+        def ai_multi_timeframe_market_context(request: MultiTimeframeContextRequest) -> dict[str, Any]:
+            context = build_multi_timeframe_market_context(
+                symbol=request.symbol,
+                asset_type=request.asset_type,
+                exchange=request.exchange,
+                timeframes=request.timeframes,
+                limit=request.limit,
+            )
+            event = append_journal_event(
+                "ai_multi_timeframe_market_context",
+                {"request": request.model_dump(), "summary": context.get("summary", {}), "paper_only": True, "live_execution": False},
+            )
+            return {"context": context, "journal_event": event, "paper_only": True, "live_execution": False}
 
     if not _has_route(app, "/api/ai/paper-trader/schedules"):
         @app.get("/api/ai/paper-trader/schedules")
