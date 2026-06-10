@@ -47,16 +47,22 @@ function addModuleRegistryButton() {
   tabs.appendChild(button);
 }
 
-function loadModuleScript(id, src) {
-  if (document.getElementById(id)) return;
+function loadModuleScript(id, src, onload) {
+  if (document.getElementById(id)) { if (onload) onload(); return; }
   const script = document.createElement('script');
   script.id = id;
   script.src = src;
+  if (onload) script.onload = onload;
   document.body.appendChild(script);
 }
 
-addModuleRegistryButton();
-loadModuleScript('journalModuleScript', '/static/journal_module.js');
-loadModuleScript('drawingModuleScript', '/static/drawing_module.js');
-loadModuleScript('watchlistModuleScript', '/static/watchlist_module.js');
-loadModuleScript('exportModuleScript', '/static/export_module.js');
+function loadWorkstationModules() {
+  addModuleRegistryButton();
+  loadModuleScript('journalModuleScript', '/static/journal_module.js');
+  loadModuleScript('drawingModuleScript', '/static/drawing_module.js');
+  loadModuleScript('watchlistModuleScript', '/static/watchlist_module.js');
+  loadModuleScript('exportModuleScript', '/static/export_module.js');
+  if (window.workstationBoot) window.workstationBoot.run();
+}
+
+loadModuleScript('bootRegistryScript', '/static/boot_registry.js', loadWorkstationModules);
