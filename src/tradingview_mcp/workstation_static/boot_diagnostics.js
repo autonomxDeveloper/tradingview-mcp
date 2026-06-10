@@ -7,6 +7,7 @@ function showBootDiagnostics() {
     boot_callbacks: Object.keys(boot.callbacks || {}),
     booted: !!boot.booted,
     guard_warnings: window.workstationModuleGuard?.warnings || [],
+    legacy_binding_prune: window.workstationLegacyBindingPrune || {},
   };
   print({ boot_diagnostics: diagnostics });
 }
@@ -24,7 +25,7 @@ function addBootDiagnosticsControl() {
 window.workstationModules = window.workstationModules || {};
 window.workstationModules.bootDiagnostics = {
   file: 'boot_diagnostics.js',
-  owns: ['boot diagnostics view', 'loaded script listing', 'recent guard warning view'],
+  owns: ['boot diagnostics view', 'loaded script listing', 'recent guard warning view', 'legacy binding metrics view'],
 };
 
 if (window.registerWorkbenchBoot) window.registerWorkbenchBoot('boot-diagnostics', addBootDiagnosticsControl);
