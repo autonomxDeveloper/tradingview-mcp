@@ -8,7 +8,6 @@ let overlaySeries = {};
 let overlayState = { sma20: false, sma50: false, ema21: false };
 let drawings = { levels: [], notes: [], zones: [], guides: [] };
 let priceLineHandles = [];
-let scannerRows = [];
 
 function $(id) { return document.getElementById(id); }
 
@@ -194,16 +193,6 @@ function deleteLayout() { const name = currentLayoutName(); localStorage.removeI
 function resetLayout() { overlayState = { sma20: false, sma50: false, ema21: false }; volumeVisible = true; rsiVisible = false; macdVisible = false; atrVisible = false; setPaneVisibility('rsiWrap', false); setPaneVisibility('macdWrap', false); setPaneVisibility('atrWrap', false); if (volume) volume.applyOptions({ visible: true }); applyOverlayData(); print('Layout reset.'); }
 function applyLayoutState(state) { if (state.symbol) $('symbol').value = state.symbol; if (state.asset) $('asset').value = state.asset; if (state.exchange) $('exchange').value = state.exchange; if (state.timeframe) $('tf').value = state.timeframe; overlayState = { sma20: false, sma50: false, ema21: false, ...(state.overlayState || {}) }; volumeVisible = state.volumeVisible !== false; rsiVisible = !!state.rsiVisible; macdVisible = !!state.macdVisible; atrVisible = !!state.atrVisible; setPaneVisibility('rsiWrap', rsiVisible); setPaneVisibility('macdWrap', macdVisible); setPaneVisibility('atrWrap', atrVisible); if (volume) volume.applyOptions({ visible: volumeVisible }); loadMarket(); }
 
-function watchSymbols() { return [...document.querySelectorAll('#watch button')].map((button) => button.textContent.trim()).filter(Boolean); }
-function scannerExchange(symbol) { return symbol.includes('USDT') ? 'BINANCE' : 'NASDAQ'; }
-async function scanWatchlist() { const symbols = watchSymbols().slice(0, 8); print('Scanning watchlist...'); const rows = []; for (const symbol of symbols) { try { const exchange = scannerExchange(symbol); const result = await api(`/api/technical?symbol=${encodeURIComponent(symbol)}&exchange=${exchange}&timeframe=${encodeURIComponent($('tf').value)}`); const sentiment = result.market_sentiment || {}; const price = result.price_data || {}; rows.push({ symbol, exchange, change_percent: price.change_percent, rating: sentiment.overall_rating, signal: sentiment.buy_sell_signal, momentum: sentiment.momentum, error: result.error }); } catch (error) { rows.push({ symbol, error: error.message }); } } scannerRows = rows; print({ scanner: rows }); if (rows.length) useScannerCandidate(rows[0]); }
-function useScannerCandidate(row) { if (!row) return; $('symbol').value = row.symbol; if (row.symbol.includes('USDT')) { $('asset').value = 'crypto'; $('exchange').value = 'BINANCE'; } else { $('asset').value = 'stock'; $('exchange').value = 'NASDAQ'; } $('hypothesis').value = `${row.symbol} scanner candidate: ${row.signal || row.momentum || 'review'} on ${$('tf').value}.`; $('invalidation').value = 'Invalidate if follow-up chart review contradicts the scanner signal.'; $('backtestPlan').value = `Backtest ${row.symbol} with multiple strategies and compare against buy-and-hold before treating this as a watchlist idea.`; print({ selected_scanner_candidate: row }); }
-function useTopScannerCandidate() { if (!scannerRows.length) { print('Run scanner first.'); return; } useScannerCandidate(scannerRows[0]); loadMarket(); }
-
-async function analyze() { print('Analyzing...', 'analysis'); const response = await post('/api/ai/analyze', { symbol: $('symbol').value, asset_type: $('asset').value, exchange: $('exchange').value, timeframe: $('tf').value, question: $('question').value }); print(response.structured_analysis?.parsed ? response.structured_analysis : response.analysis?.content || response, 'analysis'); }
-async function runBacktest() { const response = await post('/api/backtest/run', { symbol: $('symbol').value, strategy: $('strategy').value, period: $('period').value, include_trade_log: true, include_equity_curve: true, idea_id: $('ideaId').value || null }); print(response); }
-async function compareStrategies() { print(await api(`/api/backtest/compare?symbol=${encodeURIComponent($('symbol').value)}&period=${$('period').value}`)); }
-async function loadBacktests() { print(await api(`/api/backtests?symbol=${encodeURIComponent($('symbol').value)}&limit=100`)); }
 async function saveIdea() { const body = { symbol: $('symbol').value, asset_type: activeIsCrypto() ? 'crypto' : 'stock', timeframe: $('tf').value, bias: 'unknown', hypothesis: $('hypothesis').value, invalidation: $('invalidation').value, backtest_plan: $('backtestPlan').value, source: 'workstation' }; print(await post('/api/ideas', body)); }
 async function loadIdeas() { print(await api('/api/ideas?limit=100')); }
 function showPayload() { print(lastPayload || 'No payload'); }
