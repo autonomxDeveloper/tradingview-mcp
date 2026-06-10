@@ -178,6 +178,9 @@ function updateLegend(param) { if (!currentBars.length) { $('legend').textConten
 function fmt(value) { if (!Number.isFinite(value)) return '-'; return Math.abs(value) >= 1000 ? value.toFixed(2) : value.toPrecision(6).replace(/0+$/, '').replace(/\.$/, ''); }
 function fmtVolume(value) { if (!Number.isFinite(value)) return '-'; if (value >= 1000000000) return (value / 1000000000).toFixed(2) + 'B'; if (value >= 1000000) return (value / 1000000).toFixed(2) + 'M'; if (value >= 1000) return (value / 1000).toFixed(2) + 'K'; return String(value); }
 
+function getPrimaryChartContext() { const rsi = relativeStrengthIndex(14); const macd = macdValues(); const atr = averageTrueRange(14); const latest = currentBars[currentBars.length - 1] || null; return { symbol: $('symbol').value.toUpperCase(), asset_type: activeIsCrypto() ? 'crypto' : 'stock', exchange: $('exchange').value, timeframe: $('tf').value, source: lastPayload?.metadata?.source || lastPayload?.source || 'unknown', latest_bar: latest, recent_bars: currentBars.slice(-80), overlays: { ...overlayState }, indicators: { volume_visible: volumeVisible, rsi_visible: rsiVisible, macd_visible: macdVisible, atr_visible: atrVisible, latest_rsi14: rsi[rsi.length - 1] || null, latest_macd: { macd: macd.macd[macd.macd.length - 1] || null, signal: macd.signal[macd.signal.length - 1] || null, histogram: macd.histogram[macd.histogram.length - 1] || null }, latest_atr14: atr[atr.length - 1] || null }, drawings: JSON.parse(JSON.stringify(drawings)), layout: typeof currentLayoutState === 'function' ? currentLayoutState() : null, paper_hint: { simulated_only: true, live_orders: false } }; }
+window.getPrimaryChartContext = getPrimaryChartContext;
+
 function layoutCatalogKey() { return 'workstation-layouts'; }
 function layoutStorageKey(name) { return `workstation-layout:${(name || 'default').trim() || 'default'}`; }
 function currentLayoutName() { return ($('layoutName')?.value || 'default').trim() || 'default'; }
