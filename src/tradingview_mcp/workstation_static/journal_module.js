@@ -2,6 +2,37 @@ window.journalModule = {
   filterValue(id) {
     return (document.getElementById(id)?.value || '').trim().toUpperCase();
   },
+  ensureControls() {
+    let controls = document.getElementById('journalFilters');
+    if (!controls) {
+      controls = document.createElement('span');
+      controls.id = 'journalFilters';
+      controls.className = 'module-control-group journal-control-group';
+      const target = document.getElementById('researchToolsStrip') || document.querySelector('.bottom .tabs');
+      if (target) target.appendChild(controls);
+    }
+    if (!controls || document.getElementById('journalSymbolFilter')) return controls;
+    controls.appendChild(window.journalModule.input('journalSymbolFilter', 'journal symbol'));
+    controls.appendChild(window.journalModule.input('journalTypeFilter', 'event type'));
+    controls.appendChild(window.journalModule.input('journalIdeaFilter', 'idea id'));
+    controls.appendChild(window.journalModule.button('Filter journal', () => window.journalModule.loadTimeline()));
+    controls.appendChild(window.journalModule.button('Current symbol journal', () => window.journalModule.loadTimeline({ currentSymbol: true })));
+    return controls;
+  },
+  input(id, placeholder) {
+    const input = document.createElement('input');
+    input.id = id;
+    input.placeholder = placeholder;
+    input.className = 'level-label-input';
+    return input;
+  },
+  button(label, handler) {
+    const button = document.createElement('button');
+    button.className = 'secondary';
+    button.textContent = label;
+    button.onclick = handler;
+    return button;
+  },
   async loadTimeline(options = {}) {
     const response = await api('/api/journal?limit=100');
     const events = response.events || [];
@@ -24,9 +55,8 @@ window.journalModule = {
     print({ journal_timeline: rows, filters: { symbol: symbolFilter, event_type: typeFilter, idea_id: ideaFilter }, mode: 'research_only' });
   },
   bindFilters() {
-    window.workstationModuleGuard?.missing('journal', { globals: ['api', '$', 'print'], elements: ['journalFilters'] });
-    const button = document.querySelector('#journalFilters button');
-    if (button) button.onclick = () => window.journalModule.loadTimeline({ currentSymbol: true });
+    window.workstationModuleGuard?.missing('journal', { globals: ['api', '$', 'print'], elements: ['researchToolsStrip'] });
+    window.journalModule.ensureControls();
   },
 };
 
