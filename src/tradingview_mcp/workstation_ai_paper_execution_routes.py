@@ -56,6 +56,14 @@ class PaperTraderExecuteRequest(BaseModel):
     cancel_open_orders_on_no_trade: bool = False
 
 
+class PaperTraderLifecycleRequest(BaseModel):
+    """Advisory lifecycle review request for local simulated paper state."""
+
+    market_context: dict[str, Any] = Field(default_factory=dict)
+    risk: dict[str, Any] = Field(default_factory=dict)
+    marks: dict[str, float] = Field(default_factory=dict)
+
+
 class PaperTraderScheduleRequest(BaseModel):
     name: str = "AI paper schedule"
     enabled: bool = True
@@ -216,6 +224,26 @@ def register_ai_paper_execution_routes(app: FastAPI) -> FastAPI:
                 "live_execution": False,
                 "execution_submitted": bool(result.get("execution_submitted")),
             }
+
+    if not _has_route(app, "/api/ai/paper-trader/lifecycle"):
+        @app.post("/api/ai/paper-trader/lifecycle")
+        def ai_paper_trader_lifecycle(request: PaperTraderLifecycleRequest) -> dict[str, Any]:
+            from tradingview_mcp.core.services.ai_paper_lifecycle_service import review_ai_paper_lifecycle
+            from tradingview_mcp.core.services.paper_trading_service import paper_account_snapshot
+
+            snapshot = paper_account_snapshot(request.marks)
+            lifecycle = review_ai_paper_lifecycle(snapshot, market_context=request.market_context, risk=request.risk)
+            event = append_journal_event(
+                "ai_paper_trader_lifecycle_review",
+                {
+                    "request": request.model_dump(),
+                    "summary": lifecycle.get("summary", {}),
+                    "paper_only": True,
+                    "live_execution": False,
+                    "execution_submitted": False,
+                },
+            )
+            return {"lifecycle": lifecycle, "journal_event": event, "paper_only": True, "live_execution": False, "execution_submitted": False}
 
     if not _has_route(app, "/api/ai/market-context"):
         @app.post("/api/ai/market-context")
