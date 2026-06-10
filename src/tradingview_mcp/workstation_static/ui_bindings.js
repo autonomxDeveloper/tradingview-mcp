@@ -26,6 +26,8 @@
     'chart.toggleMacd': () => callGlobal('toggleMacdPane'),
     'chart.toggleAtr': () => callGlobal('toggleAtrPane'),
     'chart.fit': () => callGlobal('fitChart'),
+    'live.toggle': (element) => callGlobal('setLiveRefresh', actionArgument(element)),
+    'live.setInterval': (element) => callGlobal('setLiveRefreshInterval', actionArgument(element)),
     'drawings.addLevel': () => callGlobal('addLevelFromInput'),
     'drawings.addLastCloseLevel': () => callGlobal('addLevelFromLastClose'),
     'drawings.addNote': () => callGlobal('addNoteAtLastClose'),
