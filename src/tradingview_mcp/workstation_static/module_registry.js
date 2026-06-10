@@ -55,6 +55,10 @@ window.workstationModules = {
     file: 'ai_paper_replay_module.js',
     owns: ['AI paper replay panel', 'deterministic decision replay', 'research-only replay summaries'],
   },
+  aiPaperHistory: {
+    file: 'ai_paper_history_module.js',
+    owns: ['AI paper decision history panel', 'read-only journal decisions', 'history-to-replay handoff'],
+  },
   aiTradeJournalCoach: {
     file: 'ai_trade_journal_coach_module.js',
     owns: ['AI paper trade journal coaching', 'post-fill process review', 'simulated trade improvement rules'],
@@ -191,6 +195,7 @@ function loadWorkstationModules() {
   loadModuleScript('aiPaperScheduleModuleScript', '/static/ai_paper_schedule_module.js');
   loadModuleScript('aiPaperLifecycleModuleScript', '/static/ai_paper_lifecycle_module.js');
   loadModuleScript('aiPaperReplayModuleScript', '/static/ai_paper_replay_module.js');
+  loadModuleScript('aiPaperHistoryModuleScript', '/static/ai_paper_history_module.js');
   loadModuleScript('aiTradeJournalCoachModuleScript', '/static/ai_trade_journal_coach_module.js');
   loadModuleScript('aiConfidenceCalibrationModuleScript', '/static/ai_confidence_calibration_module.js');
   loadModuleScript('portfolioModuleScript', '/static/portfolio_module.js');
