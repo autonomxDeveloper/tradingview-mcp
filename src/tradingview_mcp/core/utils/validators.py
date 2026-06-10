@@ -236,6 +236,7 @@ def _install_workstation_route_hooks() -> None:
         ("tradingview_mcp.workstation_ai_paper_performance_routes", "install_ai_paper_performance_route_autoregistry"),
         ("tradingview_mcp.workstation_ai_paper_review_packet_routes", "install_ai_paper_review_packet_route_autoregistry"),
         ("tradingview_mcp.workstation_ai_paper_audit_export_routes", "install_ai_paper_audit_export_route_autoregistry"),
+        ("tradingview_mcp.workstation_ai_paper_strategy_evaluation_routes", "install_ai_paper_strategy_evaluation_route_autoregistry"),
     ]
     for module_name, function_name in hook_paths:
         try:
