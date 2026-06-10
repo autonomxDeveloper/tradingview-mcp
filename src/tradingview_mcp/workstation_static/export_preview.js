@@ -126,36 +126,6 @@ async function renderExportFileBrowser() {
   print({ export_files: rows, hint: 'Use the rendered export cards or copy a download URL.' });
 }
 
-function addPacketPreviewControls() {
-  const controls = document.getElementById('exportControls');
-  if (!controls || document.getElementById('copyPacketJsonButton')) return;
-  const jsonButton = document.createElement('button');
-  jsonButton.id = 'copyPacketJsonButton';
-  jsonButton.textContent = 'Copy JSON';
-  jsonButton.onclick = copyResearchPacketJson;
-  const mdButton = document.createElement('button');
-  mdButton.id = 'copyPacketMarkdownButton';
-  mdButton.textContent = 'Copy Markdown';
-  mdButton.onclick = copyResearchPacketMarkdown;
-  const browseButton = document.createElement('button');
-  browseButton.id = 'browseExportsButton';
-  browseButton.textContent = 'Browse exports';
-  browseButton.onclick = renderExportFileBrowser;
-  const latestButton = document.createElement('button');
-  latestButton.id = 'latestExportButton';
-  latestButton.textContent = 'Latest export';
-  latestButton.onclick = showLatestExport;
-  const validateButton = document.createElement('button');
-  validateButton.id = 'validatePacketButton';
-  validateButton.textContent = 'Validate packet';
-  validateButton.onclick = validateCurrentPacket;
-  controls.appendChild(jsonButton);
-  controls.appendChild(mdButton);
-  controls.appendChild(browseButton);
-  controls.appendChild(latestButton);
-  controls.appendChild(validateButton);
-}
-
 function addExportCardStyles() {
   if (document.getElementById('exportCardStyles')) return;
   const style = document.createElement('style');
@@ -165,4 +135,3 @@ function addExportCardStyles() {
 }
 
 addExportCardStyles();
-addPacketPreviewControls();
