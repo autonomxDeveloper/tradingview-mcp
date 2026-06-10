@@ -113,7 +113,7 @@ def test_ai_backtest_generator_and_review_modules_have_safe_workflow_contracts()
     assert "weakens" in review
     assert "needs_review" in review
     assert "no_trade" in review
-    assert "paper trade candidate" in review.lower()
+    assert "paper_trade_candidate" in review
 
 
 def test_paper_trading_module_exposes_state_for_ai_review_and_uses_paper_api_only():
