@@ -107,6 +107,7 @@ function addResultsStyles() {
 .result-pane-stack{min-height:0;overflow:auto;border:1px solid #1e293b;border-radius:8px;background:#050916}
 .result-pane{display:none;min-height:142px;padding:9px}
 .result-pane.active-result-pane{display:block}
+.legacy-output.hidden{display:none}
 `;
   document.head.appendChild(style);
 }
@@ -122,8 +123,4 @@ function initializeResultsSurface() {
 window.showResultPane = showResultPane;
 window.setResultPane = setResultPane;
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeResultsSurface);
-} else {
-  initializeResultsSurface();
-}
+initializeResultsSurface();
