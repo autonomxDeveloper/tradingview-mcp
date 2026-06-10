@@ -7,6 +7,10 @@ window.workstationModules = {
     file: 'scanner_module.js',
     owns: ['watchlist scanner', 'scanner candidate workspace load', 'research-only scanner hypotheses'],
   },
+  backtests: {
+    file: 'backtest_module.js',
+    owns: ['run backtest action', 'strategy comparison action', 'backtest list view'],
+  },
   portfolio: {
     file: 'portfolio_module.js',
     owns: ['read-only portfolio research', 'portfolio tab action', 'portfolio-to-idea cross reference'],
@@ -88,6 +92,7 @@ function loadWorkstationModules() {
   loadModuleScript('drawingModuleScript', '/static/drawing_module.js');
   loadModuleScript('watchlistModuleScript', '/static/watchlist_module.js');
   loadModuleScript('scannerModuleScript', '/static/scanner_module.js');
+  loadModuleScript('backtestModuleScript', '/static/backtest_module.js');
   loadModuleScript('portfolioModuleScript', '/static/portfolio_module.js');
   loadModuleScript('exportModuleScript', '/static/export_module.js');
   loadModuleScript('bootDiagnosticsScript', '/static/boot_diagnostics.js');
