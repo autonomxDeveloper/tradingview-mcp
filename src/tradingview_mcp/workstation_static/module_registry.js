@@ -31,6 +31,10 @@ window.workstationModules = {
     file: 'ai_watchlist_scanner_module.js',
     owns: ['AI watchlist trade scanner', 'candidate ranking', 'scanner-to-idea/backtest/paper handoff'],
   },
+  aiPaperRisk: {
+    file: 'ai_paper_risk_module.js',
+    owns: ['AI paper order risk review', 'paper submit review gate', 'simulated-order safety checks'],
+  },
   results: {
     file: 'results_module.js',
     owns: ['structured result panes', 'legacy print routing', 'action-to-pane hints'],
@@ -153,6 +157,7 @@ function loadWorkstationModules() {
   loadModuleScript('liveRefreshModuleScript', '/static/live_refresh_module.js');
   loadModuleScript('cryptoStreamModuleScript', '/static/crypto_stream_module.js');
   loadModuleScript('paperTradingModuleScript', '/static/paper_trading_module.js');
+  loadModuleScript('aiPaperRiskModuleScript', '/static/ai_paper_risk_module.js');
   loadModuleScript('portfolioModuleScript', '/static/portfolio_module.js');
   loadModuleScript('exportModuleScript', '/static/export_module.js');
   loadModuleScript('bootDiagnosticsScript', '/static/boot_diagnostics.js');
