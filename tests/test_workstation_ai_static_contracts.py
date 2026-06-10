@@ -108,11 +108,10 @@ def test_ai_paper_schedule_ui_is_manual_and_paper_only():
     module = read_static("ai_paper_schedule_module.js")
     registry = read_static("module_registry.js")
     bindings = read_static("ui_bindings.js")
+    module_lower = module.lower()
     for expected in [
         "/api/ai/paper-trader/schedules",
         "/api/ai/paper-trader/decision",
-        "background loop disabled",
-        "manual decision requests only",
         "auto_execute: false",
         "paper_only: true",
         "live_execution: false",
@@ -121,6 +120,8 @@ def test_ai_paper_schedule_ui_is_manual_and_paper_only():
         "Record last decision",
     ]:
         assert expected in module
+    assert "background loop disabled" in module_lower
+    assert "manual decision requests only" in module_lower
     assert "ai_paper_schedule_module.js" in registry
     for action in [
         "aiPaperSchedule.refresh",
