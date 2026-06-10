@@ -1,11 +1,11 @@
 window.workstationModules = {
   ideas: {
-    file: 'idea_detail.js',
-    owns: ['idea lifecycle', 'status filters', 'portfolio research', 'journal timeline', 'watchlist controls'],
+    file: 'idea_module.js + idea_detail.js',
+    owns: ['idea lifecycle', 'status filters', 'portfolio research', 'journal timeline', 'legacy idea API compatibility'],
   },
   drawings: {
-    file: 'idea_detail.js',
-    owns: ['server drawing sync', 'drawing load/save/clear controls'],
+    file: 'drawing_module.js',
+    owns: ['server drawing sync', 'drawing load/save/clear controls', 'localStorage fallback compatibility'],
   },
   snapshots: {
     file: 'snapshot_browser.js',
