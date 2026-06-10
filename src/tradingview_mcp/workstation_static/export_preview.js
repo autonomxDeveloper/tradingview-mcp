@@ -1,3 +1,13 @@
+function markdownForPacket(packet) {
+  return `# Research packet: ${packet.snapshot.symbol} ${packet.snapshot.timeframe}\n\n` +
+    `Generated: ${packet.generated_at_utc}\n\n` +
+    `## Chart metadata\n- Asset: ${packet.snapshot.asset_type}\n- Exchange: ${packet.snapshot.exchange}\n- Source: ${packet.chart_metadata.source || 'unknown'}\n- Freshness: ${packet.chart_metadata.freshness || 'unknown'}\n\n` +
+    `## Idea\n- ID: ${packet.snapshot.idea_id || 'none'}\n- Hypothesis: ${packet.snapshot.hypothesis || 'none'}\n- Invalidation: ${packet.snapshot.invalidation || 'none'}\n- Backtest plan: ${packet.snapshot.backtest_plan || 'none'}\n\n` +
+    `## AI analysis\n${packet.snapshot.analysis || 'No analysis captured.'}\n\n` +
+    `## Backtests\n${packet.backtests.map((record) => `- ${record.id || 'record'} ${record.strategy || ''} ${record.symbol || ''}`).join('\n') || 'No linked backtests.'}\n\n` +
+    `## Recent journal\n${packet.journal.map((row) => `- ${row.event_type || row.type}: ${JSON.stringify(row.payload || {}).slice(0, 160)}`).join('\n') || 'No journal rows.'}\n`;
+}
+
 async function buildResearchPacket() {
   const snapshot = currentSessionSnapshot();
   const journalResponse = await api('/api/journal?limit=30');
