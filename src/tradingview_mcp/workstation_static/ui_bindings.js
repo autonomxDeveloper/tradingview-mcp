@@ -51,6 +51,8 @@
     'backtest.list': () => callGlobal('loadBacktests'),
     'paper.refresh': () => callGlobal('refreshPaperTrading'),
     'paper.submit': () => callGlobal('submitPaperOrder'),
+    'paper.riskReview': () => callGlobal('reviewPaperOrderRisk'),
+    'paper.submitReviewed': () => callGlobal('submitReviewedPaperOrder'),
     'paper.fill': () => callGlobal('fillPaperOrder'),
     'paper.cancel': () => callGlobal('cancelPaperOrder'),
     'paper.reset': () => callGlobal('resetPaperTrading'),
