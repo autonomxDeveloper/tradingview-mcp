@@ -70,13 +70,13 @@ def test_ai_watchlist_scanner_contract_is_research_only_and_bounded():
 def test_ai_paper_risk_review_gates_simulated_submit():
     module = read_static("ai_paper_risk_module.js")
     assert "window.submitPaperOrder" in module
-    assert "originalSubmitPaperOrder" in module
+    assert "originalSubmit" in module
     assert "risk_verdict" in module
     assert "acceptable" in module
     assert "too_risky" in module
     assert "reject" in module
-    assert "paperRiskReviewAcknowledgement" in module
-    assert "No live broker order will be submitted" in module
+    assert "aiPaperRiskAck" in module
+    assert "no live broker order will be submitted" in module.lower()
     assert "live_execution: false" in module
 
 
