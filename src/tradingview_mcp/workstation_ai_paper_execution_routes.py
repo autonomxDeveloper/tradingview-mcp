@@ -27,6 +27,22 @@ from tradingview_mcp.core.services.workstation_journal_service import append_jou
 WORKSTATION_APP_TITLE = "Autonomx Trading Research Workstation"
 
 
+class PaperTraderDecisionRequest(BaseModel):
+    """AI paper-trader decision request with multi-timeframe enrichment."""
+
+    symbol: str = Field(..., min_length=1, max_length=32)
+    asset_type: Literal["stock", "crypto", "auto", "other"] = "auto"
+    exchange: str = "NASDAQ"
+    timeframe: str = "1D"
+    question: str = "Create a strict paper-only decision for the active chart. Use no_trade unless guardrails and evidence support simulation."
+    chart_context: dict[str, Any] = Field(default_factory=dict)
+    timeframes: list[str] = Field(default_factory=lambda: ["5m", "15m", "1h", "1D"])
+    profile: str = "intraday_paper"
+    mode: str = "paper_trader_decision"
+    risk: dict[str, Any] = Field(default_factory=dict)
+    market_context_limit: int = Field(default=120, ge=20, le=300)
+
+
 class PaperTraderExecuteRequest(BaseModel):
     """Explicit paper-only execution request for a validated AI decision."""
 
@@ -77,8 +93,96 @@ def _has_route(app: FastAPI, path: str) -> bool:
     return any(getattr(route, "path", None) == path for route in app.routes)
 
 
+def _safe_multi_timeframe_context(request: PaperTraderDecisionRequest, *, asset_type: str) -> dict[str, Any]:
+    from tradingview_mcp.core.services.ai_market_context_service import build_multi_timeframe_market_context
+
+    try:
+        return build_multi_timeframe_market_context(
+            symbol=request.symbol,
+            asset_type=asset_type,
+            exchange=request.exchange,
+            timeframes=request.timeframes,
+            limit=request.market_context_limit,
+        )
+    except Exception as exc:
+        return {
+            "symbol": request.symbol.strip().upper(),
+            "asset_type": asset_type,
+            "exchange": request.exchange,
+            "timeframes": request.timeframes,
+            "paper_only": True,
+            "live_execution": False,
+            "summary": {"timeframe_count": 0, "valid_timeframe_count": 0, "trend_alignment": "unknown", "errors": [{"error": str(exc)}]},
+            "contexts": [],
+        }
+
+
 def register_ai_paper_execution_routes(app: FastAPI) -> FastAPI:
     """Register explicit paper-only execution routes on a workstation app."""
+    if not _has_route(app, "/api/ai/paper-trader/decision"):
+        @app.post("/api/ai/paper-trader/decision")
+        def ai_paper_trader_decision(request: PaperTraderDecisionRequest) -> dict[str, Any]:
+            from tradingview_mcp.core.services.ai_paper_trader_service import (
+                ai_paper_trader_prompt,
+                build_ai_paper_trader_context,
+                parse_ai_paper_trader_decision,
+                validate_ai_paper_trader_decision,
+            )
+            from tradingview_mcp.core.services.paper_trading_service import list_paper_fills, list_paper_orders, paper_account_snapshot
+            from tradingview_mcp.workstation_app import _call_lmstudio, _market_context
+
+            market = _market_context(request.symbol, request.asset_type, request.exchange, request.timeframe)
+            resolved_asset_type = market.get("asset_type", request.asset_type if request.asset_type != "auto" else "stock")
+            multi_timeframe_market_context = _safe_multi_timeframe_context(request, asset_type=resolved_asset_type)
+            enriched_chart_context = dict(request.chart_context or {})
+            enriched_chart_context["multi_timeframe_market_context"] = multi_timeframe_market_context
+            enriched_chart_context["multi_timeframe_summary"] = multi_timeframe_market_context.get("summary", {})
+            paper_account = paper_account_snapshot()
+            context = build_ai_paper_trader_context(
+                symbol=request.symbol,
+                asset_type=resolved_asset_type,
+                exchange=request.exchange,
+                active_timeframe=request.timeframe,
+                timeframes=request.timeframes,
+                profile=request.profile,
+                mode=request.mode,
+                market=market,
+                chart_context=enriched_chart_context,
+                paper_account=paper_account,
+                open_orders=list_paper_orders(50),
+                recent_fills=list_paper_fills(50),
+                risk=request.risk,
+            )
+            context["multi_timeframe_market_context"] = multi_timeframe_market_context
+            context["paper_only"] = True
+            context["live_execution"] = False
+            ai_response = _call_lmstudio(ai_paper_trader_prompt(context), max_tokens=1100)
+            parsed_decision = parse_ai_paper_trader_decision(str(ai_response.get("content", "")))
+            decision = validate_ai_paper_trader_decision(parsed_decision, context)
+            event = append_journal_event(
+                "ai_paper_trader_decision",
+                {
+                    "request": request.model_dump(),
+                    "context": context,
+                    "multi_timeframe_summary": multi_timeframe_market_context.get("summary", {}),
+                    "ai_response": ai_response.get("content", ""),
+                    "decision": decision,
+                    "paper_only": True,
+                    "live_execution": False,
+                    "execution_submitted": False,
+                },
+            )
+            return {
+                "context": context,
+                "multi_timeframe_market_context": multi_timeframe_market_context,
+                "ai_response": ai_response,
+                "decision": decision,
+                "journal_event": event,
+                "paper_only": True,
+                "live_execution": False,
+                "execution_submitted": False,
+            }
+
     if not _has_route(app, "/api/ai/paper-trader/execute"):
         @app.post("/api/ai/paper-trader/execute")
         def ai_paper_trader_execute(request: PaperTraderExecuteRequest) -> dict[str, Any]:
