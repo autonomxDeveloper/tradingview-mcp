@@ -21,6 +21,10 @@ window.exportModule = {
     return showLatestExport();
   },
   bindControls() {
+    window.workstationModuleGuard?.missing?.('export-module', {
+      globals: ['buildResearchPacket', 'exportResearchPacket', 'validateCurrentPacket', 'copyResearchPacketJson', 'copyResearchPacketMarkdown', 'renderExportFileBrowser', 'showLatestExport'],
+      elements: ['exportControls'],
+    });
     const exportButton = document.querySelector('#exportControls button:first-child');
     if (exportButton) exportButton.onclick = () => window.exportModule.exportPacket();
     const listButton = document.querySelector('#exportControls button:nth-child(2)');
