@@ -48,20 +48,15 @@ def test_paper_account_buy_fill_and_mark_to_market(monkeypatch, tmp_path):
     assert snapshot["account"]["market_value"] == 250
     assert snapshot["account"]["equity"] == 1_050
     assert snapshot["account"]["unrealized_pnl"] == 50
-    assert snapshot["positions"] == [
-        pytest.approx(
-            {
-                "symbol": "AAPL",
-                "quantity": 2,
-                "average_price": 100,
-                "realized_pnl": 0,
-                "mark_price": 125,
-                "market_value": 250,
-                "unrealized_pnl": 50,
-            },
-            abs=1e-6,
-        )
-    ]
+    assert len(snapshot["positions"]) == 1
+    position = snapshot["positions"][0]
+    assert position["symbol"] == "AAPL"
+    assert position["quantity"] == pytest.approx(2)
+    assert position["average_price"] == pytest.approx(100)
+    assert position["realized_pnl"] == pytest.approx(0)
+    assert position["mark_price"] == pytest.approx(125)
+    assert position["market_value"] == pytest.approx(250)
+    assert position["unrealized_pnl"] == pytest.approx(50)
 
 
 def test_paper_account_sell_realizes_pnl_and_removes_flat_position(monkeypatch, tmp_path):
