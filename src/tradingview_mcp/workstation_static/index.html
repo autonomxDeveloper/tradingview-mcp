@@ -77,22 +77,24 @@
       </div>
     </div>
     <div id="chartGrid" class="layout-grid layout-grid-1">
-      <div id="chartWrap" class="chart-cell active-chart-cell">
+      <div id="chartWrap" class="chart-cell active-chart-cell" data-chart-slot="1">
         <div id="legend" class="legend">Load a symbol to see OHLC.</div>
         <div id="zonesOverlay" class="zones-overlay"></div>
         <svg id="guidesOverlay" class="guides-overlay"></svg>
         <div id="notesOverlay" class="notes-overlay"></div>
         <div id="chart"></div>
       </div>
-      <div id="chartSlot2" class="chart-cell placeholder-chart-cell">
+      <div id="chartSlot2" class="chart-cell placeholder-chart-cell secondary-chart-cell" data-chart-slot="2">
         <div class="slot-card"><b>Slot 2</b><span id="slot2Label">Unassigned</span><input id="slot2Symbol" placeholder="symbol" /><input id="slot2Tf" placeholder="timeframe" /><button class="secondary" data-action="layout.setSlot" data-action-arg="2">Set slot</button><span id="slot2Status">No chart loaded.</span></div>
         <div id="slot2Chart" class="slot-chart"></div>
       </div>
-      <div id="chartSlot3" class="chart-cell placeholder-chart-cell">
-        <div class="slot-card"><b>Slot 3</b><span id="slot3Label">Unassigned</span><input id="slot3Symbol" placeholder="symbol" /><input id="slot3Tf" placeholder="timeframe" /><button class="secondary" data-action="layout.setSlot" data-action-arg="3">Set slot</button></div>
+      <div id="chartSlot3" class="chart-cell placeholder-chart-cell secondary-chart-cell" data-chart-slot="3">
+        <div class="slot-card"><b>Slot 3</b><span id="slot3Label">Unassigned</span><input id="slot3Symbol" placeholder="symbol" /><input id="slot3Tf" placeholder="timeframe" /><button class="secondary" data-action="layout.setSlot" data-action-arg="3">Set slot</button><span id="slot3Status">No chart loaded.</span></div>
+        <div id="slot3Chart" class="slot-chart"></div>
       </div>
-      <div id="chartSlot4" class="chart-cell placeholder-chart-cell">
-        <div class="slot-card"><b>Slot 4</b><span id="slot4Label">Unassigned</span><input id="slot4Symbol" placeholder="symbol" /><input id="slot4Tf" placeholder="timeframe" /><button class="secondary" data-action="layout.setSlot" data-action-arg="4">Set slot</button></div>
+      <div id="chartSlot4" class="chart-cell placeholder-chart-cell secondary-chart-cell" data-chart-slot="4">
+        <div class="slot-card"><b>Slot 4</b><span id="slot4Label">Unassigned</span><input id="slot4Symbol" placeholder="symbol" /><input id="slot4Tf" placeholder="timeframe" /><button class="secondary" data-action="layout.setSlot" data-action-arg="4">Set slot</button><span id="slot4Status">No chart loaded.</span></div>
+        <div id="slot4Chart" class="slot-chart"></div>
       </div>
     </div>
     <div id="rsiWrap" class="indicator-wrap hidden">
