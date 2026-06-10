@@ -7,6 +7,10 @@ window.workstationModules = {
     file: 'drawing_module.js',
     owns: ['server drawing sync', 'drawing load/save/clear controls', 'localStorage fallback compatibility'],
   },
+  watchlist: {
+    file: 'watchlist_module.js',
+    owns: ['watchlist add/remove/refresh', 'server persistence', 'symbol load behavior'],
+  },
   snapshots: {
     file: 'snapshot_browser.js',
     owns: ['snapshot API save/list/load', 'journal fallback'],
@@ -39,13 +43,14 @@ function addModuleRegistryButton() {
   tabs.appendChild(button);
 }
 
-function loadDrawingModule() {
-  if (document.getElementById('drawingModuleScript')) return;
+function loadModuleScript(id, src) {
+  if (document.getElementById(id)) return;
   const script = document.createElement('script');
-  script.id = 'drawingModuleScript';
-  script.src = '/static/drawing_module.js';
+  script.id = id;
+  script.src = src;
   document.body.appendChild(script);
 }
 
 addModuleRegistryButton();
-loadDrawingModule();
+loadModuleScript('drawingModuleScript', '/static/drawing_module.js');
+loadModuleScript('watchlistModuleScript', '/static/watchlist_module.js');
