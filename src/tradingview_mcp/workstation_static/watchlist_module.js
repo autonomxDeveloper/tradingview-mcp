@@ -65,4 +65,5 @@ window.refreshWatchlist = window.workstationWatchlistModule.refresh;
 window.saveWatchlistSymbols = window.workstationWatchlistModule.save;
 window.addWatchlistSymbol = window.workstationWatchlistModule.add;
 window.removeWatchlistSymbol = window.workstationWatchlistModule.removeSelected;
-window.workstationWatchlistModule.bindControls();
+if (window.workstationBoot) window.workstationBoot.register('watchlist-module', () => window.workstationWatchlistModule.bindControls());
+else window.workstationWatchlistModule.bindControls();
