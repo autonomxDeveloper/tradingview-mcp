@@ -79,6 +79,12 @@ class AnalyzeRequest(BaseModel):
     question: str = "Give observations, risks, invalidation levels, and what to backtest next."
 
 
+class TradeIdeaRequest(AnalyzeRequest):
+    chart_context: dict[str, Any] = Field(default_factory=dict)
+    profile: str = "swing"
+    mode: str = "research_trade_idea"
+
+
 class BacktestRequest(BaseModel):
     symbol: str
     strategy: str = "ema_cross"
@@ -211,9 +217,9 @@ def _call_lmstudio(messages: list[dict[str, str]], max_tokens: int = 900) -> dic
     return {"content": choices[0].get("message", {}).get("content", "") if choices else "", "model": payload.get("model") or model, "raw": payload}
 
 
-def _parse_structured_analysis(content: str) -> dict[str, Any]:
+def _load_json_object(content: str) -> dict[str, Any] | None:
     if not content.strip():
-        return {"parsed": False, "raw": content}
+        return None
     cleaned = content.strip()
     if cleaned.startswith("```"):
         cleaned = cleaned.strip("`").strip()
@@ -222,8 +228,13 @@ def _parse_structured_analysis(content: str) -> dict[str, Any]:
     try:
         payload = json.loads(cleaned)
     except json.JSONDecodeError:
-        return {"parsed": False, "raw": content}
-    if not isinstance(payload, dict):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _parse_structured_analysis(content: str) -> dict[str, Any]:
+    payload = _load_json_object(content)
+    if payload is None:
         return {"parsed": False, "raw": content}
     return {
         "parsed": True,
@@ -239,6 +250,93 @@ def _parse_structured_analysis(content: str) -> dict[str, Any]:
     }
 
 
+def _string_list(value: Any) -> list[str]:
+    if value is None or value == "":
+        return []
+    if isinstance(value, list):
+        return [str(item) for item in value if item is not None and str(item).strip()]
+    return [str(value)]
+
+
+def _normalize_direction(value: Any) -> str:
+    clean = str(value or "").lower().replace(" ", "_")
+    if clean in {"long", "buy", "bullish"}:
+        return "long"
+    if clean in {"short", "sell", "bearish"}:
+        return "short"
+    return "no_trade"
+
+
+def _normalize_confidence(value: Any) -> str:
+    clean = str(value or "").lower()
+    return clean if clean in {"low", "medium", "high"} else "low"
+
+
+def _normalize_bias(value: Any) -> str:
+    clean = str(value or "").lower()
+    return clean if clean in {"bullish", "bearish", "neutral", "range"} else "neutral"
+
+
+def _parse_structured_trade_idea(content: str) -> dict[str, Any]:
+    payload = _load_json_object(content)
+    if payload is None:
+        return {
+            "parsed": False,
+            "summary": "AI did not return valid JSON.",
+            "trend": "unknown",
+            "key_levels": [],
+            "risks": ["Invalid or non-JSON model response."],
+            "invalidation": "",
+            "backtest_ideas": [],
+            "confidence": "low",
+            "not_financial_advice": True,
+            "trade_idea": {
+                "bias": "neutral",
+                "setup_type": "no_trade",
+                "direction": "no_trade",
+                "entry_zone": "wait for valid structured output",
+                "stop_or_invalidation": "not applicable",
+                "targets": [],
+                "risk_reward": "unknown",
+                "sizing_note": "No simulated paper order should be created from invalid AI output.",
+                "timeframe": "unknown",
+                "paper_trade_candidate": False,
+                "no_trade_reason": "AI response was not valid JSON.",
+            },
+            "raw": content,
+        }
+    trade = payload.get("trade_idea") or payload.get("trade_plan") or payload.get("tradePlan") or {}
+    if not isinstance(trade, dict):
+        trade = {}
+    direction = _normalize_direction(trade.get("direction") or payload.get("direction"))
+    no_trade_reason = str(trade.get("no_trade_reason") or payload.get("no_trade_reason") or "")
+    return {
+        "parsed": True,
+        "summary": str(payload.get("summary", "")),
+        "trend": str(payload.get("trend", "unknown")),
+        "key_levels": _string_list(payload.get("key_levels")),
+        "risks": _string_list(payload.get("risks")),
+        "invalidation": str(payload.get("invalidation", "")),
+        "backtest_ideas": _string_list(payload.get("backtest_ideas")),
+        "confidence": _normalize_confidence(payload.get("confidence")),
+        "not_financial_advice": payload.get("not_financial_advice") is not False,
+        "trade_idea": {
+            "bias": _normalize_bias(trade.get("bias") or payload.get("trend")),
+            "setup_type": str(trade.get("setup_type") or ("no_trade" if direction == "no_trade" else "unspecified")),
+            "direction": direction,
+            "entry_zone": str(trade.get("entry_zone") or ("wait for confirmation" if direction == "no_trade" else "not specified")),
+            "stop_or_invalidation": str(trade.get("stop_or_invalidation") or payload.get("invalidation") or ("not applicable" if direction == "no_trade" else "not specified")),
+            "targets": _string_list(trade.get("targets")),
+            "risk_reward": str(trade.get("risk_reward") or "unknown"),
+            "sizing_note": str(trade.get("sizing_note") or "Paper simulation only; size manually after review."),
+            "timeframe": str(trade.get("timeframe") or payload.get("timeframe") or "unknown"),
+            "paper_trade_candidate": direction != "no_trade" and trade.get("paper_trade_candidate") is not False,
+            "no_trade_reason": no_trade_reason if direction == "no_trade" else no_trade_reason,
+        },
+        "raw": payload,
+    }
+
+
 def _is_crypto_symbol(symbol: str, asset_type: str = "auto") -> bool:
     clean = symbol.upper()
     return asset_type == "crypto" or clean.endswith(("USDT", "USDC", "-USD", "/USD")) or clean in {"BTC", "ETH", "SOL"}
@@ -246,6 +344,27 @@ def _is_crypto_symbol(symbol: str, asset_type: str = "auto") -> bool:
 
 def _stock_yahoo_symbol(symbol: str) -> str:
     return normalize_yahoo_symbol(symbol.strip().upper())
+
+
+def _market_context(symbol: str, asset_type: str, exchange: str, timeframe: str) -> dict[str, Any]:
+    is_crypto = _is_crypto_symbol(symbol, asset_type)
+    market: dict[str, Any] = {"symbol": symbol.upper(), "asset_type": "crypto" if is_crypto else "stock", "timeframe": timeframe}
+    if is_crypto:
+        market["ticker"] = get_crypto_live_ticker(symbol, "binance")
+        market["candles"] = get_crypto_candles(symbol, "binance", timeframe.lower(), 120)
+    else:
+        market["quote"] = get_price(_stock_yahoo_symbol(symbol))
+        market["chart"] = get_yahoo_chart(symbol, timeframe, 120)
+        try:
+            market["alpaca_bars"] = get_alpaca_stock_bars(symbol, "1Day", 120, "iex")
+        except RuntimeError:
+            market["alpaca_bars"] = {"note": "Alpaca credentials not configured"}
+    try:
+        tv_symbol = symbol.replace("-USD", "USDT") if is_crypto else symbol
+        market["technical"] = analyze_coin(tv_symbol, sanitize_exchange(exchange, "BINANCE" if is_crypto else "NASDAQ"), sanitize_timeframe(timeframe, "1D"))
+    except Exception as exc:
+        market["technical_error"] = str(exc)
+    return market
 
 
 def create_app() -> FastAPI:
@@ -378,23 +497,7 @@ def create_app() -> FastAPI:
 
     @app.post("/api/ai/analyze")
     def ai_analyze(request: AnalyzeRequest) -> dict[str, Any]:
-        is_crypto = _is_crypto_symbol(request.symbol, request.asset_type)
-        market: dict[str, Any] = {"symbol": request.symbol.upper(), "asset_type": "crypto" if is_crypto else "stock", "timeframe": request.timeframe}
-        if is_crypto:
-            market["ticker"] = get_crypto_live_ticker(request.symbol, "binance")
-            market["candles"] = get_crypto_candles(request.symbol, "binance", request.timeframe.lower(), 120)
-        else:
-            market["quote"] = get_price(_stock_yahoo_symbol(request.symbol))
-            market["chart"] = get_yahoo_chart(request.symbol, request.timeframe, 120)
-            try:
-                market["alpaca_bars"] = get_alpaca_stock_bars(request.symbol, "1Day", 120, "iex")
-            except RuntimeError:
-                market["alpaca_bars"] = {"note": "Alpaca credentials not configured"}
-        try:
-            tv_symbol = request.symbol.replace("-USD", "USDT") if is_crypto else request.symbol
-            market["technical"] = analyze_coin(tv_symbol, sanitize_exchange(request.exchange, "BINANCE" if is_crypto else "NASDAQ"), sanitize_timeframe(request.timeframe, "1D"))
-        except Exception as exc:
-            market["technical_error"] = str(exc)
+        market = _market_context(request.symbol, request.asset_type, request.exchange, request.timeframe)
         prompt = (
             "You are a cautious trading research assistant. Do not provide financial advice or tell the user to take a position. "
             "Return only valid JSON with these keys: summary, trend, key_levels, risks, invalidation, backtest_ideas, confidence, not_financial_advice. "
@@ -408,6 +511,27 @@ def create_app() -> FastAPI:
         structured_analysis = _parse_structured_analysis(str(analysis.get("content", "")))
         event = append_journal_event("ai_analysis", {"request": request.model_dump(), "market": market, "analysis": analysis.get("content", ""), "structured_analysis": structured_analysis})
         return {"market": market, "analysis": analysis, "structured_analysis": structured_analysis, "journal_event": event}
+
+    @app.post("/api/ai/trade-idea")
+    def ai_trade_idea(request: TradeIdeaRequest) -> dict[str, Any]:
+        market = _market_context(request.symbol, request.asset_type, request.exchange, request.timeframe)
+        prompt = (
+            "You are a cautious trading research assistant generating research-only paper-trading ideas. "
+            "Do not provide financial advice and do not instruct the user to place a live trade. "
+            "Return only valid JSON with these keys: summary, trend, key_levels, risks, invalidation, backtest_ideas, confidence, not_financial_advice, trade_idea. "
+            "trade_idea must include: bias, setup_type, direction, entry_zone, stop_or_invalidation, targets, risk_reward, sizing_note, timeframe, paper_trade_candidate, no_trade_reason. "
+            "Allowed direction values are long, short, no_trade. Allowed bias values are bullish, bearish, neutral, range. confidence must be low, medium, or high. "
+            "Use direction=no_trade and paper_trade_candidate=false when the setup is unclear, extended, stale, illiquid, or not worth simulating. "
+            "Entries and targets must be zones or confirmation conditions, not guarantees.\n\n"
+            f"Market context:\n{market}\n\nVisible chart/workstation context:\n{request.chart_context}\n\nUser request/profile:\n{request.question}\nProfile: {request.profile}\nMode: {request.mode}"
+        )
+        trade_idea = _call_lmstudio([
+            {"role": "system", "content": "You return strict JSON for research-only trade ideas. No live order advice."},
+            {"role": "user", "content": prompt},
+        ], max_tokens=1100)
+        structured_trade_idea = _parse_structured_trade_idea(str(trade_idea.get("content", "")))
+        event = append_journal_event("ai_trade_idea", {"request": request.model_dump(), "market": market, "trade_idea": trade_idea.get("content", ""), "structured_trade_idea": structured_trade_idea, "simulated_only": True, "live_execution": False})
+        return {"market": market, "trade_idea": trade_idea, "structured_trade_idea": structured_trade_idea, "journal_event": event}
 
     @app.post("/api/backtest/run")
     def backtest_run(request: BacktestRequest) -> dict[str, Any]:
@@ -470,17 +594,7 @@ def create_app() -> FastAPI:
     @app.post("/api/paper/orders")
     def paper_order_submit(request: PaperOrderRequest) -> dict[str, Any]:
         try:
-            order = submit_paper_order(
-                request.symbol,
-                request.side,
-                request.quantity,
-                request.order_type,
-                request.asset_type,
-                request.limit_price,
-                request.stop_price,
-                request.idea_id,
-                request.notes,
-            )
+            order = submit_paper_order(request.symbol, request.side, request.quantity, request.order_type, request.asset_type, request.limit_price, request.stop_price, request.idea_id, request.notes)
         except ValueError as exc:
             return _json_error("PAPER_ORDER_REJECTED", str(exc))
         append_journal_event("paper_order_submitted", {"order": order, "simulated": True, "live_execution": False})
