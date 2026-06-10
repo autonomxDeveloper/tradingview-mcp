@@ -1,8 +1,7 @@
 """FastAPI route registration for AI paper-trader paper-only execution.
 
-This module intentionally contains only a small explicit route wrapper around the
-paper-only execution adapter. It does not call live broker APIs and it does not
-run automatically unless a workstation app explicitly registers it.
+This module intentionally contains only a small route wrapper around the
+paper-only execution adapter. It does not call live broker APIs.
 """
 from __future__ import annotations
 
@@ -13,6 +12,8 @@ from pydantic import BaseModel, Field
 
 from tradingview_mcp.core.services.ai_paper_trader_execution_service import execute_ai_paper_trader_decision
 from tradingview_mcp.core.services.workstation_journal_service import append_journal_event
+
+WORKSTATION_APP_TITLE = "Autonomx Trading Research Workstation"
 
 
 class PaperTraderExecuteRequest(BaseModel):
@@ -34,8 +35,14 @@ def _json_error(code: str, message: str, **extra: Any) -> dict[str, Any]:
     return payload
 
 
+def _has_route(app: FastAPI, path: str) -> bool:
+    return any(getattr(route, "path", None) == path for route in app.routes)
+
+
 def register_ai_paper_execution_routes(app: FastAPI) -> FastAPI:
     """Register explicit paper-only execution routes on a workstation app."""
+    if _has_route(app, "/api/ai/paper-trader/execute"):
+        return app
 
     @app.post("/api/ai/paper-trader/execute")
     def ai_paper_trader_execute(request: PaperTraderExecuteRequest) -> dict[str, Any]:
@@ -71,3 +78,24 @@ def register_ai_paper_execution_routes(app: FastAPI) -> FastAPI:
         }
 
     return app
+
+
+def install_ai_paper_execution_route_autoregistry() -> None:
+    """Install a narrow FastAPI hook for the workstation app title.
+
+    This avoids editing the large workstation_app.py file while keeping activation
+    constrained to the local research workstation. Other FastAPI apps are left
+    untouched unless they use the exact workstation title.
+    """
+    if getattr(FastAPI, "_ai_paper_execution_autoregistry", False):
+        return
+
+    original_init = FastAPI.__init__
+
+    def patched_init(self: FastAPI, *args: Any, **kwargs: Any) -> None:
+        original_init(self, *args, **kwargs)
+        if getattr(self, "title", "") == WORKSTATION_APP_TITLE:
+            register_ai_paper_execution_routes(self)
+
+    FastAPI.__init__ = patched_init  # type: ignore[method-assign]
+    FastAPI._ai_paper_execution_autoregistry = True  # type: ignore[attr-defined]
