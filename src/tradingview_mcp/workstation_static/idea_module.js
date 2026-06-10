@@ -39,9 +39,20 @@ window.workstationIdeaModule.bindLifecycleControls = function bindLifecycleContr
   if (buttons[3]) buttons[3].onclick = () => window.setSelectedIdeaStatus('archived');
 };
 
+window.workstationIdeaModule.boot = function bootIdeaModule() {
+  window.workstationIdeaModule.bindStatusControls();
+  window.workstationIdeaModule.bindLifecycleControls();
+};
+
 window.workstationModules = window.workstationModules || [];
 window.workstationModules.push({
   id: 'ideas',
   file: 'idea_module.js',
   owns: ['idea dashboard helpers', 'idea control binding', 'legacy idea API compatibility'],
 });
+
+if (window.registerWorkbenchBoot) {
+  window.registerWorkbenchBoot('ideas', window.workstationIdeaModule.boot);
+} else {
+  setTimeout(window.workstationIdeaModule.boot, 0);
+}
