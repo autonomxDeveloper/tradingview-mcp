@@ -38,4 +38,5 @@ window.exportModule = {
   },
 };
 
-setTimeout(() => window.exportModule.bindControls(), 0);
+if (window.workstationBoot) window.workstationBoot.register('export-module', () => window.exportModule.bindControls());
+else setTimeout(() => window.exportModule.bindControls(), 0);
