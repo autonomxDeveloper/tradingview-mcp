@@ -35,6 +35,10 @@ window.workstationModules = {
     file: 'crypto_stream_module.js',
     owns: ['free Binance crypto WebSocket klines', 'stream status controls', 'primary chart streaming updates'],
   },
+  paperTrading: {
+    file: 'paper_trading_module.js',
+    owns: ['simulated paper account panel', 'paper order ticket', 'paper fills and account reset actions'],
+  },
   portfolio: {
     file: 'portfolio_module.js',
     owns: ['read-only portfolio research', 'portfolio tab action', 'portfolio-to-idea cross reference'],
@@ -128,6 +132,7 @@ function loadWorkstationModules() {
   loadModuleScript('layoutModuleScript', '/static/layout_module.js');
   loadModuleScript('liveRefreshModuleScript', '/static/live_refresh_module.js');
   loadModuleScript('cryptoStreamModuleScript', '/static/crypto_stream_module.js');
+  loadModuleScript('paperTradingModuleScript', '/static/paper_trading_module.js');
   loadModuleScript('portfolioModuleScript', '/static/portfolio_module.js');
   loadModuleScript('exportModuleScript', '/static/export_module.js');
   loadModuleScript('bootDiagnosticsScript', '/static/boot_diagnostics.js');
