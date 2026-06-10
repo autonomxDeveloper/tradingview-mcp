@@ -50,10 +50,10 @@ def read_journal_events(limit: int = 100) -> list[dict[str, Any]]:
 
 def workstation_status() -> dict[str, Any]:
     return {
-        "mode": "research_only",
+        "mode": "research_with_paper_simulation_foundation",
         "journal_path": str(_journal_path()),
         "execution_enabled": False,
-        "paper_simulation_enabled": False,
+        "paper_simulation_enabled": True,
         "supported_workflows": [
             "watchlist",
             "charting",
@@ -62,5 +62,7 @@ def workstation_status() -> dict[str, Any]:
             "lmstudio_analysis",
             "backtesting",
             "research_journal",
+            "paper_trading_simulation",
         ],
+        "safety_note": "Paper trading is local simulation only; no live broker orders are submitted.",
     }
