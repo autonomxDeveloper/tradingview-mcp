@@ -43,6 +43,10 @@ window.workstationModules = {
     file: 'ai_trade_journal_coach_module.js',
     owns: ['AI paper trade journal coaching', 'post-fill process review', 'simulated trade improvement rules'],
   },
+  aiConfidenceCalibration: {
+    file: 'ai_confidence_calibration_module.js',
+    owns: ['AI confidence calibration', 'local outcome history', 'trade idea reliability hints'],
+  },
   results: {
     file: 'results_module.js',
     owns: ['structured result panes', 'legacy print routing', 'action-to-pane hints'],
@@ -168,6 +172,7 @@ function loadWorkstationModules() {
   loadModuleScript('paperTradingModuleScript', '/static/paper_trading_module.js');
   loadModuleScript('aiPaperRiskModuleScript', '/static/ai_paper_risk_module.js');
   loadModuleScript('aiTradeJournalCoachModuleScript', '/static/ai_trade_journal_coach_module.js');
+  loadModuleScript('aiConfidenceCalibrationModuleScript', '/static/ai_confidence_calibration_module.js');
   loadModuleScript('portfolioModuleScript', '/static/portfolio_module.js');
   loadModuleScript('exportModuleScript', '/static/export_module.js');
   loadModuleScript('bootDiagnosticsScript', '/static/boot_diagnostics.js');
