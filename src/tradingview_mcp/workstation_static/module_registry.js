@@ -23,6 +23,10 @@ window.workstationModules = {
     file: 'ai_trade_workflow_module.js',
     owns: ['AI trade idea review gate', 'workflow action gating', 'research-only confirmation state'],
   },
+  aiBacktestGenerator: {
+    file: 'ai_backtest_generator_module.js',
+    owns: ['AI trade idea backtest plan generation', 'strategy mapping', 'generated backtest execution'],
+  },
   aiBacktestReview: {
     file: 'ai_backtest_review_module.js',
     owns: ['AI trade idea backtest review', 'backtest verdict cards', 'paper-simulation readiness summary'],
@@ -155,6 +159,7 @@ function loadWorkstationModules() {
   loadModuleScript('analysisModuleScript', '/static/analysis_module.js');
   loadModuleScript('aiTradeIdeaModuleScript', '/static/ai_trade_idea_module.js');
   loadModuleScript('aiTradeWorkflowModuleScript', '/static/ai_trade_workflow_module.js');
+  loadModuleScript('aiBacktestGeneratorModuleScript', '/static/ai_backtest_generator_module.js');
   loadModuleScript('aiBacktestReviewModuleScript', '/static/ai_backtest_review_module.js');
   loadModuleScript('aiWatchlistScannerModuleScript', '/static/ai_watchlist_scanner_module.js');
   loadModuleScript('layoutModuleScript', '/static/layout_module.js');
