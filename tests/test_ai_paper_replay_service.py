@@ -49,7 +49,7 @@ def test_replay_sell_decision_hits_stop():
     replay = replay_ai_paper_decision(decision, marks)
 
     assert replay["outcome"] == "loss"
-    assert replay["exit_reason"] == "stop_before_target_same_bar"
+    assert replay["exit_reason"] == "stop_hit"
     assert replay["exit_price"] == 106
     assert replay["realized_pnl"] == -3
 
