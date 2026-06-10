@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-import tradingview_mcp.workstation_ai_paper_execution_routes as routes
+import tradingview_mcp.core.services.ai_market_context_service as market_context_service
 from tradingview_mcp.workstation_app import create_app
 
 
@@ -21,7 +21,7 @@ def test_default_app_exposes_ai_market_context_route(monkeypatch, tmp_path):
             "contexts": [],
         }
 
-    monkeypatch.setattr(routes, "build_multi_timeframe_market_context", fake_context)
+    monkeypatch.setattr(market_context_service, "build_multi_timeframe_market_context", fake_context)
     client = TestClient(create_app())
 
     response = client.post(
