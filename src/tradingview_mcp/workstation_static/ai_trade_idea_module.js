@@ -2,6 +2,38 @@
   let lastTradeIdeaResponse = null;
   let lastSavedIdeaId = null;
 
+  const TRADE_IDEA_PROFILES = {
+    swing: {
+      label: 'Swing trade',
+      guidance: 'Favor multi-day swing setups, daily/4h structure, confirmation triggers, clear invalidation, and 2:1 or better planned reward/risk. Avoid low-quality chop.',
+    },
+    intraday: {
+      label: 'Intraday trade',
+      guidance: 'Favor intraday momentum/liquidity setups, nearby invalidation, and quick invalidation. Avoid overnight assumptions and call out if the timeframe is too high for intraday planning.',
+    },
+    breakout: {
+      label: 'Breakout',
+      guidance: 'Look for compression, resistance/support breaks, volume/freshness confirmation, retest plans, and failed-breakout invalidation.',
+    },
+    pullback: {
+      label: 'Pullback',
+      guidance: 'Look for trend continuation after controlled pullbacks into moving averages, prior structure, or demand/supply zones. Prefer confirmation over catching falling knives.',
+    },
+    mean_reversion: {
+      label: 'Mean reversion',
+      guidance: 'Look for stretched moves, exhaustion, support/resistance reactions, and realistic mean targets. Be strict about no-trade when trend risk is high.',
+    },
+    risk_review: {
+      label: 'No-trade risk review',
+      guidance: 'Default to no_trade unless the setup is unusually clean. Emphasize reasons to wait, invalidation uncertainty, event risk, data freshness, and what confirmation would change the decision.',
+    },
+  };
+
+  function currentTradeIdeaProfile() {
+    const value = document.getElementById('aiTradeIdeaProfile')?.value || 'swing';
+    return TRADE_IDEA_PROFILES[value] ? value : 'swing';
+  }
+
   function safeJsonParse(content) {
     if (!content || typeof content !== 'string') return null;
     let cleaned = content.trim();
@@ -44,16 +76,20 @@
     const question = ($('question')?.value || '').trim();
     const paperSummary = document.getElementById('paperAccountSummary')?.textContent || '';
     const providerSummary = document.getElementById('dataProviderStatus')?.textContent || document.getElementById('chartMeta')?.textContent || '';
-    return { chart: chartContext, user_question: question, paper_summary: paperSummary, provider_summary: providerSummary };
+    return { chart: chartContext, user_question: question, paper_summary: paperSummary, provider_summary: providerSummary, profile: currentTradeIdeaProfile() };
   }
 
   function tradeIdeaPrompt(context) {
+    const profileKey = context.profile || currentTradeIdeaProfile();
+    const profile = TRADE_IDEA_PROFILES[profileKey] || TRADE_IDEA_PROFILES.swing;
     return [
+      `Profile: ${profile.label}. ${profile.guidance}`,
       'Generate one research-only trade idea for the currently loaded chart, or return no_trade if there is no clean setup.',
       'This is for simulated paper trading/research only. Do not instruct the user to place a live trade.',
       'Return only valid JSON. Include these keys: summary, trend, key_levels, risks, invalidation, backtest_ideas, confidence, not_financial_advice, trade_idea.',
       'trade_idea must include: bias, setup_type, direction, entry_zone, stop_or_invalidation, targets, risk_reward, sizing_note, timeframe, paper_trade_candidate, no_trade_reason.',
-      'Use no_trade_reason and direction="no_trade" when the chart is not a high-quality setup.',
+      'Allowed trade_idea.direction values: long, short, no_trade. Allowed bias values: bullish, bearish, neutral, range. confidence must be low, medium, or high.',
+      'Use no_trade_reason and direction="no_trade" when the chart is not a high-quality setup. Do not force a trade.',
       'Keep entries and targets as zones/conditions, not guarantees. Prefer confirmation triggers over market orders.',
       `Visible workstation context:\n${JSON.stringify(context, null, 2)}`,
     ].join('\n\n');
@@ -71,7 +107,7 @@
     setTradeIdeaStatus('Generating AI trade idea...');
     print('Generating AI trade idea...', 'analysis');
     const response = await callTradeIdeaEndpoint(payload);
-    const parsed = safeJsonParse(response.trade_idea?.content || response.analysis?.content || '') || response.structured_trade_idea?.raw || response.structured_analysis?.raw || response.structured_analysis || response;
+    const parsed = normalizeTradeIdeaPayload(safeJsonParse(response.trade_idea?.content || response.analysis?.content || '') || response.structured_trade_idea?.raw || response.structured_analysis?.raw || response.structured_analysis || response);
     lastSavedIdeaId = null;
     lastTradeIdeaResponse = { response, parsed, context };
     renderTradeIdeaCard(parsed, response);
@@ -92,6 +128,58 @@
     }
   }
 
+  function normalizeStringList(value) {
+    if (Array.isArray(value)) return value.map((item) => textOf(item, '')).filter(Boolean);
+    if (value === null || value === undefined || value === '') return [];
+    return [textOf(value, '')].filter(Boolean);
+  }
+
+  function normalizeDirection(value) {
+    const direction = String(value || '').toLowerCase().replace(/\s+/g, '_');
+    if (['long', 'buy', 'bullish'].includes(direction)) return 'long';
+    if (['short', 'sell', 'bearish'].includes(direction)) return 'short';
+    if (['no_trade', 'none', 'wait', 'neutral'].includes(direction)) return 'no_trade';
+    return 'no_trade';
+  }
+
+  function normalizeConfidence(value) {
+    const confidence = String(value || '').toLowerCase();
+    return ['low', 'medium', 'high'].includes(confidence) ? confidence : 'low';
+  }
+
+  function normalizeTradeIdeaPayload(payload) {
+    const source = payload && typeof payload === 'object' ? payload : {};
+    const rawTradeIdea = source.trade_idea || source.tradePlan || source.trade_plan || {};
+    const tradeIdea = rawTradeIdea && typeof rawTradeIdea === 'object' ? rawTradeIdea : {};
+    const direction = normalizeDirection(tradeIdea.direction || source.direction);
+    const noTradeReason = textOf(tradeIdea.no_trade_reason || source.no_trade_reason, '');
+    const normalized = {
+      ...source,
+      summary: textOf(source.summary, 'No summary returned.'),
+      trend: textOf(source.trend, 'unknown'),
+      key_levels: normalizeStringList(source.key_levels),
+      risks: normalizeStringList(source.risks),
+      invalidation: textOf(source.invalidation, ''),
+      backtest_ideas: normalizeStringList(source.backtest_ideas),
+      confidence: normalizeConfidence(source.confidence),
+      not_financial_advice: source.not_financial_advice !== false,
+      trade_idea: {
+        bias: normalizeIdeaBias(tradeIdea.bias || source.trend),
+        setup_type: textOf(tradeIdea.setup_type || source.setup_type, direction === 'no_trade' ? 'no_trade' : 'unspecified'),
+        direction,
+        entry_zone: textOf(tradeIdea.entry_zone, direction === 'no_trade' ? 'wait for confirmation' : 'not specified'),
+        stop_or_invalidation: textOf(tradeIdea.stop_or_invalidation || source.invalidation, direction === 'no_trade' ? 'not applicable' : 'not specified'),
+        targets: normalizeStringList(tradeIdea.targets),
+        risk_reward: textOf(tradeIdea.risk_reward, 'unknown'),
+        sizing_note: textOf(tradeIdea.sizing_note, 'Paper simulation only; size manually after review.'),
+        timeframe: textOf(tradeIdea.timeframe || source.timeframe || $('tf')?.value, '1D'),
+        paper_trade_candidate: direction !== 'no_trade' && tradeIdea.paper_trade_candidate !== false,
+        no_trade_reason: direction === 'no_trade' ? (noTradeReason || 'No clean, high-quality setup was returned.') : noTradeReason,
+      },
+    };
+    return normalized;
+  }
+
   function renderTradeIdeaCard(parsed, response) {
     const container = ensureTradeIdeaContainer();
     const tradeIdea = parsed.trade_idea || parsed.tradePlan || parsed.trade_plan || {};
@@ -103,6 +191,7 @@
           <div>
             <div class="label">AI trade idea</div>
             <strong>${escapeHtml(($('symbol')?.value || '').toUpperCase())} · ${escapeHtml($('tf')?.value || '')}</strong>
+            <div class="muted">Profile: ${escapeHtml(TRADE_IDEA_PROFILES[currentTradeIdeaProfile()]?.label || 'Swing trade')}</div>
           </div>
           <span class="ai-trade-badge">${escapeHtml(isNoTrade ? 'No trade / wait' : direction)}</span>
         </div>
@@ -118,6 +207,8 @@
         </div>
         ${tradeIdea.no_trade_reason ? `<p class="ai-trade-warning"><b>No-trade reason:</b> ${escapeHtml(tradeIdea.no_trade_reason)}</p>` : ''}
         <div class="ai-trade-section"><b>Summary</b><p>${escapeHtml(textOf(parsed.summary, 'No summary returned.'))}</p></div>
+        <div class="ai-trade-section"><b>Sizing note</b><p>${escapeHtml(textOf(tradeIdea.sizing_note, 'Paper simulation only; review risk manually.'))}</p></div>
+        <div class="ai-trade-section"><b>Key levels</b>${listItems(parsed.key_levels)}</div>
         <div class="ai-trade-section"><b>Risks</b>${listItems(parsed.risks)}</div>
         <div class="ai-trade-section"><b>Backtest ideas</b>${listItems(parsed.backtest_ideas)}</div>
         <div class="ai-trade-actions">
@@ -174,6 +265,7 @@
         chart_context: context,
         no_live_orders: true,
         simulated_only: true,
+        profile: currentTradeIdeaProfile(),
       },
     };
   }
@@ -285,6 +377,11 @@
     const analyzeButton = document.querySelector('[data-action="analysis.run"]');
     const panel = analyzeButton?.parentElement;
     if (!panel || document.getElementById('generateTradeIdeaButton')) return;
+    const selector = document.createElement('select');
+    selector.id = 'aiTradeIdeaProfile';
+    selector.setAttribute('aria-label', 'AI trade idea profile');
+    selector.innerHTML = Object.entries(TRADE_IDEA_PROFILES).map(([value, profile]) => `<option value="${value}">${escapeHtml(profile.label)}</option>`).join('');
+    analyzeButton.insertAdjacentElement('afterend', selector);
     const button = document.createElement('button');
     button.id = 'generateTradeIdeaButton';
     button.type = 'button';
@@ -294,11 +391,11 @@
       setTradeIdeaStatus(String(error && error.message ? error.message : error));
       print(String(error && error.message ? error.message : error), 'analysis');
     }));
-    analyzeButton.insertAdjacentElement('afterend', button);
+    selector.insertAdjacentElement('afterend', button);
     const status = document.createElement('div');
     status.id = 'aiTradeIdeaStatus';
     status.className = 'module-control-status';
-    status.textContent = 'AI trade ideas are research-only and can be saved, backtested, or copied to paper workflows.';
+    status.textContent = 'AI trade ideas are research-only. Choose a profile, generate a plan/no-trade review, then save/backtest/copy to paper workflows.';
     panel.appendChild(status);
   }
 
@@ -306,7 +403,7 @@
     if (document.getElementById('aiTradeIdeaStyles')) return;
     const style = document.createElement('style');
     style.id = 'aiTradeIdeaStyles';
-    style.textContent = '.ai-trade-idea-card-shell{margin-bottom:8px}.ai-trade-card{border:1px solid #334155;border-radius:10px;background:#0b1220;padding:10px;display:grid;gap:9px}.ai-trade-card.no-trade{border-color:#f59e0b}.ai-trade-card-header{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.ai-trade-badge{border:1px solid #334155;border-radius:999px;padding:4px 8px;background:#111827;color:#bfdbfe;text-transform:capitalize;font-size:12px}.ai-trade-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}.ai-trade-grid div{border:1px solid #1e293b;border-radius:8px;padding:6px;background:#080d18}.ai-trade-grid span{display:block;color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:.05em}.ai-trade-grid b{font-size:12px;white-space:pre-wrap}.ai-trade-section{font-size:12px;line-height:1.45}.ai-trade-section p{margin:4px 0}.ai-trade-section ul{margin:5px 0 0 18px;padding:0}.ai-trade-warning{border:1px solid #f59e0b;border-radius:8px;padding:7px;background:rgba(245,158,11,.12);font-size:12px}.ai-trade-actions{display:flex;gap:6px;flex-wrap:wrap}.ai-trade-actions button{font-size:12px;padding:5px 7px}@media(max-width:1200px){.ai-trade-grid{grid-template-columns:1fr}}';
+    style.textContent = '.ai-trade-idea-card-shell{margin-bottom:8px}.ai-trade-card{border:1px solid #334155;border-radius:10px;background:#0b1220;padding:10px;display:grid;gap:9px}.ai-trade-card.no-trade{border-color:#f59e0b}.ai-trade-card-header{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.ai-trade-badge{border:1px solid #334155;border-radius:999px;padding:4px 8px;background:#111827;color:#bfdbfe;text-transform:capitalize;font-size:12px}.ai-trade-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}.ai-trade-grid div{border:1px solid #1e293b;border-radius:8px;padding:6px;background:#080d18}.ai-trade-grid span{display:block;color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:.05em}.ai-trade-grid b{font-size:12px;white-space:pre-wrap}.ai-trade-section{font-size:12px;line-height:1.45}.ai-trade-section p{margin:4px 0}.ai-trade-section ul{margin:5px 0 0 18px;padding:0}.ai-trade-warning{border:1px solid #f59e0b;border-radius:8px;padding:7px;background:rgba(245,158,11,.12);font-size:12px}.ai-trade-actions{display:flex;gap:6px;flex-wrap:wrap}.ai-trade-actions button{font-size:12px;padding:5px 7px}#aiTradeIdeaProfile{font-size:12px;padding:5px 7px;margin-left:6px}@media(max-width:1200px){.ai-trade-grid{grid-template-columns:1fr}}';
     document.head.appendChild(style);
   }
 
