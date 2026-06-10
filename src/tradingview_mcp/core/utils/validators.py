@@ -230,11 +230,22 @@ def resolve_screener_for_symbol(full_symbol: str, exchange: str) -> str:
 
 def _install_workstation_route_hooks() -> None:
     """Install optional workstation route hooks for apps that import validators."""
+    installed_any = False
     try:
         from tradingview_mcp.workstation_ai_paper_execution_routes import install_ai_paper_execution_route_autoregistry
     except Exception:
-        return
-    install_ai_paper_execution_route_autoregistry()
+        install_ai_paper_execution_route_autoregistry = None
+    if install_ai_paper_execution_route_autoregistry is not None:
+        install_ai_paper_execution_route_autoregistry()
+        installed_any = True
+    try:
+        from tradingview_mcp.workstation_ai_paper_history_routes import install_ai_paper_history_route_autoregistry
+    except Exception:
+        install_ai_paper_history_route_autoregistry = None
+    if install_ai_paper_history_route_autoregistry is not None:
+        install_ai_paper_history_route_autoregistry()
+        installed_any = True
+    return installed_any
 
 
 _install_workstation_route_hooks()
