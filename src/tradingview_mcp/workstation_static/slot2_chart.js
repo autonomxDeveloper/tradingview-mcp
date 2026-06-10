@@ -1,6 +1,9 @@
 const slotCharts = {};
 const slotCandles = {};
+const slotBars = {};
+const secondarySlots = [2, 3, 4];
 const emptySlotSummaryExample = 'S2: empty';
+window.workstationActiveChartSlot = window.workstationActiveChartSlot || 1;
 
 function slotIsCrypto(symbol) {
   const clean = String(symbol || '').toUpperCase();
@@ -29,10 +32,15 @@ function normalizeSlotBars(payload) {
 
 function slotSummaryText() {
   const slots = window.workstationChartSlots || {};
-  return [2, 3, 4].map((slot) => {
+  const active = Number(window.workstationActiveChartSlot || 1);
+  const primarySymbol = document.getElementById('symbol')?.value || 'main';
+  const primaryTf = document.getElementById('tf')?.value || '1D';
+  const summaries = [`${active === 1 ? '*' : ''}S1: ${primarySymbol} ${primaryTf}`];
+  secondarySlots.forEach((slot) => {
     const state = slots[slot] || {};
-    return state.symbol ? `S${slot}: ${state.symbol} ${state.timeframe || '1D'}` : `S${slot}: empty`;
-  }).join(' | ');
+    summaries.push(state.symbol ? `${active === slot ? '*' : ''}S${slot}: ${state.symbol} ${state.timeframe || '1D'}` : `${active === slot ? '*' : ''}S${slot}: empty`);
+  });
+  return summaries.join(' | ');
 }
 
 function updateSlotSummary() {
@@ -50,9 +58,36 @@ function ensureSlotSummary() {
   if (chartMeta && chartMeta.parentNode) chartMeta.parentNode.insertBefore(summary, chartMeta);
 }
 
+function setActiveChartSlot(slot) {
+  const normalized = [1, 2, 3, 4].includes(Number(slot)) ? Number(slot) : 1;
+  window.workstationActiveChartSlot = normalized;
+  [1, 2, 3, 4].forEach((candidate) => {
+    const cell = candidate === 1 ? document.getElementById('chartWrap') : document.getElementById(`chartSlot${candidate}`);
+    if (!cell) return;
+    const active = candidate === normalized;
+    cell.classList.toggle('active-chart-cell', active);
+    cell.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  updateSlotSummary();
+}
+
+function ensurePrimarySlotShell() {
+  const primary = document.getElementById('chartWrap');
+  if (!primary) return;
+  primary.dataset.chartSlot = '1';
+  primary.setAttribute('role', 'button');
+  primary.setAttribute('tabindex', '0');
+  primary.setAttribute('aria-label', 'Activate primary chart slot');
+}
+
 function ensureSecondarySlotShell(slot) {
   const cell = document.getElementById(`chartSlot${slot}`);
   if (!cell) return;
+  cell.dataset.chartSlot = String(slot);
+  cell.setAttribute('role', 'button');
+  cell.setAttribute('tabindex', '0');
+  cell.setAttribute('aria-label', `Activate chart slot ${slot}`);
+  cell.classList.add('secondary-chart-cell');
   const card = cell.querySelector('.slot-card');
   if (card && !document.getElementById(`slot${slot}Status`)) {
     const status = document.createElement('span');
@@ -69,8 +104,10 @@ function ensureSecondarySlotShell(slot) {
 }
 
 function ensureSlotShells() {
-  [2, 3, 4].forEach((slot) => ensureSecondarySlotShell(slot));
+  ensurePrimarySlotShell();
+  secondarySlots.forEach((slot) => ensureSecondarySlotShell(slot));
   ensureSlotSummary();
+  setActiveChartSlot(window.workstationActiveChartSlot || 1);
   updateSlotSummary();
 }
 
@@ -85,6 +122,33 @@ function ensureSlotChart(slot) {
     timeScale: { borderColor: '#334155', timeVisible: true, secondsVisible: false },
   });
   slotCandles[slot] = slotCharts[slot].addCandlestickSeries({ priceLineVisible: true, lastValueVisible: true });
+}
+
+function updateSecondarySlotInputs(slot, state) {
+  const symbolInput = document.getElementById(`slot${slot}Symbol`);
+  const tfInput = document.getElementById(`slot${slot}Tf`);
+  if (symbolInput) symbolInput.value = state.symbol || '';
+  if (tfInput) tfInput.value = state.timeframe || '';
+  if (window.renderChartSlot) window.renderChartSlot(slot);
+}
+
+function applySecondarySlotSync(sourceSlot) {
+  const source = (window.workstationChartSlots || {})[sourceSlot] || {};
+  if (!source.symbol && !source.timeframe) return [];
+  const changed = [];
+  secondarySlots.forEach((slot) => {
+    if (slot === sourceSlot) return;
+    const current = (window.workstationChartSlots || {})[slot] || {};
+    const next = { ...current };
+    if (window.workstationSyncSymbol && source.symbol) next.symbol = source.symbol;
+    if (window.workstationSyncTimeframe && source.timeframe) next.timeframe = source.timeframe;
+    if (next.symbol !== current.symbol || next.timeframe !== current.timeframe) {
+      window.workstationChartSlots[slot] = next;
+      updateSecondarySlotInputs(slot, next);
+      changed.push(slot);
+    }
+  });
+  return changed;
 }
 
 async function renderSlotChart(slot) {
@@ -103,6 +167,7 @@ async function renderSlotChart(slot) {
   if (!response.ok) throw new Error(response.status + ' ' + response.statusText);
   const payload = await response.json();
   const bars = normalizeSlotBars(payload);
+  slotBars[slot] = bars;
   ensureSlotChart(slot);
   if (slotCandles[slot]) slotCandles[slot].setData(bars);
   if (slotCharts[slot]) slotCharts[slot].timeScale().fitContent();
@@ -112,14 +177,35 @@ async function renderSlotChart(slot) {
 
 function renderSlot2Chart() { return renderSlotChart(2); }
 
+function bindSlotActivation() {
+  if (window.workstationSlotActivationBound) return;
+  window.workstationSlotActivationBound = true;
+  document.addEventListener('click', (event) => {
+    const cell = event.target.closest('[data-chart-slot]');
+    if (!cell) return;
+    setActiveChartSlot(cell.dataset.chartSlot);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (!['Enter', ' '].includes(event.key)) return;
+    const cell = event.target.closest('[data-chart-slot]');
+    if (!cell) return;
+    event.preventDefault();
+    setActiveChartSlot(cell.dataset.chartSlot);
+  });
+}
+
 const originalSlotSetter = window.setChartSlot;
 window.setChartSlot = function(slot) {
   if (originalSlotSetter) originalSlotSetter(slot);
-  updateSlotSummary();
-  if ([2, 3, 4].includes(Number(slot))) renderSlotChart(Number(slot)).catch((error) => {
-    const status = document.getElementById(`slot${slot}Status`);
-    if (status) status.textContent = error.message;
-    updateSlotSummary();
+  const normalized = Number(slot);
+  setActiveChartSlot(normalized);
+  const changedSlots = secondarySlots.includes(normalized) ? applySecondarySlotSync(normalized) : [];
+  [normalized, ...changedSlots].filter((candidate, index, all) => secondarySlots.includes(candidate) && all.indexOf(candidate) === index).forEach((candidate) => {
+    renderSlotChart(candidate).catch((error) => {
+      const status = document.getElementById(`slot${candidate}Status`);
+      if (status) status.textContent = error.message;
+      updateSlotSummary();
+    });
   });
 };
 
@@ -128,11 +214,18 @@ if (originalApplyLayoutStateForSlots) {
   window.applyLayoutState = function(state) {
     originalApplyLayoutStateForSlots(state);
     ensureSlotShells();
+    secondarySlots.forEach((slot) => {
+      const slotState = (window.workstationChartSlots || {})[slot] || {};
+      if (slotState.symbol) renderSlotChart(slot).catch((error) => {
+        const status = document.getElementById(`slot${slot}Status`);
+        if (status) status.textContent = error.message;
+      });
+    });
   };
 }
 
 window.addEventListener('resize', () => {
-  [2, 3, 4].forEach((slot) => {
+  secondarySlots.forEach((slot) => {
     const panel = document.getElementById(`slot${slot}Chart`);
     if (slotCharts[slot] && panel) slotCharts[slot].resize(panel.clientWidth, panel.clientHeight);
   });
@@ -177,7 +270,8 @@ window.analyze = async function() {
 };
 
 const style = document.createElement('style');
-style.textContent = '.ai-card-grid{display:grid;gap:8px;white-space:normal}.ai-card{border:1px solid #334155;border-radius:10px;background:#0b1220;padding:9px}.ai-card b{color:#bfdbfe}.ai-card ul{margin:6px 0 0 18px;padding:0}.ai-card li{margin:3px 0}';
+style.textContent = '.ai-card-grid{display:grid;gap:8px;white-space:normal}.ai-card{border:1px solid #334155;border-radius:10px;background:#0b1220;padding:9px}.ai-card b{color:#bfdbfe}.ai-card ul{margin:6px 0 0 18px;padding:0}.ai-card li{margin:3px 0}.chart-cell.active-chart-cell{border-color:#60a5fa;box-shadow:0 0 0 1px rgba(96,165,250,.35) inset}.secondary-chart-cell .slot-card{max-width:210px}.slot-summary{margin-right:8px}';
 document.head.appendChild(style);
 
 ensureSlotShells();
+bindSlotActivation();
