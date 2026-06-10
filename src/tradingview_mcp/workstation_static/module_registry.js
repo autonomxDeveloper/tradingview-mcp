@@ -3,6 +3,10 @@ window.workstationModules = {
     file: 'idea_module.js + idea_detail.js',
     owns: ['idea lifecycle', 'status filters', 'portfolio research', 'legacy idea API compatibility'],
   },
+  dataBadges: {
+    file: 'data_badge_module.js',
+    owns: ['data source badges', 'freshness badges', 'legacy badge API compatibility'],
+  },
   journal: {
     file: 'journal_module.js',
     owns: ['journal timeline', 'journal filters', 'current-symbol journal view'],
@@ -71,6 +75,7 @@ function loadModuleScript(id, src, onload) {
 function loadWorkstationModules() {
   addModuleRegistryButton();
   loadModuleScript('moduleGuardScript', '/static/module_guard.js');
+  loadModuleScript('dataBadgeModuleScript', '/static/data_badge_module.js');
   loadModuleScript('journalModuleScript', '/static/journal_module.js');
   loadModuleScript('drawingModuleScript', '/static/drawing_module.js');
   loadModuleScript('watchlistModuleScript', '/static/watchlist_module.js');
