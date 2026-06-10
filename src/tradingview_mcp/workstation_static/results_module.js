@@ -1,4 +1,4 @@
-const WORKSTATION_RESULT_PANES = ['general', 'payload', 'scanner', 'backtests', 'ideas', 'journal', 'diagnostics'];
+const WORKSTATION_RESULT_PANES = ['general', 'payload', 'scanner', 'backtests', 'paper', 'ideas', 'journal', 'diagnostics'];
 const WORKSTATION_ACTION_RESULT_PANES = {
   'market.load': 'payload',
   'payload.show': 'payload',
@@ -7,6 +7,12 @@ const WORKSTATION_ACTION_RESULT_PANES = {
   'backtest.run': 'backtests',
   'backtest.compare': 'backtests',
   'backtest.list': 'backtests',
+  'paper.refresh': 'paper',
+  'paper.submit': 'paper',
+  'paper.fill': 'paper',
+  'paper.cancel': 'paper',
+  'paper.reset': 'paper',
+  'paper.mark': 'paper',
   'ideas.save': 'ideas',
   'ideas.list': 'ideas',
   'ideas.detail': 'ideas',
