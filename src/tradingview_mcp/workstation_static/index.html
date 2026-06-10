@@ -22,55 +22,55 @@
       <select id="asset"><option>auto</option><option>stock</option><option>crypto</option></select>
       <input id="exchange" value="NASDAQ" />
       <select id="tf"><option>1m</option><option>5m</option><option>15m</option><option>1h</option><option selected>1D</option><option>1W</option></select>
-      <button onclick="loadMarket()">Load</button>
-      <button class="secondary" onclick="analyze()">AI analyze</button>
+      <button data-action="market.load">Load</button>
+      <button class="secondary" data-action="analysis.run">AI analyze</button>
     </div>
     <div class="bar chartbar" aria-label="Chart workstation controls">
       <div class="toolbar-section chart-controls" aria-label="Chart controls">
         <span class="toolbar-section-label">Chart</span>
-        <button class="secondary" onclick="toggleOverlay('sma20')">SMA 20</button>
-        <button class="secondary" onclick="toggleOverlay('sma50')">SMA 50</button>
-        <button class="secondary" onclick="toggleOverlay('ema21')">EMA 21</button>
-        <button class="secondary" onclick="toggleVolume()">Volume</button>
-        <button class="secondary" onclick="toggleRsiPane()">RSI</button>
-        <button class="secondary" onclick="toggleMacdPane()">MACD</button>
-        <button class="secondary" onclick="toggleAtrPane()">ATR</button>
-        <button class="secondary" onclick="fitChart()">Auto-fit</button>
+        <button class="secondary" data-action="chart.toggleOverlay" data-action-arg="sma20">SMA 20</button>
+        <button class="secondary" data-action="chart.toggleOverlay" data-action-arg="sma50">SMA 50</button>
+        <button class="secondary" data-action="chart.toggleOverlay" data-action-arg="ema21">EMA 21</button>
+        <button class="secondary" data-action="chart.toggleVolume">Volume</button>
+        <button class="secondary" data-action="chart.toggleRsi">RSI</button>
+        <button class="secondary" data-action="chart.toggleMacd">MACD</button>
+        <button class="secondary" data-action="chart.toggleAtr">ATR</button>
+        <button class="secondary" data-action="chart.fit">Auto-fit</button>
       </div>
       <div class="toolbar-section drawing-controls" aria-label="Drawing controls">
         <span class="toolbar-section-label">Draw</span>
         <input id="levelPrice" class="level-input" placeholder="price level" />
         <input id="levelLabel" class="level-label-input" placeholder="label" />
         <select id="levelKind"><option>level</option><option>support</option><option>resistance</option><option>alert</option></select>
-        <button class="secondary" onclick="addLevelFromInput()">Add level</button>
-        <button class="secondary" onclick="addLevelFromLastClose()">Last close</button>
+        <button class="secondary" data-action="drawings.addLevel">Add level</button>
+        <button class="secondary" data-action="drawings.addLastCloseLevel">Last close</button>
         <input id="noteText" class="note-input" placeholder="chart note" />
-        <button class="secondary" onclick="addNoteAtLastClose()">Add note</button>
+        <button class="secondary" data-action="drawings.addNote">Add note</button>
         <input id="zoneLow" class="level-input" placeholder="zone low" />
         <input id="zoneHigh" class="level-input" placeholder="zone high" />
         <input id="zoneLabel" class="level-label-input" placeholder="zone label" />
         <select id="zoneKind"><option>zone</option><option>support</option><option>resistance</option><option>supply</option><option>demand</option></select>
-        <button class="secondary" onclick="addZoneFromInput()">Add zone</button>
+        <button class="secondary" data-action="drawings.addZone">Add zone</button>
         <input id="guideStartPrice" class="level-input" placeholder="guide start" />
         <input id="guideEndPrice" class="level-input" placeholder="guide end" />
         <input id="guideLabel" class="level-label-input" placeholder="guide label" />
         <select id="guideKind"><option>guide</option><option>support</option><option>resistance</option></select>
-        <button class="secondary" onclick="addGuideFromInput()">Add guide</button>
-        <button class="secondary" onclick="clearDrawings()">Clear drawings</button>
-        <button class="secondary" onclick="exportDrawings()">Export</button>
-        <button class="secondary" onclick="importDrawings()">Import</button>
+        <button class="secondary" data-action="drawings.addGuide">Add guide</button>
+        <button class="secondary" data-action="drawings.clear">Clear drawings</button>
+        <button class="secondary" data-action="drawings.export">Export</button>
+        <button class="secondary" data-action="drawings.import">Import</button>
       </div>
       <div class="toolbar-section layout-controls" aria-label="Layout controls">
         <span class="toolbar-section-label">Layout</span>
-        <select id="layoutMode" onchange="setLayoutMode(this.value)"><option value="1">1 chart</option><option value="2">2 split</option><option value="4">4 grid</option></select>
-        <label class="sync-toggle"><input id="syncSymbol" type="checkbox" onchange="setSymbolSync(this.checked)" /> sync symbol</label>
-        <label class="sync-toggle"><input id="syncTimeframe" type="checkbox" onchange="setTimeframeSync(this.checked)" /> sync timeframe</label>
+        <select id="layoutMode" data-action="layout.setMode" data-action-event="change" data-action-value="value"><option value="1">1 chart</option><option value="2">2 split</option><option value="4">4 grid</option></select>
+        <label class="sync-toggle"><input id="syncSymbol" type="checkbox" data-action="layout.setSymbolSync" data-action-event="change" data-action-value="checked" /> sync symbol</label>
+        <label class="sync-toggle"><input id="syncTimeframe" type="checkbox" data-action="layout.setTimeframeSync" data-action-event="change" data-action-value="checked" /> sync timeframe</label>
         <input id="layoutName" class="level-label-input" placeholder="layout name" />
-        <button class="secondary" onclick="saveLayout()">Save layout</button>
-        <button class="secondary" onclick="loadLayout()">Load layout</button>
-        <button class="secondary" onclick="resetLayout()">Reset layout</button>
-        <button class="secondary" onclick="listLayouts()">List layouts</button>
-        <button class="secondary" onclick="deleteLayout()">Delete layout</button>
+        <button class="secondary" data-action="layout.save">Save layout</button>
+        <button class="secondary" data-action="layout.load">Load layout</button>
+        <button class="secondary" data-action="layout.reset">Reset layout</button>
+        <button class="secondary" data-action="layout.list">List layouts</button>
+        <button class="secondary" data-action="layout.delete">Delete layout</button>
       </div>
       <div class="toolbar-section metadata-controls" aria-label="Chart metadata">
         <span id="chartMeta" class="muted"></span>
@@ -85,14 +85,14 @@
         <div id="chart"></div>
       </div>
       <div id="chartSlot2" class="chart-cell placeholder-chart-cell">
-        <div class="slot-card"><b>Slot 2</b><span id="slot2Label">Unassigned</span><input id="slot2Symbol" placeholder="symbol" /><input id="slot2Tf" placeholder="timeframe" /><button class="secondary" onclick="setChartSlot(2)">Set slot</button><span id="slot2Status">No chart loaded.</span></div>
+        <div class="slot-card"><b>Slot 2</b><span id="slot2Label">Unassigned</span><input id="slot2Symbol" placeholder="symbol" /><input id="slot2Tf" placeholder="timeframe" /><button class="secondary" data-action="layout.setSlot" data-action-arg="2">Set slot</button><span id="slot2Status">No chart loaded.</span></div>
         <div id="slot2Chart" class="slot-chart"></div>
       </div>
       <div id="chartSlot3" class="chart-cell placeholder-chart-cell">
-        <div class="slot-card"><b>Slot 3</b><span id="slot3Label">Unassigned</span><input id="slot3Symbol" placeholder="symbol" /><input id="slot3Tf" placeholder="timeframe" /><button class="secondary" onclick="setChartSlot(3)">Set slot</button></div>
+        <div class="slot-card"><b>Slot 3</b><span id="slot3Label">Unassigned</span><input id="slot3Symbol" placeholder="symbol" /><input id="slot3Tf" placeholder="timeframe" /><button class="secondary" data-action="layout.setSlot" data-action-arg="3">Set slot</button></div>
       </div>
       <div id="chartSlot4" class="chart-cell placeholder-chart-cell">
-        <div class="slot-card"><b>Slot 4</b><span id="slot4Label">Unassigned</span><input id="slot4Symbol" placeholder="symbol" /><input id="slot4Tf" placeholder="timeframe" /><button class="secondary" onclick="setChartSlot(4)">Set slot</button></div>
+        <div class="slot-card"><b>Slot 4</b><span id="slot4Label">Unassigned</span><input id="slot4Symbol" placeholder="symbol" /><input id="slot4Tf" placeholder="timeframe" /><button class="secondary" data-action="layout.setSlot" data-action-arg="4">Set slot</button></div>
       </div>
     </div>
     <div id="rsiWrap" class="indicator-wrap hidden">
@@ -109,16 +109,16 @@
     </div>
     <div class="bottom">
       <div class="tabs">
-        <button onclick="showPayload()">Payload</button>
-        <button onclick="runBacktest()">Backtest</button>
-        <button onclick="compareStrategies()">Compare</button>
-        <button onclick="loadBacktests()">Backtests</button>
-        <button onclick="saveIdea()">Save idea</button>
-        <button onclick="loadIdeas()">Ideas</button>
-        <button onclick="loadIdeaDetail(1)">Idea detail</button>
-        <button onclick="loadWorkspaceIdea()">Load idea</button>
-        <button onclick="scanWatchlist()">Scanner</button>
-        <button onclick="loadJournal()">Journal</button>
+        <button data-action="payload.show">Payload</button>
+        <button data-action="backtest.run">Backtest</button>
+        <button data-action="backtest.compare">Compare</button>
+        <button data-action="backtest.list">Backtests</button>
+        <button data-action="ideas.save">Save idea</button>
+        <button data-action="ideas.list">Ideas</button>
+        <button data-action="ideas.detail" data-action-arg="1">Idea detail</button>
+        <button data-action="ideas.loadWorkspace">Load idea</button>
+        <button data-action="scanner.scan">Scanner</button>
+        <button data-action="journal.load">Journal</button>
       </div>
       <pre id="output">Ready.</pre>
     </div>
@@ -127,23 +127,23 @@
     <div class="panel workflow-panel">
       <div class="label">Research workflow</div>
       <ol class="workflow-list">
-        <li><span>1</span><button class="secondary" onclick="loadMarket()">Load market snapshot</button></li>
-        <li><span>2</span><button class="secondary" onclick="analyze()">Generate AI observations</button></li>
-        <li><span>3</span><button class="secondary" onclick="saveIdea()">Save hypothesis as idea</button></li>
-        <li><span>4</span><button class="secondary" onclick="runBacktest()">Run linked backtest</button></li>
-        <li><span>5</span><button class="secondary" onclick="compareStrategies()">Compare strategies</button></li>
-        <li><span>6</span><button class="secondary" onclick="loadJournal()">Review journal trail</button></li>
+        <li><span>1</span><button class="secondary" data-action="market.load">Load market snapshot</button></li>
+        <li><span>2</span><button class="secondary" data-action="analysis.run">Generate AI observations</button></li>
+        <li><span>3</span><button class="secondary" data-action="ideas.save">Save hypothesis as idea</button></li>
+        <li><span>4</span><button class="secondary" data-action="backtest.run">Run linked backtest</button></li>
+        <li><span>5</span><button class="secondary" data-action="backtest.compare">Compare strategies</button></li>
+        <li><span>6</span><button class="secondary" data-action="journal.load">Review journal trail</button></li>
       </ol>
       <div class="label">Scanner to idea</div>
-      <div class="tabs"><button class="secondary" onclick="scanWatchlist()">Scan watchlist</button><button class="secondary" onclick="useTopScannerCandidate()">Use top candidate</button><button class="secondary" onclick="saveIdea()">Save idea</button></div>
+      <div class="tabs"><button class="secondary" data-action="scanner.scan">Scan watchlist</button><button class="secondary" data-action="scanner.useTopCandidate">Use top candidate</button><button class="secondary" data-action="ideas.save">Save idea</button></div>
       <div class="label">Idea detail</div>
-      <div class="tabs"><button class="secondary" onclick="loadIdeas()">Refresh ideas</button><button class="secondary" onclick="loadIdeaDetail(1)">First idea</button><button class="secondary" onclick="loadWorkspaceIdea()">Load selected</button></div>
+      <div class="tabs"><button class="secondary" data-action="ideas.list">Refresh ideas</button><button class="secondary" data-action="ideas.detail" data-action-arg="1">First idea</button><button class="secondary" data-action="ideas.loadWorkspace">Load selected</button></div>
       <p class="workflow-note">Research-only loop: observe, hypothesize, invalidate, backtest, and journal. No order execution or paper trading path.</p>
     </div>
     <div class="panel">
       <div class="label">AI question</div>
       <textarea id="question">Give observations, risks, invalidation levels, and what to backtest next. Do not recommend taking a position.</textarea>
-      <button onclick="analyze()">Analyze current symbol</button>
+      <button data-action="analysis.run">Analyze current symbol</button>
       <div class="label">Research idea</div>
       <input id="hypothesis" class="research-idea-input" placeholder="Hypothesis" />
       <input id="invalidation" class="research-idea-input" placeholder="Invalidation" />
