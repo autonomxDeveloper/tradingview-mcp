@@ -53,11 +53,6 @@
     return numeric.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
   }
 
-  function compactNumber(value) {
-    const numeric = Number(value || 0);
-    return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(6).replace(/0+$/, '').replace(/\.$/, '');
-  }
-
   function setPaperStatus(message) {
     const status = $('paperTradingStatus');
     if (status) status.textContent = message;
@@ -66,6 +61,27 @@
   function printPaper(value) {
     if (typeof window.setResultPane === 'function') window.setResultPane('paper', value);
     else if (typeof window.print === 'function') window.print(value);
+  }
+
+  function ensurePaperStyles() {
+    if (document.getElementById('paperTradingStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'paperTradingStyles';
+    style.textContent = `
+.paper-trading-warning{margin:6px 0 8px;padding:7px 8px;border:1px solid #f59e0b;border-radius:8px;background:rgba(245,158,11,.12);color:#fde68a;font-size:12px;font-weight:700;letter-spacing:.02em}
+.paper-account-summary{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:7px 0 8px}
+.paper-account-summary div{display:grid;gap:2px;padding:7px;border:1px solid #334155;border-radius:8px;background:#0b1220}
+.paper-account-summary span{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em}
+.paper-account-summary strong{font-size:13px;color:#f8fafc}
+.paper-order-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.paper-order-grid input,.paper-order-grid select,.paper-order-grid button{font-size:12px;padding:6px 7px;min-width:0;box-sizing:border-box}
+.paper-order-grid .paper-notes-input{grid-column:1 / -1}
+.paper-order-grid button[data-action="paper.submit"]{grid-column:1 / -1}
+.paper-management-grid{grid-template-columns:1fr 1fr 1fr}
+.paper-management-grid button{grid-column:auto}
+@media(max-width:1200px){.paper-account-summary,.paper-order-grid,.paper-management-grid{grid-template-columns:1fr}}
+`;
+    document.head.appendChild(style);
   }
 
   function renderAccountSummary(snapshot = paperState.account) {
@@ -203,6 +219,7 @@
   }
 
   function initializePaperTradingUi() {
+    ensurePaperStyles();
     ['paperSide', 'paperOrderType', 'paperQuantity', 'paperLimitPrice', 'paperStopPrice', 'paperFillPrice', 'paperFillQuantity', 'paperOrderId', 'paperIdeaId', 'paperNotes', 'paperInitialCash', 'paperMarkPrice'].forEach((id) => {
       const element = $(id);
       if (element && !element.getAttribute('aria-label')) element.setAttribute('aria-label', id.replace(/^paper/, 'Paper '));
