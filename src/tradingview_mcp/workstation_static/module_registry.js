@@ -15,6 +15,10 @@ window.workstationModules = {
     file: 'analysis_module.js',
     owns: ['AI analysis request payloads', 'analysis loading state', 'analysis response rendering'],
   },
+  results: {
+    file: 'results_module.js',
+    owns: ['structured result panes', 'legacy print routing', 'action-to-pane hints'],
+  },
   portfolio: {
     file: 'portfolio_module.js',
     owns: ['read-only portfolio research', 'portfolio tab action', 'portfolio-to-idea cross reference'],
@@ -94,6 +98,7 @@ function loadModuleScript(id, src, onload) {
 
 function loadWorkstationModules() {
   addModuleRegistryButton();
+  loadModuleScript('resultsModuleScript', '/static/results_module.js');
   loadModuleScript('moduleGuardScript', '/static/module_guard.js');
   loadModuleScript('dataBadgeModuleScript', '/static/data_badge_module.js');
   loadModuleScript('journalModuleScript', '/static/journal_module.js');
