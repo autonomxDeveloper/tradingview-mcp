@@ -25,6 +25,40 @@ window.workstationWatchlistModule.loadSymbol = function loadSymbol(symbol) {
   loadMarket();
 };
 
+window.workstationWatchlistModule.input = function input() {
+  const element = document.createElement('input');
+  element.id = 'watchlistSymbolInput';
+  element.placeholder = 'watchlist symbol';
+  element.className = 'level-label-input';
+  return element;
+};
+
+window.workstationWatchlistModule.button = function button(label, handler) {
+  const element = document.createElement('button');
+  element.className = 'secondary';
+  element.textContent = label;
+  element.onclick = handler;
+  return element;
+};
+
+window.workstationWatchlistModule.ensureControls = function ensureControls() {
+  let controls = document.getElementById('watchlistControls');
+  if (!controls) {
+    controls = document.createElement('span');
+    controls.id = 'watchlistControls';
+    controls.className = 'module-control-group watchlist-control-group';
+    const sidebar = document.querySelector('aside');
+    const target = document.getElementById('watch') || sidebar;
+    if (target && sidebar) sidebar.insertBefore(controls, target);
+  }
+  if (!controls || document.getElementById('watchlistSymbolInput')) return controls;
+  controls.appendChild(window.workstationWatchlistModule.input());
+  controls.appendChild(window.workstationWatchlistModule.button('Add', window.workstationWatchlistModule.add));
+  controls.appendChild(window.workstationWatchlistModule.button('Remove selected', window.workstationWatchlistModule.removeSelected));
+  controls.appendChild(window.workstationWatchlistModule.button('Refresh', window.workstationWatchlistModule.refresh));
+  return controls;
+};
+
 window.workstationWatchlistModule.refresh = async function refresh() {
   const response = await api('/api/watchlist');
   return window.workstationWatchlistModule.render(response.symbols || []);
@@ -52,13 +86,8 @@ window.workstationWatchlistModule.removeSelected = async function removeSelected
 };
 
 window.workstationWatchlistModule.bindControls = function bindControls() {
-  window.workstationModuleGuard?.missing('watchlist', { globals: ['api', 'post', '$', 'loadMarket', 'print'], elements: ['watch', 'watchlistControls'] });
-  const controls = document.getElementById('watchlistControls');
-  if (!controls) return;
-  const buttons = controls.querySelectorAll('button');
-  if (buttons[0]) buttons[0].onclick = window.workstationWatchlistModule.add;
-  if (buttons[1]) buttons[1].onclick = window.workstationWatchlistModule.removeSelected;
-  if (buttons[2]) buttons[2].onclick = window.workstationWatchlistModule.refresh;
+  window.workstationModuleGuard?.missing('watchlist', { globals: ['api', 'post', '$', 'loadMarket', 'print'], elements: ['watch'] });
+  window.workstationWatchlistModule.ensureControls();
 };
 
 window.watchlistSymbols = window.workstationWatchlistModule.symbols;
