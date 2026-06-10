@@ -33,7 +33,11 @@ window.workstationModules = {
   },
   guard: {
     file: 'module_guard.js',
-    owns: ['module dependency checks', 'missing global/UI anchor warnings'],
+    owns: ['module dependency checks', 'missing global/UI anchor warnings', 'recent guard warning memory'],
+  },
+  bootDiagnostics: {
+    file: 'boot_diagnostics.js',
+    owns: ['boot diagnostics view', 'loaded script listing', 'recent guard warning view'],
   },
 };
 
@@ -67,6 +71,7 @@ function loadWorkstationModules() {
   loadModuleScript('drawingModuleScript', '/static/drawing_module.js');
   loadModuleScript('watchlistModuleScript', '/static/watchlist_module.js');
   loadModuleScript('exportModuleScript', '/static/export_module.js');
+  loadModuleScript('bootDiagnosticsScript', '/static/boot_diagnostics.js');
   if (window.workstationBoot) window.workstationBoot.run();
 }
 
