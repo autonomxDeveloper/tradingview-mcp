@@ -1,7 +1,11 @@
 window.workstationModules = {
   ideas: {
     file: 'idea_module.js + idea_detail.js',
-    owns: ['idea lifecycle', 'status filters', 'portfolio research', 'journal timeline', 'legacy idea API compatibility'],
+    owns: ['idea lifecycle', 'status filters', 'portfolio research', 'legacy idea API compatibility'],
+  },
+  journal: {
+    file: 'journal_module.js',
+    owns: ['journal timeline', 'journal filters', 'current-symbol journal view'],
   },
   drawings: {
     file: 'drawing_module.js',
@@ -52,5 +56,6 @@ function loadModuleScript(id, src) {
 }
 
 addModuleRegistryButton();
+loadModuleScript('journalModuleScript', '/static/journal_module.js');
 loadModuleScript('drawingModuleScript', '/static/drawing_module.js');
 loadModuleScript('watchlistModuleScript', '/static/watchlist_module.js');
