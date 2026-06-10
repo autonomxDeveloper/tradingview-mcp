@@ -23,6 +23,10 @@ window.workstationModules = {
     file: 'accessibility_module.js',
     owns: ['accessible names', 'live regions', 'keyboard result tabs', 'focus and pressed states'],
   },
+  liveRefresh: {
+    file: 'live_refresh_module.js',
+    owns: ['live refresh controls', 'polling scheduler', 'chart freshness status'],
+  },
   portfolio: {
     file: 'portfolio_module.js',
     owns: ['read-only portfolio research', 'portfolio tab action', 'portfolio-to-idea cross reference'],
@@ -113,6 +117,7 @@ function loadWorkstationModules() {
   loadModuleScript('backtestModuleScript', '/static/backtest_module.js');
   loadModuleScript('analysisModuleScript', '/static/analysis_module.js');
   loadModuleScript('layoutModuleScript', '/static/layout_module.js');
+  loadModuleScript('liveRefreshModuleScript', '/static/live_refresh_module.js');
   loadModuleScript('portfolioModuleScript', '/static/portfolio_module.js');
   loadModuleScript('exportModuleScript', '/static/export_module.js');
   loadModuleScript('bootDiagnosticsScript', '/static/boot_diagnostics.js');
