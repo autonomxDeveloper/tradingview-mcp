@@ -7,6 +7,7 @@ from tradingview_mcp.core.services.ai_market_context_service import (
 )
 
 
+# These tests use injected candle fetchers so CI never depends on live market data.
 def sample_candles(count: int = 60, start: float = 100.0, step: float = 1.0):
     rows = []
     for index in range(count):
