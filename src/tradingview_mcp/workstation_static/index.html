@@ -115,6 +115,7 @@
         <button data-action="backtest.run">Backtest</button>
         <button data-action="backtest.compare">Compare</button>
         <button data-action="backtest.list">Backtests</button>
+        <button data-action="paper.refresh">Paper</button>
         <button data-action="ideas.save">Save idea</button>
         <button data-action="ideas.list">Ideas</button>
         <button data-action="ideas.detail" data-action-arg="1">Idea detail</button>
@@ -128,6 +129,7 @@
           <button id="resultTab-payload" data-result-pane-target="payload" role="tab" aria-controls="resultPane-payload">Payload</button>
           <button id="resultTab-scanner" data-result-pane-target="scanner" role="tab" aria-controls="resultPane-scanner">Scanner</button>
           <button id="resultTab-backtests" data-result-pane-target="backtests" role="tab" aria-controls="resultPane-backtests">Backtests</button>
+          <button id="resultTab-paper" data-result-pane-target="paper" role="tab" aria-controls="resultPane-paper">Paper</button>
           <button id="resultTab-ideas" data-result-pane-target="ideas" role="tab" aria-controls="resultPane-ideas">Ideas</button>
           <button id="resultTab-journal" data-result-pane-target="journal" role="tab" aria-controls="resultPane-journal">Journal</button>
           <button id="resultTab-diagnostics" data-result-pane-target="diagnostics" role="tab" aria-controls="resultPane-diagnostics">Diagnostics</button>
@@ -137,6 +139,7 @@
           <pre id="resultPane-payload" class="result-pane" role="tabpanel" aria-labelledby="resultTab-payload">Load a market snapshot to view payload data.</pre>
           <pre id="resultPane-scanner" class="result-pane" role="tabpanel" aria-labelledby="resultTab-scanner">Run the scanner to view candidates.</pre>
           <pre id="resultPane-backtests" class="result-pane" role="tabpanel" aria-labelledby="resultTab-backtests">Run or list backtests to view results.</pre>
+          <pre id="resultPane-paper" class="result-pane" role="tabpanel" aria-labelledby="resultTab-paper">Refresh the simulated paper account to view orders, fills, and positions.</pre>
           <pre id="resultPane-ideas" class="result-pane" role="tabpanel" aria-labelledby="resultTab-ideas">Save or load ideas to view research records.</pre>
           <pre id="resultPane-journal" class="result-pane" role="tabpanel" aria-labelledby="resultTab-journal">Load the journal to view research history.</pre>
           <pre id="resultPane-diagnostics" class="result-pane" role="tabpanel" aria-labelledby="resultTab-diagnostics">Open modules or diagnostics to view frontend state.</pre>
@@ -160,7 +163,7 @@
       <div class="tabs"><button class="secondary" data-action="scanner.scan">Scan watchlist</button><button class="secondary" data-action="scanner.useTopCandidate">Use top candidate</button><button class="secondary" data-action="ideas.save">Save idea</button></div>
       <div class="label">Idea detail</div>
       <div class="tabs"><button class="secondary" data-action="ideas.list">Refresh ideas</button><button class="secondary" data-action="ideas.detail" data-action-arg="1">First idea</button><button class="secondary" data-action="ideas.loadWorkspace">Load selected</button></div>
-      <p class="workflow-note">Research-only loop: observe, hypothesize, invalidate, backtest, and journal. No order execution or paper trading path.</p>
+      <p class="workflow-note">Research loop: observe, hypothesize, invalidate, backtest, simulate locally, and journal. Paper trading is simulated only; no live broker orders are submitted.</p>
     </div>
     <div class="panel">
       <div class="label">AI question</div>
@@ -174,6 +177,34 @@
       <div class="label">Backtest</div>
       <select id="strategy"><option>ema_cross</option><option>rsi</option><option>bollinger</option><option>macd</option><option>supertrend</option><option>donchian</option><option>rsi_pullback</option><option>keltner_breakout</option><option>triple_ema</option></select>
       <select id="period"><option>1mo</option><option>3mo</option><option>6mo</option><option selected>1y</option><option>2y</option></select>
+      <div class="label">Paper trading</div>
+      <p class="paper-trading-warning">SIMULATED PAPER TRADING — NO LIVE ORDERS</p>
+      <div id="paperAccountSummary" class="paper-account-summary">Paper account loading...</div>
+      <div class="paper-order-grid" aria-label="Simulated paper order ticket">
+        <select id="paperSide"><option value="buy">buy</option><option value="sell">sell</option></select>
+        <select id="paperOrderType"><option value="market">market</option><option value="limit">limit</option><option value="stop">stop</option></select>
+        <input id="paperQuantity" placeholder="qty" />
+        <input id="paperLimitPrice" placeholder="limit price" />
+        <input id="paperStopPrice" placeholder="stop price" />
+        <input id="paperIdeaId" placeholder="idea id" />
+        <input id="paperNotes" class="paper-notes-input" placeholder="paper trade notes" />
+        <button data-action="paper.submit">Submit simulated order</button>
+      </div>
+      <div class="paper-order-grid paper-management-grid" aria-label="Simulated paper order management">
+        <input id="paperOrderId" placeholder="order id" />
+        <input id="paperFillPrice" placeholder="fill price" />
+        <input id="paperFillQuantity" placeholder="fill qty optional" />
+        <button class="secondary" data-action="paper.fill">Fill simulated</button>
+        <button class="secondary" data-action="paper.cancel">Cancel simulated</button>
+      </div>
+      <div class="paper-order-grid paper-management-grid" aria-label="Simulated paper account management">
+        <input id="paperMarkPrice" placeholder="mark price" />
+        <button class="secondary" data-action="paper.mark">Mark to market</button>
+        <input id="paperInitialCash" placeholder="reset cash" value="10000" />
+        <button class="secondary" data-action="paper.reset">Reset paper</button>
+        <button class="secondary" data-action="paper.refresh">Refresh paper</button>
+      </div>
+      <div id="paperTradingStatus" class="module-control-status">Paper trading is simulated locally. No live orders.</div>
     </div>
     <div class="panel analysis-results-panel">
       <div class="label">AI / results</div>
