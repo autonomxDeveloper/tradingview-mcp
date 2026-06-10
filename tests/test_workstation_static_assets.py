@@ -260,4 +260,4 @@ def test_price_level_drawing_controls_are_present():
     assert "restoreDrawings" in js
     assert "renderLevels" in js
     assert "createPriceLine" in js
-    assert "level-controls" in css
+    assert "level-label-input" in css
