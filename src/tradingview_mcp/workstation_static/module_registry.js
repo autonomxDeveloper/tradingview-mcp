@@ -27,6 +27,10 @@ window.workstationModules = {
     file: 'ai_backtest_review_module.js',
     owns: ['AI trade idea backtest review', 'backtest verdict cards', 'paper-simulation readiness summary'],
   },
+  aiWatchlistScanner: {
+    file: 'ai_watchlist_scanner_module.js',
+    owns: ['AI watchlist trade scanner', 'candidate ranking', 'scanner-to-idea/backtest/paper handoff'],
+  },
   results: {
     file: 'results_module.js',
     owns: ['structured result panes', 'legacy print routing', 'action-to-pane hints'],
@@ -144,6 +148,7 @@ function loadWorkstationModules() {
   loadModuleScript('aiTradeIdeaModuleScript', '/static/ai_trade_idea_module.js');
   loadModuleScript('aiTradeWorkflowModuleScript', '/static/ai_trade_workflow_module.js');
   loadModuleScript('aiBacktestReviewModuleScript', '/static/ai_backtest_review_module.js');
+  loadModuleScript('aiWatchlistScannerModuleScript', '/static/ai_watchlist_scanner_module.js');
   loadModuleScript('layoutModuleScript', '/static/layout_module.js');
   loadModuleScript('liveRefreshModuleScript', '/static/live_refresh_module.js');
   loadModuleScript('cryptoStreamModuleScript', '/static/crypto_stream_module.js');
