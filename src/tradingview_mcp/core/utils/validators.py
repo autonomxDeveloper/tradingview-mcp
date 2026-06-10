@@ -46,7 +46,7 @@ EXCHANGE_SCREENER = {
     "myx": "malaysia",
     "klse": "malaysia",
     "ace": "malaysia",      # ACE Market (Access, Certainty, Efficiency)
-    "leap": "malaysia",     # LEAP Market (Leading Entrepreneur Accelerator Platform)
+    "leap": "malaysia",     # LEAP Market (Leading Entrepreneur Accelerator)
     # Hong Kong Stock Market Support
     "hkex": "hongkong",     # Hong Kong Exchange
     "hk": "hongkong",       # Hong Kong (alternate)
@@ -218,41 +218,31 @@ def resolve_screener_for_symbol(full_symbol: str, exchange: str) -> str:
     (``OANDA:EURUSD`` → ``forex`` but ``OANDA:XAUUSD`` → ``cfd``), and symbol
     aliases can redirect to another venue (``XAUUSD`` → ``TVC:GOLD``). So the
     screener must follow the *final* symbol's prefix, not the exchange the
-    caller originally passed. Falls back to the exchange's screener (then
-    ``crypto``) when the symbol carries no explicit prefix.
+    caller originally passed.
     """
-    prefix = (full_symbol.split(":", 1)[0] if ":" in full_symbol
-              else (exchange or "")).strip().lower()
-    return (EXCHANGE_SCREENER.get(prefix)
-            or _TA_ONLY_SCREENERS.get(prefix)
-            or "crypto")
+    prefix = (full_symbol or "").split(":", 1)[0].strip().lower()
+    if prefix in {"oanda", "fx", "fx_idc", "fxcm"}:
+        return "forex"
+    if prefix in {"tvc", "capitalcom"}:
+        return "cfd"
+    return get_market_type(exchange)
 
 
 def _install_workstation_route_hooks() -> None:
     """Install optional workstation route hooks for apps that import validators."""
-    installed_any = False
-    try:
-        from tradingview_mcp.workstation_ai_paper_execution_routes import install_ai_paper_execution_route_autoregistry
-    except Exception:
-        install_ai_paper_execution_route_autoregistry = None
-    if install_ai_paper_execution_route_autoregistry is not None:
-        install_ai_paper_execution_route_autoregistry()
-        installed_any = True
-    try:
-        from tradingview_mcp.workstation_ai_paper_history_routes import install_ai_paper_history_route_autoregistry
-    except Exception:
-        install_ai_paper_history_route_autoregistry = None
-    if install_ai_paper_history_route_autoregistry is not None:
-        install_ai_paper_history_route_autoregistry()
-        installed_any = True
-    try:
-        from tradingview_mcp.workstation_ai_paper_performance_routes import install_ai_paper_performance_route_autoregistry
-    except Exception:
-        install_ai_paper_performance_route_autoregistry = None
-    if install_ai_paper_performance_route_autoregistry is not None:
-        install_ai_paper_performance_route_autoregistry()
-        installed_any = True
-    return installed_any
+    hook_paths = [
+        ("tradingview_mcp.workstation_ai_paper_execution_routes", "install_ai_paper_execution_route_autoregistry"),
+        ("tradingview_mcp.workstation_ai_paper_history_routes", "install_ai_paper_history_route_autoregistry"),
+        ("tradingview_mcp.workstation_ai_paper_performance_routes", "install_ai_paper_performance_route_autoregistry"),
+        ("tradingview_mcp.workstation_ai_paper_review_packet_routes", "install_ai_paper_review_packet_route_autoregistry"),
+    ]
+    for module_name, function_name in hook_paths:
+        try:
+            module = __import__(module_name, fromlist=[function_name])
+            installer = getattr(module, function_name)
+        except Exception:
+            continue
+        installer()
 
 
 _install_workstation_route_hooks()
