@@ -132,6 +132,48 @@
     }
   }
 
+  function getLeftPanelRightEdge(centerRect) {
+    if (!document.body.classList.contains('watchlist-expanded')) return centerRect.left;
+    const candidates = Array.from(document.querySelectorAll('main > aside:not(.right), aside:not(.right):not(.tradingview-right-panel)'));
+    return candidates.reduce((rightEdge, panel) => {
+      const rect = panel.getBoundingClientRect();
+      if (rect.width < 80 || rect.height < 80) return rightEdge;
+      return Math.max(rightEdge, rect.right);
+    }, centerRect.left);
+  }
+
+  function syncToolbarGeometry() {
+    const center = document.querySelector('.center');
+    if (!center) return;
+    const centerRect = center.getBoundingClientRect();
+    const left = Math.max(0, getLeftPanelRightEdge(centerRect));
+    const top = Math.max(0, centerRect.top);
+    const bottom = Math.max(0, window.innerHeight - centerRect.bottom);
+    const rootStyle = document.documentElement.style;
+    rootStyle.setProperty('--tv-left-toolbar-left', `${Math.round(left)}px`);
+    rootStyle.setProperty('--tv-left-toolbar-top', `${Math.round(top)}px`);
+    rootStyle.setProperty('--tv-left-toolbar-bottom', `${Math.round(bottom)}px`);
+    const menu = document.getElementById('chartToolMenu');
+    const activeButton = document.querySelector('#chartToolRail .chart-tool-button.active');
+    if (menu && activeButton && !menu.hidden) positionMenuForButton(menu, activeButton);
+  }
+
+  function installGeometryObservers() {
+    const scheduleSync = () => window.requestAnimationFrame(syncToolbarGeometry);
+    window.addEventListener('resize', scheduleSync);
+    window.addEventListener('scroll', scheduleSync, true);
+
+    if (typeof ResizeObserver === 'function') {
+      const observer = new ResizeObserver(scheduleSync);
+      document.querySelectorAll('.center, main > aside:not(.right), aside:not(.right):not(.tradingview-right-panel)').forEach((node) => observer.observe(node));
+    }
+
+    if (typeof MutationObserver === 'function') {
+      const observer = new MutationObserver(scheduleSync);
+      observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    }
+  }
+
   function clickAction(action) {
     if (!action) return false;
     if (action === 'watchlist') {
@@ -140,6 +182,7 @@
       } else {
         document.body.classList.toggle('watchlist-expanded');
       }
+      syncToolbarGeometry();
       return true;
     }
     if (action === 'research') {
@@ -148,6 +191,7 @@
       } else {
         document.body.classList.toggle('research-expanded');
       }
+      syncToolbarGeometry();
       return true;
     }
     if (action === 'top-tools') {
@@ -198,17 +242,23 @@
   function closeMenu() {
     const menu = document.getElementById('chartToolMenu');
     if (menu) menu.hidden = true;
-    document.querySelectorAll('.chart-tool-button.active').forEach((button) => button.classList.remove('active'));
+    document.querySelectorAll('.chart-tool-button.active').forEach((button) => {
+      button.classList.remove('active');
+      button.setAttribute('aria-expanded', 'false');
+    });
   }
 
   function positionMenuForButton(menu, button) {
     const center = document.querySelector('.center');
     if (!center) return;
+    syncToolbarGeometry();
     const centerRect = center.getBoundingClientRect();
     const buttonRect = button.getBoundingClientRect();
-    const desiredTop = buttonRect.top - centerRect.top - 8;
-    const maxTop = Math.max(8, centerRect.height - Math.min(720, window.innerHeight - 72));
-    menu.style.top = `${Math.max(8, Math.min(desiredTop, maxTop))}px`;
+    const menuHeight = Math.min(menu.scrollHeight || 720, Math.min(720, window.innerHeight - 72));
+    const minTop = Math.max(8, centerRect.top + 8);
+    const maxTop = Math.max(minTop, centerRect.bottom - menuHeight - 8);
+    const desiredTop = buttonRect.top - 8;
+    menu.style.top = `${Math.max(minTop, Math.min(desiredTop, maxTop))}px`;
   }
 
   function buildMenuItem(item, group, menu) {
@@ -310,14 +360,15 @@
     status.className = 'chart-tool-status';
     status.hidden = true;
 
-    center.insertBefore(rail, center.firstChild);
-    center.append(menu, status);
+    document.body.append(rail, menu, status);
     document.body.classList.add('tradingview-left-toolbar-enhanced');
+    syncToolbarGeometry();
     refreshChartSurface();
   }
 
   ready(() => {
     buildRail();
+    installGeometryObservers();
     document.addEventListener('click', (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
