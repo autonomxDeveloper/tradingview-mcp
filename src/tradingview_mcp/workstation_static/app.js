@@ -40,13 +40,24 @@ function initChart() {
   styleIndicatorPane('rsiWrap', 'rsiChart', 'rsiLegend');
   styleIndicatorPane('macdWrap', 'macdChart', 'macdLegend');
   styleIndicatorPane('atrWrap', 'atrChart', 'atrLegend');
-  window.onresize = () => {
-    chart.resize($('chart').clientWidth, $('chart').clientHeight);
-    if (rsiChart && rsiVisible) rsiChart.resize($('rsiChart').clientWidth, $('rsiChart').clientHeight);
-    if (macdChart && macdVisible) macdChart.resize($('macdChart').clientWidth, $('macdChart').clientHeight);
-    if (atrChart && atrVisible) atrChart.resize($('atrChart').clientWidth, $('atrChart').clientHeight);
-    renderHtmlDrawings();
-  };
+  window.onresize = () => resizePrimaryChartToSurface();
+}
+
+function resizePrimaryChartToSurface() {
+  if (!chart || !$('chart')) return;
+  chart.resize($('chart').clientWidth, $('chart').clientHeight);
+  if (rsiChart && rsiVisible) rsiChart.resize($('rsiChart').clientWidth, $('rsiChart').clientHeight);
+  if (macdChart && macdVisible) macdChart.resize($('macdChart').clientWidth, $('macdChart').clientHeight);
+  if (atrChart && atrVisible) atrChart.resize($('atrChart').clientWidth, $('atrChart').clientHeight);
+  fitChart();
+}
+
+function scheduleChartSurfaceRefresh() {
+  window.requestAnimationFrame(() => {
+    resizePrimaryChartToSurface();
+    window.setTimeout(resizePrimaryChartToSurface, 80);
+    window.setTimeout(resizePrimaryChartToSurface, 250);
+  });
 }
 
 function styleIndicatorPane(wrapId, panelId, legendId) {
@@ -101,7 +112,8 @@ async function boot() {
     };
     $('watch').appendChild(button);
   });
-  loadMarket();
+  await loadMarket();
+  scheduleChartSurfaceRefresh();
 }
 
 function activeIsCrypto() { const symbol = $('symbol').value.toUpperCase(); return $('asset').value === 'crypto' || symbol.endsWith('USDT') || symbol.endsWith('-USD'); }
@@ -126,6 +138,7 @@ async function loadMarket() {
   updateChartMeta();
   updateLegend();
   print(lastPayload);
+  scheduleChartSurfaceRefresh();
 }
 
 function renderChartSeries() { candles.setData(currentBars.map((bar) => ({ time: bar.time, open: bar.open, high: bar.high, low: bar.low, close: bar.close }))); volume.setData(currentBars.map((bar) => ({ time: bar.time, value: bar.volume }))); applyOverlayData(); }
