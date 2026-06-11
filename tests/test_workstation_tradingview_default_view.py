@@ -20,10 +20,12 @@ def test_workstation_defaults_to_chart_first_tradingview_shell():
         "side-panels-collapsed",
         "day-mode-default",
         "chart-toolbar-clean",
+        "top-tools-collapsed",
     ]:
         assert expected in index
     assert '/static/tradingview_chart_first.css' in index
     assert '/static/tradingview_default_view_cleanup.css' in index
+    assert '/static/workstation_chrome_controls.js' in index
     assert 'id="symbol" value="AAPL"' in index
     assert '<option>stock</option>' in index
     assert 'id="chartGrid" class="layout-grid layout-grid-1"' in index
@@ -59,6 +61,45 @@ def test_default_cleanup_contains_viewport_fit_overrides():
 
     assert "minmax(960px, 1fr)" not in css
     assert "minmax(640px, 1fr)" not in css
+
+
+def test_collapsible_chrome_has_clickable_top_and_side_controls():
+    index = read_static("index.html")
+    css = read_static("tradingview_default_view_cleanup.css")
+    chrome = read_static("workstation_chrome_controls.js")
+
+    for expected in [
+        'data-chrome-toggle="top-tools"',
+        'data-chrome-toggle="watchlist"',
+        'data-chrome-toggle="research"',
+        'class="panel-rail-toggle watchlist-rail-toggle"',
+        'class="panel-rail-toggle research-rail-toggle"',
+        'id="topToolbarSummary"',
+    ]:
+        assert expected in index
+
+    assert index.index('/static/app.js') < index.index('/static/workstation_chrome_controls.js')
+
+    for expected in [
+        'body.top-tools-collapsed .topbar > :not(.chrome-toolbar-toggle):not(#topToolbarSummary)',
+        'body.side-panels-collapsed.watchlist-expanded main',
+        'body.side-panels-collapsed.research-expanded main',
+        'body.side-panels-collapsed.watchlist-expanded aside > *',
+        'body.side-panels-collapsed.research-expanded .right > *',
+        'body.side-panels-collapsed aside > .panel-rail-toggle',
+    ]:
+        assert expected in css
+
+    for expected in [
+        "toggleTopTools",
+        "toggleWorkstationPanel",
+        "top-tools-collapsed",
+        "watchlist-expanded",
+        "research-expanded",
+        "data-chrome-toggle",
+        "resizePrimaryChartToSurface",
+    ]:
+        assert expected in chrome
 
 
 def test_chart_theme_bootstrap_loads_before_app_and_patches_lightweight_charts():
