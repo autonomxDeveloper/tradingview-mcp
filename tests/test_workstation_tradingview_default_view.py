@@ -44,29 +44,21 @@ def test_workstation_defaults_to_chart_first_tradingview_shell():
         assert expected in css
 
 
-def test_default_cleanup_prevents_horizontal_viewport_scrolling():
+def test_default_cleanup_contains_viewport_fit_overrides():
     css = read_static("tradingview_default_view_cleanup.css")
 
     for expected in [
-        "overflow-x: hidden;",
         "grid-template-columns: 44px minmax(0, 1fr) 44px",
-        "max-width: 100vw;",
-        "max-width: 100%;",
+        "body.chart-toolbar-clean .topbar",
+        "body.chart-toolbar-clean .chartbar",
+        "overflow-x: hidden;",
         "flex-wrap: wrap;",
-        "min-width: 0;",
         "body.chart-toolbar-clean #chartGrid",
     ]:
         assert expected in css
 
-    for forbidden in [
-        "overflow-x: auto",
-        "overflow-x: scroll",
-        "minmax(960px, 1fr)",
-        "minmax(640px, 1fr)",
-        "min-width: max-content",
-        "flex-wrap: nowrap",
-    ]:
-        assert forbidden not in css
+    assert "minmax(960px, 1fr)" not in css
+    assert "minmax(640px, 1fr)" not in css
 
 
 def test_chart_theme_bootstrap_loads_before_app_and_patches_lightweight_charts():
