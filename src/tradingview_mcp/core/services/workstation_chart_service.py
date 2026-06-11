@@ -61,10 +61,11 @@ def _json_error(code: str, message: str, **extra: Any) -> dict[str, Any]:
 
 
 def _effective_chart_limit(timeframe: str, limit: int) -> int:
+    clean_limit = max(1, min(int(limit), 2000))
     safe_timeframe = sanitize_timeframe(timeframe, "1D")
-    if safe_timeframe == "1D":
+    if safe_timeframe == "1D" and clean_limit >= 300:
         return FULL_DAILY_STOCK_HISTORY_LIMIT
-    return max(1, min(int(limit), 2000))
+    return clean_limit
 
 
 def _cache_key(symbol: str, timeframe: str, limit: int) -> str:
