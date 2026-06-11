@@ -3,6 +3,17 @@
   const CUSTOM_INTERVAL_STORAGE_KEY = 'workstation-custom-intervals';
   const CRYPTO_INTERVALS = ['1s', '1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1D', '3D', '1W'];
   const STOCK_INTERVALS = ['1m', '2m', '5m', '15m', '30m', '1h', '1D', '1W', '1M'];
+  const CHART_TOOL_ACTIONS = [
+    { icon: '✛', label: 'Show tools', action: 'top-tools' },
+    { icon: '⌖', label: 'Auto-fit chart', action: 'chart.fit' },
+    { icon: '╱', label: 'Show drawing tools', action: 'drawing-tools' },
+    { icon: '⌁', label: 'Add last close level', action: 'drawings.addLastCloseLevel' },
+    { icon: '⌬', label: 'Open watchlist', action: 'watchlist' },
+    { icon: '⚑', label: 'Open research', action: 'research' },
+    { icon: '⌕', label: 'Run scanner', action: 'scanner.scan' },
+    { icon: '⌘', label: 'Show modules', action: 'modules.open' },
+    { icon: '☆', label: 'Show ideas', action: 'ideas.list' },
+  ];
 
   function preferFullCryptoHistory() {
     const original = window.marketCandleLimit;
@@ -179,8 +190,80 @@
     refreshChartSurface();
   }
 
+  function activateDataAction(action) {
+    const escaped = action.replace(/"/g, '\\"');
+    const target = document.querySelector(`[data-action="${escaped}"]`);
+    if (target) {
+      target.click();
+      return true;
+    }
+    return false;
+  }
+
+  function showDrawingTools() {
+    document.body.classList.toggle('drawing-tools-expanded');
+    if (document.body.classList.contains('top-tools-collapsed')) document.body.classList.remove('top-tools-collapsed');
+    updateChromeLabels();
+    refreshChartSurface();
+  }
+
+  function activateChartTool(action) {
+    if (action === 'top-tools') toggleTopTools();
+    else if (action === 'watchlist') togglePanel('watchlist');
+    else if (action === 'research') togglePanel('research');
+    else if (action === 'drawing-tools') showDrawingTools();
+    else activateDataAction(action);
+  }
+
+  function installChartToolRail() {
+    const center = document.querySelector('.center');
+    if (!center || document.getElementById('chartToolRail')) return;
+    const rail = document.createElement('div');
+    rail.id = 'chartToolRail';
+    rail.className = 'chart-tool-rail';
+    rail.setAttribute('aria-label', 'Chart tool rail');
+    CHART_TOOL_ACTIONS.forEach((tool) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'chart-tool-button';
+      button.dataset.chartToolAction = tool.action;
+      button.setAttribute('aria-label', tool.label);
+      button.title = tool.label;
+      button.textContent = tool.icon;
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        activateChartTool(tool.action);
+      });
+      rail.appendChild(button);
+    });
+    center.insertBefore(rail, center.firstChild);
+  }
+
+  function bindPanelSurfaceClicks() {
+    [
+      { selector: 'aside', panel: 'watchlist', expandedClass: 'watchlist-expanded' },
+      { selector: '.right', panel: 'research', expandedClass: 'research-expanded' },
+    ].forEach(({ selector, panel, expandedClass }) => {
+      const surface = document.querySelector(selector);
+      if (!surface || surface.dataset.chromeSurfaceBound === 'true') return;
+      surface.dataset.chromeSurfaceBound = 'true';
+      surface.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        if (target.closest('.panel-rail-toggle')) return;
+        if (!document.body.classList.contains('side-panels-collapsed')) return;
+        if (document.body.classList.contains(expandedClass)) return;
+        event.preventDefault();
+        togglePanel(panel);
+      });
+    });
+  }
+
   function bindChromeControls() {
     installCustomIntervalControl();
+    installChartToolRail();
+    bindPanelSurfaceClicks();
     document.querySelectorAll('[data-chrome-toggle]').forEach((button) => {
       if (button.dataset.chromeToggleBound === 'true') return;
       button.dataset.chromeToggleBound = 'true';
@@ -197,6 +280,7 @@
   preferFullCryptoHistory();
   window.toggleTopTools = toggleTopTools;
   window.toggleWorkstationPanel = togglePanel;
+  window.activateChartTool = activateChartTool;
   window.workstationCustomIntervals = {
     normalizeIntervalLabel,
     supportedInterval,
