@@ -14,17 +14,20 @@ body.side-panels-collapsed main {
 body.side-panels-collapsed aside,
 body.side-panels-collapsed .right {
   position: relative;
-  min-width: 0;
-  overflow: hidden;
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  overflow: hidden !important;
   background: #fff;
-  z-index: 20;
+  z-index: 4;
+  contain: layout paint;
 }
 
 body.side-panels-collapsed aside > *,
 body.side-panels-collapsed .right > * {
+  display: none !important;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 120ms ease;
 }
 
 body.side-panels-collapsed aside::before,
@@ -42,6 +45,7 @@ body.side-panels-collapsed .right::before {
   background: #fff;
   border-color: #d9e1ec;
   z-index: 2;
+  pointer-events: none;
 }
 
 body.side-panels-collapsed aside::before {
@@ -55,43 +59,49 @@ body.side-panels-collapsed .right::before {
 }
 
 body.side-panels-collapsed main:has(> aside:hover),
-body.side-panels-collapsed main:has(> aside:focus-within) {
-  grid-template-columns: 220px minmax(780px, 1fr) 44px;
-}
-
+body.side-panels-collapsed main:has(> aside:focus-within),
 body.side-panels-collapsed main:has(> .right:hover),
 body.side-panels-collapsed main:has(> .right:focus-within) {
-  grid-template-columns: 44px minmax(780px, 1fr) 380px;
+  grid-template-columns: 44px minmax(960px, 1fr) 44px;
 }
 
 body.side-panels-collapsed aside:hover > *,
 body.side-panels-collapsed aside:focus-within > *,
 body.side-panels-collapsed .right:hover > *,
 body.side-panels-collapsed .right:focus-within > * {
-  opacity: 1;
-  pointer-events: auto;
+  display: none !important;
+  opacity: 0;
+  pointer-events: none;
 }
 
 body.side-panels-collapsed aside:hover::before,
 body.side-panels-collapsed aside:focus-within::before,
 body.side-panels-collapsed .right:hover::before,
 body.side-panels-collapsed .right:focus-within::before {
-  display: none;
+  display: grid;
 }
 
 body.chart-toolbar-clean .center {
   grid-template-rows: auto auto minmax(660px, 1fr) auto 112px;
+  position: relative;
+  z-index: 10;
 }
 
 body.chart-toolbar-clean .topbar {
   gap: 8px;
   padding: 4px 10px;
   min-height: 42px;
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: visible;
   align-items: center;
   flex-wrap: nowrap;
   position: relative;
-  z-index: 35;
+  z-index: 60;
+  scrollbar-width: thin;
+}
+
+body.chart-toolbar-clean .topbar > * {
+  flex: 0 0 auto;
 }
 
 body.chart-toolbar-clean #symbol {
@@ -126,7 +136,7 @@ body.chart-toolbar-clean .chartbar {
   gap: 8px;
   align-items: center;
   position: relative;
-  z-index: 34;
+  z-index: 55;
   scrollbar-width: thin;
 }
 
@@ -153,13 +163,14 @@ body.chart-toolbar-clean .layout-controls {
 }
 
 body.chart-toolbar-clean .metadata-controls {
-  min-width: 240px;
+  min-width: 220px;
+  max-width: 320px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  margin-left: auto;
+  margin-left: 0;
   border-right: 0;
-  flex: 1 1 auto;
+  flex: 0 1 320px;
 }
 
 body.chart-toolbar-clean #chartGrid,
@@ -189,6 +200,13 @@ body.chart-toolbar-clean .legend {
 @media (max-width: 1200px) {
   body.side-panels-collapsed main {
     grid-template-columns: 38px minmax(640px, 1fr) 38px;
+  }
+
+  body.side-panels-collapsed aside,
+  body.side-panels-collapsed .right {
+    width: 38px;
+    min-width: 38px;
+    max-width: 38px;
   }
 
   body.chart-toolbar-clean .center {
