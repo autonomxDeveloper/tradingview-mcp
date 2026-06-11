@@ -10,17 +10,20 @@
   <link rel="stylesheet" href="/static/tradingview_default_view_cleanup.css" />
   <link rel="stylesheet" href="/static/chart_date_range.css" />
 </head>
-<body class="tradingview-chart-first side-panels-collapsed day-mode-default chart-toolbar-clean">
+<body class="tradingview-chart-first side-panels-collapsed day-mode-default chart-toolbar-clean top-tools-collapsed">
 <header><b>Autonomx Trading Research Workstation</b><span id="status" class="muted">loading...</span></header>
 <main>
   <aside aria-label="Collapsed watchlist panel">
+    <button type="button" class="panel-rail-toggle watchlist-rail-toggle" data-chrome-toggle="watchlist" aria-controls="watch" aria-expanded="false">Watchlist</button>
     <div class="label">Watchlist</div>
     <div class="watch" id="watch"></div>
     <div class="label">Status</div>
     <pre id="risk"></pre>
   </aside>
   <section class="center">
-    <div class="bar topbar">
+    <div class="bar topbar" aria-label="Main workstation toolbar">
+      <button type="button" class="secondary chrome-toolbar-toggle" data-chrome-toggle="top-tools" aria-expanded="false">Show tools</button>
+      <span id="topToolbarSummary" class="toolbar-summary">AAPL · 1D · chart tools hidden</span>
       <input id="symbol" value="AAPL" aria-label="Symbol" />
       <select id="asset" aria-label="Asset type"><option>auto</option><option>stock</option><option>crypto</option></select>
       <input id="exchange" value="NASDAQ" aria-label="Exchange" />
@@ -165,6 +168,7 @@
     </div>
   </section>
   <section class="right" aria-label="Collapsed research panel">
+    <button type="button" class="panel-rail-toggle research-rail-toggle" data-chrome-toggle="research" aria-controls="analysis" aria-expanded="false">Research</button>
     <div class="panel workflow-panel">
       <div class="label">Research workflow</div>
       <ol class="workflow-list">
@@ -230,6 +234,7 @@
 </main>
 <script src="/static/tradingview_chart_theme_bootstrap.js"></script>
 <script src="/static/app.js"></script>
+<script src="/static/workstation_chrome_controls.js"></script>
 <script id="resultsModuleScript" src="/static/results_module.js"></script>
 <script src="/static/idea_module.js"></script>
 <script src="/static/idea_detail.js"></script>
