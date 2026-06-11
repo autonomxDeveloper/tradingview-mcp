@@ -25,6 +25,7 @@ body.side-panels-collapsed .right {
   background: #fff;
   z-index: 4;
   contain: layout paint;
+  cursor: pointer;
 }
 
 body.side-panels-collapsed aside > *,
@@ -186,6 +187,11 @@ body.chart-toolbar-clean .chart-controls button[data-indicator="sma20"]::after {
 body.chart-toolbar-clean .drawing-controls,
 body.chart-toolbar-clean .layout-controls {
   display: none !important;
+}
+
+body.chart-toolbar-clean.drawing-tools-expanded .drawing-controls,
+body.chart-toolbar-clean.layout-tools-expanded .layout-controls {
+  display: flex !important;
 }
 
 body.chart-toolbar-clean .metadata-controls {
@@ -379,6 +385,7 @@ body.side-panels-collapsed.research-expanded .right {
   overflow: auto !important;
   contain: none;
   z-index: 32;
+  cursor: default;
 }
 
 body.side-panels-collapsed.watchlist-expanded aside > *,
@@ -411,4 +418,47 @@ body.side-panels-collapsed.research-expanded .right .paper-order-grid {
 body.side-panels-collapsed.watchlist-expanded aside pre,
 body.side-panels-collapsed.research-expanded .right pre {
   display: block !important;
+}
+
+/* The TradingView-style rail is now made of real buttons injected by workstation_chrome_controls.js.
+   Disable the old decorative pseudo-element so the visible icons can actually respond to clicks. */
+body.tradingview-chart-first .center::before {
+  content: none !important;
+  display: none !important;
+}
+
+body.tradingview-chart-first .chart-tool-rail {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 47px;
+  background: #fff;
+  border-right: 1px solid #d9e1ec;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-top: 13px;
+  z-index: 70;
+}
+
+body.tradingview-chart-first .chart-tool-button {
+  width: 31px;
+  height: 31px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: #fff;
+  color: #4b5563;
+  font-size: 18px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+body.tradingview-chart-first .chart-tool-button:hover,
+body.tradingview-chart-first .chart-tool-button:focus-visible {
+  background: #eef4ff;
+  color: #2962ff;
+  outline: 1px solid rgba(41, 98, 255, .3);
 }
