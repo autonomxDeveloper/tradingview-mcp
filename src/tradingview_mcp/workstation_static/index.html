@@ -21,7 +21,7 @@
   <section class="center">
     <div class="bar topbar">
       <input id="symbol" value="AAPL" aria-label="Symbol" />
-      <select id="asset" aria-label="Asset type"><option>auto</option><option selected>stock</option><option>crypto</option></select>
+      <select id="asset" aria-label="Asset type" data-default-asset="stock"><option>auto</option><option>stock</option><option>crypto</option></select>
       <input id="exchange" value="NASDAQ" aria-label="Exchange" />
       <select id="tf" aria-label="Timeframe"><option>1m</option><option>5m</option><option>15m</option><option>1h</option><option selected>1D</option><option>1W</option></select>
       <button data-action="market.load">Load</button>
