@@ -36,3 +36,20 @@ def test_ui_bindings_can_register_after_module_registry_dynamic_loads():
     assert "'analysis.run': () => callGlobal('analyze')" in bindings
     assert "window.analyze = analyze;" in analysis
     assert "window.workstationBoot.register('ui-bindings', bootUiBindings)" in bindings
+
+
+def test_ui_bindings_use_delegated_click_handler_for_static_and_dynamic_actions():
+    bindings = read_static("ui_bindings.js")
+
+    for expected in [
+        "document.addEventListener('click', handleDelegatedAction, true);",
+        "function handleDelegatedAction(event)",
+        "const element = findActionElement(event.target);",
+        "runAction(element, event);",
+        "window.runWorkstationAction = runAction;",
+        "workstationDelegatedActionHandlerInstalled",
+    ]:
+        assert expected in bindings
+
+    assert "element.addEventListener(eventName, (event) => runAction(element, event));" in bindings
+    assert "eventName !== 'click'" in bindings
