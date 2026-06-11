@@ -22,7 +22,7 @@ def test_collapsed_side_panels_do_not_expand_or_capture_toolbar_clicks_by_defaul
         "pointer-events: none;",
         "body.side-panels-collapsed main:has(> aside:hover)",
         "body.side-panels-collapsed main:has(> .right:hover)",
-        "grid-template-columns: 44px minmax(960px, 1fr) 44px;",
+        "grid-template-columns: 44px minmax(0, 1fr) 44px;",
         "body.side-panels-collapsed aside:hover > *",
         "body.side-panels-collapsed .right:hover > *",
     ]:
@@ -41,7 +41,9 @@ def test_chart_toolbar_layers_above_collapsed_side_rails():
     assert "z-index: 10;" in center_rule
     assert "z-index: 60;" in topbar_rule
     assert "z-index: 55;" in chartbar_rule
-    assert "overflow-x: auto;" in topbar_rule
+    assert "overflow-x: hidden;" in topbar_rule
     assert "overflow-y: visible;" in topbar_rule
-    assert "overflow-x: auto;" in chartbar_rule
+    assert "flex-wrap: wrap;" in topbar_rule
+    assert "overflow-x: hidden;" in chartbar_rule
     assert "overflow-y: visible;" in chartbar_rule
+    assert "flex-wrap: wrap;" in chartbar_rule

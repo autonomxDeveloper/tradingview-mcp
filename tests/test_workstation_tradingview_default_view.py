@@ -44,6 +44,23 @@ def test_workstation_defaults_to_chart_first_tradingview_shell():
         assert expected in css
 
 
+def test_default_cleanup_contains_viewport_fit_overrides():
+    css = read_static("tradingview_default_view_cleanup.css")
+
+    for expected in [
+        "grid-template-columns: 44px minmax(0, 1fr) 44px",
+        "body.chart-toolbar-clean .topbar",
+        "body.chart-toolbar-clean .chartbar",
+        "overflow-x: hidden;",
+        "flex-wrap: wrap;",
+        "body.chart-toolbar-clean #chartGrid",
+    ]:
+        assert expected in css
+
+    assert "minmax(960px, 1fr)" not in css
+    assert "minmax(640px, 1fr)" not in css
+
+
 def test_chart_theme_bootstrap_loads_before_app_and_patches_lightweight_charts():
     index = read_static("index.html")
     bootstrap = read_static("tradingview_chart_theme_bootstrap.js")
