@@ -91,6 +91,8 @@ def test_collapsible_chrome_has_clickable_top_and_side_controls():
         'body.side-panels-collapsed.watchlist-expanded aside > *',
         'body.side-panels-collapsed.research-expanded .right > *',
         'body.side-panels-collapsed aside > .panel-rail-toggle',
+        'body.side-panels-collapsed aside,',
+        'cursor: pointer;',
     ]:
         assert expected in css
 
@@ -102,8 +104,38 @@ def test_collapsible_chrome_has_clickable_top_and_side_controls():
         "research-expanded",
         "data-chrome-toggle",
         "resizePrimaryChartToSurface",
+        "bindPanelSurfaceClicks",
+        "chromeSurfaceBound",
     ]:
         assert expected in chrome
+
+
+def test_chart_tool_rail_uses_real_clickable_buttons_not_static_decoration():
+    cleanup = read_static("tradingview_default_view_cleanup.css")
+    chrome = read_static("workstation_chrome_controls.js")
+
+    for expected in [
+        "CHART_TOOL_ACTIONS",
+        "function installChartToolRail()",
+        "id = 'chartToolRail'",
+        "className = 'chart-tool-button'",
+        "dataset.chartToolAction",
+        "activateChartTool(tool.action)",
+        "showDrawingTools",
+        "activateDataAction",
+        "window.activateChartTool",
+    ]:
+        assert expected in chrome
+
+    for expected in [
+        "body.tradingview-chart-first .center::before",
+        "content: none !important;",
+        "body.tradingview-chart-first .chart-tool-rail",
+        "body.tradingview-chart-first .chart-tool-button",
+        "cursor: pointer;",
+        "body.chart-toolbar-clean.drawing-tools-expanded .drawing-controls",
+    ]:
+        assert expected in cleanup
 
 
 def test_chrome_defaults_crypto_daily_weekly_to_full_history_window():
