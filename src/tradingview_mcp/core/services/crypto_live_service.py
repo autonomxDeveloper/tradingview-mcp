@@ -9,6 +9,8 @@ from tradingview_mcp.core.services.market_data_cache_service import fallback_fro
 
 
 SUPPORTED_CRYPTO_VENUES = {"binance", "coinbase", "kraken"}
+MAX_AGGREGATED_CANDLE_LIMIT = 5000
+BINANCE_KLINES_PAGE_LIMIT = 1000
 
 
 def _request_json(url: str, *, params: dict[str, Any] | None = None, timeout: float = 15.0) -> Any:
@@ -75,6 +77,60 @@ def _cache_key(kind: str, venue: str, symbol: str, *parts: object) -> str:
 
 def _cache_or_error(cache_key: str, payload: dict[str, Any]) -> dict[str, Any]:
     return fallback_from_cache(cache_key, payload)
+
+
+def _clamp_candle_limit(limit: int) -> int:
+    return max(1, min(int(limit), MAX_AGGREGATED_CANDLE_LIMIT))
+
+
+def _binance_klines_page(symbol: str, interval: str | int, limit: int, end_time: int | None = None) -> Any:
+    params: dict[str, Any] = {"symbol": symbol, "interval": interval, "limit": limit}
+    if end_time is not None:
+        params["endTime"] = end_time
+    return _request_json("https://api.binance.com/api/v3/klines", params=params)
+
+
+def _binance_candle_payload(symbol: str, interval: str | int, limit: int) -> tuple[Any, bool]:
+    remaining = limit
+    end_time: int | None = None
+    pages: list[list[Any]] = []
+    history_complete = False
+
+    while remaining > 0:
+        page_limit = min(BINANCE_KLINES_PAGE_LIMIT, remaining)
+        payload = _binance_klines_page(symbol, interval, page_limit, end_time=end_time)
+        if isinstance(payload, dict) and "error" in payload:
+            return payload, False
+        if not isinstance(payload, list) or not payload:
+            history_complete = True
+            break
+
+        pages = payload + pages
+        remaining -= len(payload)
+        oldest_open_time = int(payload[0][0])
+        if len(payload) < page_limit:
+            history_complete = True
+            break
+        next_end_time = oldest_open_time - 1
+        if end_time == next_end_time:
+            break
+        end_time = next_end_time
+
+    return pages[-limit:], history_complete
+
+
+def _history_payload(bars: list[dict[str, Any]], *, requested_limit: int, history_complete: bool) -> dict[str, Any]:
+    first = bars[0] if bars else {}
+    last = bars[-1] if bars else {}
+    first_open_time = first.get("open_time") or first.get("time")
+    last_open_time = last.get("open_time") or last.get("time")
+    return {
+        "requested_limit": requested_limit,
+        "bars_count": len(bars),
+        "first_open_time": first_open_time,
+        "last_open_time": last_open_time,
+        "history_complete": bool(history_complete),
+    }
 
 
 def get_crypto_live_ticker(symbol: str, venue: str = "binance") -> dict[str, Any]:
@@ -185,7 +241,7 @@ def get_crypto_order_book(symbol: str, venue: str = "binance", limit: int = 20) 
 def get_crypto_candles(symbol: str, venue: str = "binance", interval: str = "1h", limit: int = 100) -> dict[str, Any]:
     try:
         clean_venue = _venue(venue)
-        clean_limit = max(1, min(int(limit), 300))
+        clean_limit = _clamp_candle_limit(limit)
     except ValueError as exc:
         return {"error": {"code": "INVALID_ARGUMENT", "message": str(exc)}}
 
@@ -194,11 +250,12 @@ def get_crypto_candles(symbol: str, venue: str = "binance", interval: str = "1h"
         if clean_venue == "binance":
             clean_symbol = _binance_symbol(symbol)
             cache_key = _cache_key("candles", clean_venue, clean_symbol, venue_interval, clean_limit)
-            payload = _request_json("https://api.binance.com/api/v3/klines", params={"symbol": clean_symbol, "interval": venue_interval, "limit": clean_limit})
+            payload, history_complete = _binance_candle_payload(clean_symbol, venue_interval, clean_limit)
             if isinstance(payload, dict) and "error" in payload:
                 return _cache_or_error(cache_key, payload)
             bars = [{"open_time": row[0], "open": row[1], "high": row[2], "low": row[3], "close": row[4], "volume": row[5], "close_time": row[6]} for row in payload]
-            return write_cache(cache_key, {"venue": clean_venue, "symbol": clean_symbol, "interval": venue_interval, "limit": clean_limit, "bars": bars}, source="binance_candles")
+            result = {"venue": clean_venue, "symbol": clean_symbol, "interval": venue_interval, "limit": clean_limit, "bars": bars, "history": _history_payload(bars, requested_limit=clean_limit, history_complete=history_complete)}
+            return write_cache(cache_key, result, source="binance_candles")
 
         if clean_venue == "coinbase":
             product_id = _coinbase_product_id(symbol)
@@ -207,7 +264,7 @@ def get_crypto_candles(symbol: str, venue: str = "binance", interval: str = "1h"
             if isinstance(payload, dict) and "error" in payload:
                 return _cache_or_error(cache_key, payload)
             bars = [{"time": row[0], "low": row[1], "high": row[2], "open": row[3], "close": row[4], "volume": row[5]} for row in payload[:clean_limit]]
-            return write_cache(cache_key, {"venue": clean_venue, "symbol": product_id, "interval": interval, "limit": clean_limit, "bars": bars}, source="coinbase_candles")
+            return write_cache(cache_key, {"venue": clean_venue, "symbol": product_id, "interval": interval, "limit": clean_limit, "bars": bars, "history": _history_payload(bars, requested_limit=clean_limit, history_complete=len(bars) < clean_limit)}, source="coinbase_candles")
 
         pair = _kraken_pair(symbol)
         cache_key = _cache_key("candles", clean_venue, pair, venue_interval, clean_limit)
@@ -220,6 +277,6 @@ def get_crypto_candles(symbol: str, venue: str = "binance", interval: str = "1h"
         pair_keys = [key for key in result.keys() if key != "last"]
         bars_raw = result.get(pair_keys[0], []) if pair_keys else []
         bars = [{"time": row[0], "open": row[1], "high": row[2], "low": row[3], "close": row[4], "vwap": row[5], "volume": row[6], "count": row[7]} for row in bars_raw[-clean_limit:]]
-        return write_cache(cache_key, {"venue": clean_venue, "symbol": pair, "interval": venue_interval, "limit": clean_limit, "bars": bars}, source="kraken_candles")
+        return write_cache(cache_key, {"venue": clean_venue, "symbol": pair, "interval": venue_interval, "limit": clean_limit, "bars": bars, "history": _history_payload(bars, requested_limit=clean_limit, history_complete=len(bars) < clean_limit)}, source="kraken_candles")
     except ValueError as exc:
         return {"error": {"code": "INVALID_SYMBOL", "message": str(exc)}}
