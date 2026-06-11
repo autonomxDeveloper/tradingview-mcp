@@ -8,6 +8,22 @@
     document.head.appendChild(link);
   }
 
+  function installLeftToolbarEnhancement() {
+    if (!document.getElementById('tradingViewLeftToolsStylesheet')) {
+      const link = document.createElement('link');
+      link.id = 'tradingViewLeftToolsStylesheet';
+      link.rel = 'stylesheet';
+      link.href = '/static/tradingview_left_tools.css';
+      document.head.appendChild(link);
+    }
+    if (document.getElementById('tradingViewLeftToolsScript')) return;
+    const script = document.createElement('script');
+    script.id = 'tradingViewLeftToolsScript';
+    script.src = '/static/tradingview_left_tools.js';
+    script.defer = true;
+    document.body.appendChild(script);
+  }
+
   function refreshChartSurface() {
     const resize = window.resizePrimaryChartToSurface || window.scheduleChartSurfaceRefresh;
     if (typeof resize === 'function') {
@@ -166,6 +182,7 @@
   }
 
   installLayeringStylesheet();
+  installLeftToolbarEnhancement();
 
   document.addEventListener('pointerdown', handleSidebarPointerIntent, true);
   document.addEventListener('mousedown', handleSidebarPointerIntent, true);
@@ -174,4 +191,5 @@
   window.setTradingViewRightPanelOpen = setRightPanelOpen;
   window.setTradingViewWatchlistPanelOpen = setWatchlistPanelOpen;
   window.installRightDockLayeringStylesheet = installLayeringStylesheet;
+  window.installTradingViewLeftToolbarEnhancement = installLeftToolbarEnhancement;
 })();
