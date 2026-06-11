@@ -8,11 +8,27 @@ from typing import Any
 
 import requests
 
+try:  # pragma: no cover - exercised when optional dependency is installed.
+    import yfinance as yf
+except Exception:  # pragma: no cover - keep raw Yahoo/Stooq fallbacks usable.
+    yf = None  # type: ignore[assignment]
+
 from tradingview_mcp.core.services.market_data_cache_service import fallback_from_cache, write_cache
 from tradingview_mcp.core.utils.validators import normalize_yahoo_symbol, sanitize_timeframe
 
 
 YAHOO_RANGE_BY_TIMEFRAME = {
+    "1m": ("1d", "1m"),
+    "5m": ("5d", "5m"),
+    "15m": ("5d", "15m"),
+    "30m": ("1mo", "30m"),
+    "1h": ("3mo", "1h"),
+    "4h": ("6mo", "1h"),
+    "1D": ("1y", "1d"),
+    "1W": ("5y", "1wk"),
+    "1M": ("10y", "1mo"),
+}
+YFINANCE_PERIOD_INTERVAL_BY_TIMEFRAME = {
     "1m": ("1d", "1m"),
     "5m": ("5d", "5m"),
     "15m": ("5d", "15m"),
@@ -45,6 +61,47 @@ def _json_error(code: str, message: str, **extra: Any) -> dict[str, Any]:
 
 def _cache_key(symbol: str, timeframe: str, limit: int) -> str:
     return f"yahoo-chart:{normalize_yahoo_symbol(symbol)}:{sanitize_timeframe(timeframe, '1D')}:{max(1, min(int(limit), 2000))}"
+
+
+def _is_missing_number(value: Any) -> bool:
+    try:
+        return value is None or value != value
+    except TypeError:
+        return value is None
+
+
+def _coerce_float(value: Any) -> float | None:
+    if _is_missing_number(value):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _coerce_volume(value: Any) -> int:
+    if _is_missing_number(value):
+        return 0
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _index_to_epoch_seconds(index_value: Any) -> int | None:
+    try:
+        if hasattr(index_value, "to_pydatetime"):
+            index_value = index_value.to_pydatetime()
+        if isinstance(index_value, datetime):
+            dt = index_value
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return int(dt.timestamp())
+        if hasattr(index_value, "timestamp"):
+            return int(index_value.timestamp())
+    except (OverflowError, TypeError, ValueError):
+        return None
+    return None
 
 
 def _stooq_symbol(symbol: str) -> str:
@@ -139,6 +196,75 @@ def _get_stooq_daily_chart(symbol: str, limit: int) -> dict[str, Any] | None:
     return _parse_stooq_daily_csv(symbol, response.text, limit)
 
 
+def _get_yfinance_chart(symbol: str, safe_timeframe: str, limit: int) -> dict[str, Any] | None:
+    if yf is None:
+        return None
+
+    period, interval = YFINANCE_PERIOD_INTERVAL_BY_TIMEFRAME.get(safe_timeframe, ("1y", "1d"))
+    yahoo_symbol = normalize_yahoo_symbol(symbol)
+    clean_limit = max(1, min(int(limit), 2000))
+
+    try:
+        ticker = yf.Ticker(yahoo_symbol)
+        frame = ticker.history(
+            period=period,
+            interval=interval,
+            auto_adjust=False,
+            prepost=True,
+            actions=False,
+            raise_errors=False,
+        )
+    except Exception:
+        return None
+
+    if frame is None or getattr(frame, "empty", True):
+        return None
+
+    candles: list[dict[str, Any]] = []
+    for index_value, row in frame.iterrows():
+        timestamp = _index_to_epoch_seconds(index_value)
+        open_price = _coerce_float(row.get("Open"))
+        high_price = _coerce_float(row.get("High"))
+        low_price = _coerce_float(row.get("Low"))
+        close_price = _coerce_float(row.get("Close"))
+        if timestamp is None or None in (open_price, high_price, low_price, close_price):
+            continue
+        candles.append(
+            {
+                "time": timestamp,
+                "open": open_price,
+                "high": high_price,
+                "low": low_price,
+                "close": close_price,
+                "volume": _coerce_volume(row.get("Volume")),
+            }
+        )
+
+    if not candles:
+        return None
+
+    candles = candles[-clean_limit:]
+    info: dict[str, Any] = {}
+    try:
+        raw_info = getattr(ticker, "fast_info", {}) or {}
+        info = dict(raw_info)
+    except Exception:
+        info = {}
+
+    return {
+        "symbol": yahoo_symbol,
+        "timeframe": safe_timeframe,
+        "range": period,
+        "interval": interval,
+        "currency": info.get("currency"),
+        "exchange": info.get("exchange"),
+        "regular_market_price": info.get("last_price") or candles[-1]["close"],
+        "previous_close": info.get("previous_close") or (candles[-2]["close"] if len(candles) > 1 else None),
+        "candles": candles,
+        "source": "yfinance_chart",
+    }
+
+
 def _fallback_stock_chart(cache_key: str, symbol: str, safe_timeframe: str, limit: int, error_payload: dict[str, Any]) -> dict[str, Any]:
     if safe_timeframe in STOOQ_FALLBACK_TIMEFRAMES:
         stooq_payload = _get_stooq_daily_chart(symbol, limit)
@@ -148,11 +274,12 @@ def _fallback_stock_chart(cache_key: str, symbol: str, safe_timeframe: str, limi
     return fallback_from_cache(cache_key, error_payload)
 
 
-def get_yahoo_chart(symbol: str, timeframe: str = "1D", limit: int = 500) -> dict[str, Any]:
-    yahoo_symbol = normalize_yahoo_symbol(symbol)
-    safe_timeframe = sanitize_timeframe(timeframe, "1D")
-    clean_limit = max(1, min(int(limit), 2000))
-    cache_key = _cache_key(yahoo_symbol, safe_timeframe, clean_limit)
+def _get_raw_yahoo_chart(
+    yahoo_symbol: str,
+    safe_timeframe: str,
+    clean_limit: int,
+    cache_key: str,
+) -> dict[str, Any]:
     range_value, interval = YAHOO_RANGE_BY_TIMEFRAME.get(safe_timeframe, ("1y", "1d"))
     try:
         response = requests.get(
@@ -233,3 +360,16 @@ def get_yahoo_chart(symbol: str, timeframe: str = "1D", limit: int = 500) -> dic
         "source": "yahoo_finance_chart",
     }
     return write_cache(cache_key, result_payload, source="yahoo_finance_chart")
+
+
+def get_yahoo_chart(symbol: str, timeframe: str = "1D", limit: int = 500) -> dict[str, Any]:
+    yahoo_symbol = normalize_yahoo_symbol(symbol)
+    safe_timeframe = sanitize_timeframe(timeframe, "1D")
+    clean_limit = max(1, min(int(limit), 2000))
+    cache_key = _cache_key(yahoo_symbol, safe_timeframe, clean_limit)
+
+    yfinance_payload = _get_yfinance_chart(yahoo_symbol, safe_timeframe, clean_limit)
+    if yfinance_payload and yfinance_payload.get("candles"):
+        return write_cache(cache_key, yfinance_payload, source="yfinance_chart")
+
+    return _get_raw_yahoo_chart(yahoo_symbol, safe_timeframe, clean_limit, cache_key)

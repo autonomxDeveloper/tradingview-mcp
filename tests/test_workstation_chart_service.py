@@ -45,6 +45,7 @@ def _chart_payload():
 
 def test_chart_service_shapes_candles(monkeypatch, tmp_path):
     monkeypatch.setenv("TRADING_WORKSTATION_MARKET_CACHE", str(tmp_path / "cache"))
+    monkeypatch.setattr(workstation_chart_service, "yf", None)
 
     def fake_get(url, params=None, timeout=None, **_kwargs):
         return _FakeResponse(200, _chart_payload())
@@ -65,6 +66,7 @@ def test_chart_service_shapes_candles(monkeypatch, tmp_path):
 
 def test_chart_service_uses_stale_cache_on_failure(monkeypatch, tmp_path):
     monkeypatch.setenv("TRADING_WORKSTATION_MARKET_CACHE", str(tmp_path / "cache"))
+    monkeypatch.setattr(workstation_chart_service, "yf", None)
 
     def good_get(url, params=None, timeout=None, **_kwargs):
         return _FakeResponse(200, _chart_payload())
