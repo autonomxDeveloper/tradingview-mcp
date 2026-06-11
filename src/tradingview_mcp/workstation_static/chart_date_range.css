@@ -63,3 +63,356 @@
     max-width: 42vw;
   }
 }
+
+/* Phase 2 professional workstation redesign.
+   This file is intentionally loaded last in index.html, so these rules override
+   the earlier TradingView compatibility skin with a visibly more modern shell. */
+:root {
+  --pro-bg: #060b16;
+  --pro-bg-2: #0b1220;
+  --pro-panel: rgba(15, 23, 42, .94);
+  --pro-panel-2: rgba(17, 24, 39, .92);
+  --pro-card: rgba(255, 255, 255, .07);
+  --pro-card-hover: rgba(255, 255, 255, .12);
+  --pro-line: rgba(148, 163, 184, .22);
+  --pro-line-strong: rgba(148, 163, 184, .34);
+  --pro-text: #eef4ff;
+  --pro-muted: #94a3b8;
+  --pro-faint: #64748b;
+  --pro-blue: #4f7cff;
+  --pro-cyan: #22d3ee;
+  --pro-green: #34d399;
+  --pro-amber: #fbbf24;
+  --pro-radius: 14px;
+  --pro-radius-lg: 22px;
+  --pro-shadow: 0 24px 80px rgba(0, 0, 0, .34);
+  --pro-font: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+body.tradingview-chart-first {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(79, 124, 255, .18), transparent 36vw),
+    radial-gradient(circle at 88% 10%, rgba(34, 211, 238, .12), transparent 32vw),
+    var(--pro-bg) !important;
+  color: var(--pro-text) !important;
+  font-family: var(--pro-font) !important;
+}
+
+body.tradingview-chart-first header {
+  height: 46px !important;
+  padding: 0 18px !important;
+  background: linear-gradient(90deg, rgba(6, 11, 22, .96), rgba(15, 23, 42, .92)) !important;
+  border-bottom: 1px solid var(--pro-line) !important;
+  color: var(--pro-text) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .20) !important;
+}
+
+body.tradingview-chart-first header b {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px !important;
+  letter-spacing: .02em !important;
+}
+
+body.tradingview-chart-first header b::before {
+  content: "A";
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--pro-blue), var(--pro-cyan));
+  color: #fff;
+  font-weight: 900;
+  box-shadow: 0 10px 24px rgba(79, 124, 255, .30);
+}
+
+body.tradingview-chart-first #status {
+  background: rgba(255, 255, 255, .07) !important;
+  border: 1px solid var(--pro-line) !important;
+  color: #cbd5e1 !important;
+  border-radius: 999px !important;
+  padding: 5px 10px !important;
+}
+
+body.tradingview-chart-first main,
+body.side-panels-collapsed.tradingview-chart-first main {
+  grid-template-columns: 58px minmax(0, 1fr) 58px !important;
+  height: calc(100vh - 46px) !important;
+  background: transparent !important;
+}
+
+body.tradingview-chart-first aside,
+body.tradingview-chart-first .right,
+body.side-panels-collapsed.tradingview-chart-first aside,
+body.side-panels-collapsed.tradingview-chart-first .right {
+  width: 58px !important;
+  min-width: 58px !important;
+  max-width: 58px !important;
+  background: rgba(8, 13, 24, .86) !important;
+  border-color: var(--pro-line) !important;
+  backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, .03) !important;
+}
+
+body.side-panels-collapsed.tradingview-chart-first aside::before,
+body.side-panels-collapsed.tradingview-chart-first .right::before {
+  background: transparent !important;
+  color: #cbd5e1 !important;
+  font-weight: 800;
+  letter-spacing: .18em;
+}
+
+body.tradingview-chart-first .center {
+  grid-template-rows: 56px minmax(0, 1fr) 38px 128px !important;
+  background: transparent !important;
+  gap: 10px;
+  padding: 10px 12px 0 !important;
+}
+
+body.tradingview-chart-first .topbar,
+body.tradingview-chart-first .compact-market-toolbar {
+  min-height: 56px !important;
+  border: 1px solid var(--pro-line) !important;
+  border-radius: 18px !important;
+  background: linear-gradient(180deg, rgba(15, 23, 42, .92), rgba(15, 23, 42, .78)) !important;
+  color: var(--pro-text) !important;
+  box-shadow: var(--pro-shadow) !important;
+  padding: 8px 12px !important;
+  backdrop-filter: blur(20px) saturate(1.25) !important;
+}
+
+body.tradingview-chart-first #compactTradingTopToolbar {
+  gap: 6px !important;
+}
+
+body.tradingview-chart-first input,
+body.tradingview-chart-first select,
+body.tradingview-chart-first textarea {
+  background: rgba(255, 255, 255, .08) !important;
+  color: var(--pro-text) !important;
+  border: 1px solid var(--pro-line) !important;
+  box-shadow: none !important;
+}
+
+body.tradingview-chart-first input::placeholder,
+body.tradingview-chart-first textarea::placeholder {
+  color: rgba(203, 213, 225, .62) !important;
+}
+
+body.tradingview-chart-first #symbol,
+body.tradingview-chart-first #compactTradingTopToolbar #symbol {
+  min-width: 154px !important;
+  height: 38px !important;
+  background: rgba(255, 255, 255, .12) !important;
+  border-color: rgba(255, 255, 255, .16) !important;
+  color: #fff !important;
+  font-size: 15px !important;
+  border-radius: 14px !important;
+}
+
+body.tradingview-chart-first #tf,
+body.tradingview-chart-first #asset,
+body.tradingview-chart-first #exchange {
+  background: rgba(255, 255, 255, .08) !important;
+  color: #e2e8f0 !important;
+  border-radius: 14px !important;
+}
+
+body.tradingview-chart-first button,
+body.tradingview-chart-first .tabs button,
+body.tradingview-chart-first .result-tabs button,
+body.tradingview-chart-first .tv-compact-top-button,
+body.tradingview-chart-first .tv-compact-load-button,
+body.tradingview-chart-first .chrome-toolbar-toggle {
+  min-height: 34px !important;
+  border: 1px solid rgba(255, 255, 255, .10) !important;
+  border-radius: 13px !important;
+  background: rgba(255, 255, 255, .08) !important;
+  color: #e2e8f0 !important;
+  box-shadow: none !important;
+}
+
+body.tradingview-chart-first button:hover,
+body.tradingview-chart-first .tabs button:hover,
+body.tradingview-chart-first .result-tabs button:hover,
+body.tradingview-chart-first .tv-compact-top-button:hover {
+  background: rgba(255, 255, 255, .14) !important;
+  border-color: rgba(255, 255, 255, .22) !important;
+  transform: translateY(-1px);
+}
+
+body.tradingview-chart-first .tv-compact-load-button,
+body.tradingview-chart-first .tabs button[data-action="analysis.run"],
+body.tradingview-chart-first button[data-action="analysis.run"] {
+  background: linear-gradient(135deg, var(--pro-blue), #7c3aed) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 14px 34px rgba(79, 124, 255, .28) !important;
+}
+
+body.tradingview-chart-first .tv-compact-ai-button {
+  background: linear-gradient(135deg, #111827, #0f172a) !important;
+  border-color: rgba(34, 211, 238, .36) !important;
+  color: #e0f2fe !important;
+}
+
+body.tradingview-chart-first .toolbar-summary {
+  color: var(--pro-muted) !important;
+}
+
+body.tradingview-chart-first .layout-grid {
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+body.tradingview-chart-first .chart-cell,
+body.tradingview-chart-first #chartWrap {
+  border: 1px solid var(--pro-line) !important;
+  border-radius: 24px !important;
+  background: #070d1d !important;
+  box-shadow: var(--pro-shadow) !important;
+}
+
+body.tradingview-chart-first #chart {
+  background: #070d1d !important;
+}
+
+body.tradingview-chart-first .legend {
+  top: 16px !important;
+  left: 16px !important;
+  border-radius: 16px !important;
+  background: rgba(15, 23, 42, .78) !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(255, 255, 255, .12) !important;
+  box-shadow: 0 18px 54px rgba(0, 0, 0, .34) !important;
+  backdrop-filter: blur(18px) saturate(1.25) !important;
+}
+
+body.tradingview-chart-first .legend strong {
+  color: #fff !important;
+}
+
+body.tradingview-chart-first .chart-date-range-bar {
+  min-height: 38px !important;
+  padding: 6px 8px !important;
+  background: rgba(15, 23, 42, .72) !important;
+  border: 1px solid var(--pro-line) !important;
+  border-radius: 16px !important;
+  color: var(--pro-text) !important;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, .22) !important;
+}
+
+body.tradingview-chart-first .chart-date-range-buttons button {
+  color: #cbd5e1 !important;
+  border-radius: 999px !important;
+}
+
+body.tradingview-chart-first .chart-date-range-buttons button:hover,
+body.tradingview-chart-first .chart-date-range-buttons button.active {
+  background: rgba(79, 124, 255, .18) !important;
+  color: #fff !important;
+}
+
+body.tradingview-chart-first .chart-date-range-summary {
+  color: var(--pro-muted) !important;
+}
+
+body.tradingview-chart-first .bottom {
+  border: 1px solid var(--pro-line) !important;
+  border-radius: 22px 22px 0 0 !important;
+  background: rgba(8, 13, 24, .92) !important;
+  color: var(--pro-text) !important;
+  box-shadow: 0 -22px 80px rgba(0, 0, 0, .30) !important;
+  backdrop-filter: blur(20px) saturate(1.2) !important;
+  padding: 10px 12px !important;
+}
+
+body.tradingview-chart-first .tabs,
+body.tradingview-chart-first .result-tabs {
+  gap: 7px !important;
+}
+
+body.tradingview-chart-first .tabs button,
+body.tradingview-chart-first .result-tabs button {
+  padding: 0 12px !important;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+}
+
+body.tradingview-chart-first .result-tabs button.active-result-tab,
+body.tradingview-chart-first .result-tabs button[aria-selected="true"] {
+  background: #fff !important;
+  color: #0f172a !important;
+}
+
+body.tradingview-chart-first .results-surface,
+body.tradingview-chart-first .result-pane,
+body.tradingview-chart-first .legacy-output,
+body.tradingview-chart-first pre {
+  background: rgba(255, 255, 255, .055) !important;
+  color: #dbeafe !important;
+  border-color: rgba(255, 255, 255, .10) !important;
+}
+
+body.tradingview-chart-first .result-pane-stack pre,
+body.tradingview-chart-first .result-pane {
+  border-radius: 16px !important;
+}
+
+body.tradingview-chart-first .right .panel,
+body.tradingview-chart-first .workflow-panel,
+body.tradingview-chart-first aside:not(:has(.panel-rail-toggle)) {
+  background: var(--pro-panel) !important;
+  border: 1px solid var(--pro-line) !important;
+  border-radius: var(--pro-radius-lg) !important;
+  color: var(--pro-text) !important;
+  box-shadow: var(--pro-shadow) !important;
+}
+
+body.tradingview-chart-first .workflow-list span {
+  background: rgba(34, 211, 238, .12) !important;
+  color: #a5f3fc !important;
+  border-color: rgba(34, 211, 238, .28) !important;
+}
+
+body.tradingview-chart-first .workflow-list button,
+body.tradingview-chart-first .watch button {
+  background: rgba(255, 255, 255, .07) !important;
+  color: var(--pro-text) !important;
+  border-color: var(--pro-line) !important;
+  border-radius: 16px !important;
+}
+
+body.tradingview-chart-first .label,
+body.tradingview-chart-first .toolbar-section-label,
+body.tradingview-chart-first .muted,
+body.tradingview-chart-first .workflow-note,
+body.tradingview-chart-first .module-control-status {
+  color: var(--pro-muted) !important;
+}
+
+body.tradingview-chart-first .paper-trading-warning {
+  color: #fde68a !important;
+  background: rgba(251, 191, 36, .10) !important;
+  border-color: rgba(251, 191, 36, .26) !important;
+}
+
+body.tradingview-chart-first textarea#question {
+  min-height: 118px !important;
+  border-radius: 18px !important;
+}
+
+body.tradingview-chart-first .side-dock,
+body.tradingview-chart-first .right-dock,
+body.tradingview-chart-first [class*="right-dock"],
+body.tradingview-chart-first [class*="dock"] button {
+  border-radius: 14px !important;
+}
+
+body.tradingview-chart-first [class*="dock"] button {
+  background: rgba(255, 255, 255, .08) !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(255, 255, 255, .12) !important;
+}
