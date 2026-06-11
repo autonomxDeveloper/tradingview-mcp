@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
+from typing import Any
 
 import pytest
+import requests
 from fastapi.testclient import TestClient
 
 from tradingview_mcp import workstation_app
@@ -20,7 +22,45 @@ class ProviderUnavailable(RuntimeError):
     pass
 
 
-def require_lmstudio_ready() -> None:
+def lmstudio_base_url() -> str:
+    return os.environ.get("LMSTUDIO_BASE_URL", "http://localhost:1234/v1").rstrip("/")
+
+
+def detect_lmstudio_model() -> str:
+    configured = os.environ.get("LMSTUDIO_MODEL")
+    if configured:
+        return configured
+
+    try:
+        response = requests.get(
+            f"{lmstudio_base_url()}/models",
+            timeout=float(os.environ.get("LMSTUDIO_MODEL_DETECT_TIMEOUT_SECONDS", "10")),
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except requests.RequestException as exc:
+        raise ProviderUnavailable(f"Unable to auto-detect LM Studio model from /models: {exc}") from exc
+    except ValueError as exc:
+        raise ProviderUnavailable("LM Studio /models did not return valid JSON.") from exc
+
+    models = payload.get("data", []) if isinstance(payload, dict) else []
+    if not isinstance(models, list):
+        raise ProviderUnavailable("LM Studio /models response did not include a data list.")
+
+    for model in models:
+        if not isinstance(model, dict):
+            continue
+        model_id = str(model.get("id") or model.get("name") or "").strip()
+        if model_id:
+            return model_id
+
+    raise ProviderUnavailable("LM Studio is running but /models returned no loaded model id.")
+
+
+def require_lmstudio_ready(monkeypatch: pytest.MonkeyPatch) -> str:
+    detected_model = detect_lmstudio_model()
+    monkeypatch.setenv("LMSTUDIO_MODEL", detected_model)
+
     result = workstation_app._call_lmstudio(
         [
             {
@@ -37,10 +77,11 @@ def require_lmstudio_ready() -> None:
         raise ProviderUnavailable(str(result["error"]))
     if not str(result.get("content") or "").strip():
         raise ProviderUnavailable("LM Studio returned an empty response.")
+    return detected_model
 
 
 def make_live_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
-    require_lmstudio_ready()
+    detected_model = require_lmstudio_ready(monkeypatch)
 
     monkeypatch.setenv("LMSTUDIO_TIMEOUT_SECONDS", os.environ.get("LMSTUDIO_TIMEOUT_SECONDS", "120"))
     monkeypatch.setattr(workstation_app, "get_price", lambda symbol: {"symbol": symbol, "price": 123.45, "source": "live-lmstudio-test"})
@@ -63,6 +104,7 @@ def make_live_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setattr(workstation_app, "list_paper_orders", lambda limit=100: [])
     monkeypatch.setattr(workstation_app, "list_paper_fills", lambda limit=100: [])
     monkeypatch.setattr(workstation_app, "append_journal_event", lambda event_type, payload: {"id": "lmstudio-live-event", "type": event_type, "payload": payload})
+    monkeypatch.setattr(workstation_app, "_lmstudio_model", lambda: detected_model)
 
     return TestClient(workstation_app.create_app())
 
@@ -80,6 +122,11 @@ def live_ai_request() -> dict[str, object]:
     }
 
 
+def assert_model_was_detected(payload: dict[str, Any]) -> None:
+    model = payload.get("ai", {}).get("model") or payload.get("trade_idea", {}).get("model") or payload.get("ai_response", {}).get("model")
+    assert str(model or "").strip()
+
+
 def test_live_lmstudio_analyze_endpoint_returns_model_content(monkeypatch: pytest.MonkeyPatch):
     client = make_live_client(monkeypatch)
 
@@ -89,6 +136,7 @@ def test_live_lmstudio_analyze_endpoint_returns_model_content(monkeypatch: pytes
 
     assert "error" not in payload.get("ai", {})
     assert str(payload["ai"].get("content") or "").strip()
+    assert_model_was_detected(payload)
     assert payload["market"]["symbol"] == "AAPL"
     assert payload["market"]["asset_type"] == "stock"
 
@@ -110,6 +158,7 @@ def test_live_lmstudio_trade_idea_endpoint_preserves_research_boundary(monkeypat
 
     assert "error" not in payload.get("ai", {})
     assert str(payload["ai"].get("content") or "").strip()
+    assert_model_was_detected(payload)
     assert payload["journal_event"]["payload"]["live_execution"] is False
     assert payload["journal_event"]["payload"]["not_financial_advice"] is True
 
@@ -133,6 +182,7 @@ def test_live_lmstudio_paper_decision_endpoint_stays_paper_only(monkeypatch: pyt
 
     assert "error" not in payload.get("ai", {})
     assert str(payload["ai"].get("content") or "").strip()
+    assert_model_was_detected(payload)
     assert payload["paper_only"] is True
     assert payload["live_execution"] is False
     assert payload["execution_submitted"] is False
