@@ -1,7 +1,53 @@
 /* Stabilize the TradingView-style right dock as a click-only drawer.
    The base cleanup CSS intentionally clamps side panels to 44px when collapsed;
-   this file restores the real drawer width only for the explicit research-expanded state
+   this file restores the real drawer width only for explicit panel state classes
    and keeps chart toolbar/stream controls from stacking over the drawer. */
+
+body.side-panels-collapsed main {
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+}
+
+body.side-panels-collapsed.watchlist-expanded:not(.research-expanded) main {
+  grid-template-columns: 220px minmax(0, 1fr) 44px;
+}
+
+body.side-panels-collapsed.research-expanded:not(.watchlist-expanded) main {
+  grid-template-columns: 44px minmax(0, 1fr) minmax(360px, 390px);
+}
+
+body.side-panels-collapsed.watchlist-expanded.research-expanded main {
+  grid-template-columns: 220px minmax(0, 1fr) minmax(360px, 390px);
+}
+
+body.side-panels-collapsed aside {
+  z-index: 130;
+  isolation: isolate;
+}
+
+body.side-panels-collapsed.watchlist-expanded aside {
+  width: auto;
+  min-width: 220px;
+  max-width: 220px;
+  overflow: auto !important;
+  cursor: default;
+  contain: layout paint style;
+}
+
+body.side-panels-collapsed.watchlist-expanded aside::before,
+body.side-panels-collapsed aside:hover::before,
+body.side-panels-collapsed aside:focus-within::before {
+  display: none !important;
+}
+
+body.side-panels-collapsed.watchlist-expanded aside > * {
+  display: block !important;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+body.side-panels-collapsed.watchlist-expanded aside > .watchlist-rail-toggle {
+  display: block !important;
+}
 
 body.side-panels-collapsed .right.tradingview-right-panel {
   z-index: 140;
