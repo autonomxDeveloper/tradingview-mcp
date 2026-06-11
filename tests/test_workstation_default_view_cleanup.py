@@ -75,4 +75,6 @@ def test_default_chart_load_is_awaited_and_resized_after_layout_settles():
     ]:
         assert expected in app
 
-    assert "loadMarket();\n}" not in app
+    boot_body = app.split("async function boot()", 1)[1].split("function activeIsCrypto", 1)[0]
+    assert "await loadMarket();" in boot_body
+    assert "loadMarket();\n}" not in boot_body
