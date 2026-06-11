@@ -36,16 +36,15 @@
     return false;
   }
 
-  function makeTopButton(label, title, callback) {
+  function topButton(label, title, attrs) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'tv-compact-top-button';
     button.textContent = label;
     button.title = title || label;
-    button.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      callback();
+    Object.entries(attrs || {}).forEach(([key, value]) => {
+      if (key === 'dataset') Object.entries(value).forEach(([dataKey, dataValue]) => { button.dataset[dataKey] = dataValue; });
+      else button.setAttribute(key, value);
     });
     return button;
   }
@@ -66,61 +65,104 @@
     runAction('market.load');
   }
 
-  function installCompactTopToolbar() {
-    const topbar = document.querySelector('.topbar');
-    if (!topbar || document.getElementById('compactTradingTopToolbar')) return;
-
-    document.body.classList.add('top-toolbar-integrated');
-    document.body.classList.add('top-tools-collapsed');
-    topbar.classList.add('compact-market-toolbar');
-
-    const compact = document.createElement('div');
-    compact.id = 'compactTradingTopToolbar';
-    compact.setAttribute('aria-label', 'Compact TradingView-style top toolbar');
-
-    const symbol = document.getElementById('symbol');
-    const timeframe = document.getElementById('tf');
-    const load = topbar.querySelector('[data-action="market.load"]');
-
-    if (symbol) compact.appendChild(symbol);
-    compact.appendChild(makeTopButton('＋', 'Add or compare symbol', () => {
-      const next = window.prompt('Load symbol', symbol ? symbol.value : 'BTCUSDT');
-      if (next && symbol) {
-        symbol.value = next.trim().toUpperCase();
-        runAction('market.load');
-      }
-    }));
-    QUICK_INTERVALS.forEach((item) => compact.appendChild(makeTopButton(item.label, `Set timeframe to ${item.label}`, () => setInterval(item.value))));
-    if (timeframe) compact.appendChild(timeframe);
-    compact.appendChild(makeTopButton('▥', 'Candles / chart type', () => runAction('chart.fit')));
-    compact.appendChild(makeTopButton('Indicators', 'Open indicator tools in the right sidebar', () => {
-      openSideTools();
-      const panel = document.querySelector('.side-chart-tools-panel');
-      if (panel) panel.scrollIntoView({ block: 'start' });
-    }));
-    compact.appendChild(makeTopButton('⌗', 'Layout grid', () => openSideTools()));
-    compact.appendChild(makeTopButton('Alert', 'Open research alerts panel', () => {
-      if (typeof window.toggleWorkstationPanel === 'function' && !document.body.classList.contains('research-expanded')) window.toggleWorkstationPanel('research');
-    }));
-    compact.appendChild(makeTopButton('Replay', 'Open journal timeline/replay context', () => runAction('journal.load')));
-    compact.appendChild(makeTopButton('↶', 'Reset chart layout', () => runAction('layout.reset')));
-    compact.appendChild(makeTopButton('↷', 'Auto-fit chart', () => runAction('chart.fit')));
-    if (load) {
-      load.textContent = 'Load';
-      load.classList.add('tv-compact-load-button');
-      compact.appendChild(load);
-    }
-
-    topbar.prepend(compact);
-    refreshChartSurface();
-  }
-
   function openSideTools() {
     if (typeof window.toggleWorkstationPanel === 'function' && !document.body.classList.contains('research-expanded')) {
       window.toggleWorkstationPanel('research');
     } else {
       document.body.classList.add('research-expanded');
     }
+  }
+
+  function ensureCompactToolbarMarkup(topbar) {
+    let compact = document.getElementById('compactTradingTopToolbar');
+    if (compact) return compact;
+
+    compact = document.createElement('div');
+    compact.id = 'compactTradingTopToolbar';
+    compact.setAttribute('aria-label', 'TradingView-style compact chart toolbar');
+
+    const symbol = document.getElementById('symbol');
+    const timeframe = document.getElementById('tf');
+    const load = topbar.querySelector('[data-action="market.load"]');
+    const analyze = topbar.querySelector('[data-action="analysis.run"]');
+
+    if (symbol) compact.appendChild(symbol);
+    compact.appendChild(topButton('＋', 'Load or compare symbol', { dataset: { compactAction: 'symbolPrompt' } }));
+    QUICK_INTERVALS.forEach((item) => compact.appendChild(topButton(item.label, `Set timeframe to ${item.label}`, { dataset: { compactTimeframe: item.value } })));
+    if (timeframe) compact.appendChild(timeframe);
+    compact.appendChild(topButton('▥', 'Candles / chart type', { dataset: { compactAction: 'fit' } }));
+    compact.appendChild(topButton('Indicators', 'Open indicators and chart tools', { dataset: { compactAction: 'indicators' } }));
+    compact.appendChild(topButton('⌗', 'Layout grid', { dataset: { compactAction: 'layout' } }));
+    compact.appendChild(topButton('Alert', 'Open alerts / research panel', { dataset: { compactAction: 'alerts' } }));
+    compact.appendChild(topButton('Replay', 'Open journal timeline / replay', { dataset: { compactAction: 'replay' } }));
+    compact.appendChild(topButton('↶', 'Reset chart layout', { dataset: { compactAction: 'reset' } }));
+    compact.appendChild(topButton('↷', 'Auto-fit chart', { dataset: { compactAction: 'fit' } }));
+    if (load) {
+      load.textContent = 'Load';
+      load.classList.add('tv-compact-load-button');
+      compact.appendChild(load);
+    }
+    if (analyze) {
+      analyze.textContent = 'AI';
+      analyze.classList.add('tv-compact-load-button', 'tv-compact-ai-button');
+      compact.appendChild(analyze);
+    }
+
+    topbar.prepend(compact);
+    return compact;
+  }
+
+  function bindCompactToolbar(compact) {
+    if (!compact || compact.dataset.boundCompactTopToolbar === 'true') return;
+    compact.dataset.boundCompactTopToolbar = 'true';
+    compact.addEventListener('click', (event) => {
+      const button = event.target.closest('button');
+      if (!button || !compact.contains(button)) return;
+      const timeframe = button.dataset.compactTimeframe;
+      const action = button.dataset.compactAction;
+      if (!timeframe && !action) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (timeframe) {
+        setInterval(timeframe);
+        return;
+      }
+      if (action === 'symbolPrompt') {
+        const symbol = document.getElementById('symbol');
+        const next = window.prompt('Load symbol', symbol ? symbol.value : 'BTCUSDT');
+        if (next && symbol) {
+          symbol.value = next.trim().toUpperCase();
+          runAction('market.load');
+        }
+      } else if (action === 'indicators' || action === 'layout') {
+        openSideTools();
+        const panel = document.querySelector('.side-chart-tools-panel');
+        if (panel) panel.scrollIntoView({ block: 'start' });
+      } else if (action === 'alerts') {
+        if (typeof window.toggleWorkstationPanel === 'function' && !document.body.classList.contains('research-expanded')) window.toggleWorkstationPanel('research');
+        else document.body.classList.add('research-expanded');
+      } else if (action === 'replay') {
+        runAction('journal.load');
+      } else if (action === 'reset') {
+        runAction('layout.reset');
+      } else if (action === 'fit') {
+        runAction('chart.fit');
+      }
+    });
+  }
+
+  function installCompactTopToolbar() {
+    const topbar = document.querySelector('.topbar');
+    if (!topbar) return false;
+
+    document.body.classList.add('top-toolbar-integrated');
+    document.body.classList.add('top-tools-collapsed');
+    topbar.classList.add('compact-market-toolbar');
+
+    const compact = ensureCompactToolbarMarkup(topbar);
+    bindCompactToolbar(compact);
+    refreshChartSurface();
+    return true;
   }
 
   function installSideToolStyles() {
@@ -132,23 +174,28 @@
         grid-template-rows: 42px minmax(0, 1fr) auto auto 96px;
       }
       body.top-toolbar-integrated .topbar {
+        display: flex !important;
+        visibility: visible !important;
         min-height: 42px;
         height: 42px;
         padding: 0 8px;
         overflow: hidden;
         flex-wrap: nowrap;
+        z-index: 120;
       }
       body.top-toolbar-integrated.top-tools-collapsed .topbar > :not(#compactTradingTopToolbar),
       body.top-toolbar-integrated .topbar > :not(#compactTradingTopToolbar) {
         display: none !important;
       }
       #compactTradingTopToolbar {
-        display: flex;
+        display: flex !important;
+        visibility: visible !important;
         align-items: center;
         gap: 7px;
         width: 100%;
         min-width: 0;
         white-space: nowrap;
+        overflow: hidden;
       }
       #compactTradingTopToolbar #symbol {
         display: inline-block !important;
@@ -182,6 +229,7 @@
         color: #131722 !important;
         font-size: 14px !important;
         font-weight: 650 !important;
+        white-space: nowrap;
       }
       .tv-compact-top-button:hover,
       .tv-compact-top-button:focus-visible,
@@ -282,7 +330,10 @@
 
   function install() {
     installSideToolStyles();
-    installCompactTopToolbar();
+    if (!installCompactTopToolbar()) {
+      window.requestAnimationFrame(installCompactTopToolbar);
+      window.setTimeout(installCompactTopToolbar, 120);
+    }
     if (!moveChartToolsToSidePanel()) {
       window.requestAnimationFrame(moveChartToolsToSidePanel);
       window.setTimeout(moveChartToolsToSidePanel, 120);
