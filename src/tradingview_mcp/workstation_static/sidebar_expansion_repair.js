@@ -8,8 +8,9 @@
     style.id = 'sidebarExpansionRepairStyles';
     style.textContent = `
       :root {
-        --sidebar-slide-duration: 320ms;
-        --sidebar-slide-ease: cubic-bezier(.22, 1, .36, 1);
+        --sidebar-slide-duration: 680ms;
+        --sidebar-slide-content-duration: 460ms;
+        --sidebar-slide-ease: cubic-bezier(.16, 1, .3, 1);
       }
 
       body.tradingview-chart-first main,
@@ -22,8 +23,8 @@
           min-width var(--sidebar-slide-duration) var(--sidebar-slide-ease),
           max-width var(--sidebar-slide-duration) var(--sidebar-slide-ease),
           padding var(--sidebar-slide-duration) var(--sidebar-slide-ease),
-          background-color 220ms ease,
-          box-shadow 220ms ease !important;
+          background-color 360ms ease,
+          box-shadow 360ms ease !important;
         will-change: grid-template-columns, width, min-width, max-width;
       }
 
@@ -40,8 +41,8 @@
       body.tradingview-chart-first .right.tradingview-right-panel .panel,
       body.tradingview-chart-first .right.tradingview-right-panel .workflow-panel {
         transition:
-          opacity 210ms ease,
-          visibility 210ms ease,
+          opacity var(--sidebar-slide-content-duration) ease,
+          visibility var(--sidebar-slide-content-duration) ease,
           transform var(--sidebar-slide-duration) var(--sidebar-slide-ease) !important;
         will-change: opacity, transform;
       }
@@ -50,7 +51,7 @@
         opacity: 0 !important;
         visibility: hidden !important;
         pointer-events: none !important;
-        transform: translateX(-14px) scale(.98) !important;
+        transform: translateX(-18px) scale(.985) !important;
       }
 
       body.tradingview-chart-first.side-panels-collapsed:not(.research-expanded) .right.tradingview-right-panel > .tradingview-alerts-panel,
@@ -58,7 +59,7 @@
         opacity: 0 !important;
         visibility: hidden !important;
         pointer-events: none !important;
-        transform: translateX(18px) scale(.985) !important;
+        transform: translateX(22px) scale(.985) !important;
       }
 
       body.tradingview-chart-first.side-panels-collapsed.watchlist-expanded main {
@@ -204,9 +205,10 @@
     const resize = window.resizePrimaryChartToSurface || window.scheduleChartSurfaceRefresh;
     if (typeof resize === 'function') {
       window.requestAnimationFrame(() => resize());
-      window.setTimeout(() => resize(), 100);
-      window.setTimeout(() => resize(), 220);
-      window.setTimeout(() => resize(), 380);
+      window.setTimeout(() => resize(), 120);
+      window.setTimeout(() => resize(), 280);
+      window.setTimeout(() => resize(), 520);
+      window.setTimeout(() => resize(), 760);
     }
   }
 
@@ -276,8 +278,9 @@
       if (!target) return;
       if (target.closest('[data-chrome-toggle]') || target.closest('.tradingview-right-dock-button') || target.closest('.chart-tool-button')) {
         window.setTimeout(applyGeometry, 0);
-        window.setTimeout(applyGeometry, 80);
-        window.setTimeout(applyGeometry, 220);
+        window.setTimeout(applyGeometry, 140);
+        window.setTimeout(applyGeometry, 320);
+        window.setTimeout(applyGeometry, 700);
       }
     }, true);
   }
