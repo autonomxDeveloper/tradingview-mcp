@@ -30,9 +30,9 @@ These tests are still research and paper-trading only:
 
 ## Model auto-detection
 
-`LMSTUDIO_MODEL` is optional. When it is not set, the live test suite calls the LM Studio OpenAI-compatible `/models` endpoint and uses the first returned model id. This keeps local runs aligned with whichever model is currently loaded in LM Studio.
+`LMSTUDIO_MODEL` is optional. When it is not set, the live test suite first probes the default loaded LM Studio chat model by calling `/chat/completions` without a `model` field. If that default probe returns empty content, the suite calls `/models` and probes each returned model id until one produces non-empty chat content.
 
-Set `LMSTUDIO_MODEL` only when you want to force a specific model id instead of using auto-detection.
+Set `LMSTUDIO_MODEL` only when you want to force a specific model id. Forced models are still probed before the workstation endpoints run, so an unloaded, non-chat, or empty-response model fails early with a targeted message.
 
 ## Run the live tests
 
@@ -74,4 +74,4 @@ The tests are skipped unless `RUN_LMSTUDIO_API_TESTS=1` is set. When enabled, th
 - `/api/ai/trade-idea` returns non-empty LM Studio content, reports a detected model id, and preserves the research-only journal boundary.
 - `/api/ai/paper-trader/decision` returns non-empty LM Studio content, reports a detected model id, and preserves paper-only safety flags.
 
-The tests may fail if LM Studio is not running, no model is loaded, `/models` returns no model id, the configured model name is wrong, or the model returns an empty response.
+The tests may fail if LM Studio is not running, no chat model is loaded, every probed model returns empty content, the configured model name is wrong, or the model cannot answer the readiness probe within `LMSTUDIO_TIMEOUT_SECONDS`.
