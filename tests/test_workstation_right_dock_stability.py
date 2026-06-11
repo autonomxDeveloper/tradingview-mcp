@@ -26,9 +26,10 @@ def test_right_dock_clicks_toggle_panel_and_stop_old_toggle_path():
         "function setRightPanelOpen(open)",
         "classList.toggle('research-expanded', Boolean(open))",
         "function toggleRightPanel()",
+        "function handleRightDockButton(target, event)",
         "'.tradingview-right-dock-button'",
         "const wasOpen = document.body.classList.contains('research-expanded')",
-        "event.stopImmediatePropagation();",
+        "stopLegacySidebarToggle(event);",
         "toggleRightPanel();",
         "clearActiveDockButtons();",
         "setActiveDockButton(dockButton);",
@@ -62,6 +63,22 @@ def test_left_and_right_sidebars_preserve_independent_state():
         assert expected in stability
 
 
+def test_sidebar_controller_intercepts_legacy_pointer_and_click_paths():
+    stability = read_static("right_dock_stability.js")
+
+    for expected in [
+        "function stopLegacySidebarToggle(event)",
+        "event.stopImmediatePropagation();",
+        "function handleSidebarPointerIntent(event)",
+        "function handleSidebarClick(event)",
+        "document.addEventListener('pointerdown', handleSidebarPointerIntent, true);",
+        "document.addEventListener('mousedown', handleSidebarPointerIntent, true);",
+        "document.addEventListener('click', handleSidebarClick, true);",
+        "if (action === 'watchlist' || action === 'research')",
+    ]:
+        assert expected in stability
+
+
 def test_right_dock_layering_stylesheet_is_loaded_by_stability_layer():
     stability = read_static("right_dock_stability.js")
 
@@ -89,5 +106,24 @@ def test_right_dock_layering_css_unclamps_expanded_panel_above_chart_controls():
         "body.side-panels-collapsed.research-expanded .center",
         "z-index: 1;",
         "body.side-panels-collapsed.research-expanded .stream-status",
+    ]:
+        assert expected in css
+
+
+def test_collapsed_sidebar_grid_states_are_explicit_and_independent():
+    css = read_static("right_dock_layering.css")
+
+    for expected in [
+        "body.side-panels-collapsed main",
+        "grid-template-columns: 44px minmax(0, 1fr) 44px;",
+        "body.side-panels-collapsed.watchlist-expanded:not(.research-expanded) main",
+        "grid-template-columns: 220px minmax(0, 1fr) 44px;",
+        "body.side-panels-collapsed.research-expanded:not(.watchlist-expanded) main",
+        "grid-template-columns: 44px minmax(0, 1fr) minmax(360px, 390px);",
+        "body.side-panels-collapsed.watchlist-expanded.research-expanded main",
+        "grid-template-columns: 220px minmax(0, 1fr) minmax(360px, 390px);",
+        "body.side-panels-collapsed.watchlist-expanded aside",
+        "min-width: 220px;",
+        "max-width: 220px;",
     ]:
         assert expected in css
