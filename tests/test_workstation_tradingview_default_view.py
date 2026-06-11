@@ -116,6 +116,24 @@ def test_chrome_defaults_crypto_daily_weekly_to_full_history_window():
         assert expected in chrome
 
 
+def test_crypto_history_fetch_shim_loads_before_app_and_rewrites_daily_weekly_limits():
+    index = read_static("index.html")
+    shim = read_static("crypto_history_fetch_shim.js")
+
+    assert index.index('/static/crypto_history_fetch_shim.js') < index.index('/static/app.js')
+
+    for expected in [
+        "FULL_CRYPTO_HISTORY_CANDLE_LIMIT = 5000",
+        "window.fetch = function cryptoHistoryFetch(input, init)",
+        "pathname !== '/api/crypto/candles'",
+        "interval !== '1d' && interval !== '1w'",
+        "currentLimit < FULL_CRYPTO_HISTORY_CANDLE_LIMIT",
+        "url.searchParams.set('limit', String(FULL_CRYPTO_HISTORY_CANDLE_LIMIT))",
+        "window.workstationCryptoHistoryFetchShim",
+    ]:
+        assert expected in shim
+
+
 def test_chart_theme_bootstrap_loads_before_app_and_patches_lightweight_charts():
     index = read_static("index.html")
     bootstrap = read_static("tradingview_chart_theme_bootstrap.js")
