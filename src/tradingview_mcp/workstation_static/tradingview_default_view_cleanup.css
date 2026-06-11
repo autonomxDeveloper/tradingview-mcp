@@ -1,0 +1,184 @@
+/* Default TradingView-like cleanup pass.
+   Keep panels available, but start chart-first, day-mode, and uncluttered. */
+
+body.day-mode-default {
+  color-scheme: light;
+  background: #f8fafc;
+}
+
+body.side-panels-collapsed main {
+  grid-template-columns: 44px minmax(960px, 1fr) 44px;
+  transition: grid-template-columns 160ms ease;
+}
+
+body.side-panels-collapsed aside,
+body.side-panels-collapsed .right {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  background: #fff;
+  z-index: 20;
+}
+
+body.side-panels-collapsed aside > *,
+body.side-panels-collapsed .right > * {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+body.side-panels-collapsed aside::before,
+body.side-panels-collapsed .right::before {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  font-size: 11px;
+  color: #64748b;
+  background: #fff;
+  border-color: #d9e1ec;
+  z-index: 2;
+}
+
+body.side-panels-collapsed aside::before {
+  content: "Watchlist";
+  border-right: 1px solid #d9e1ec;
+}
+
+body.side-panels-collapsed .right::before {
+  content: "Research";
+  border-left: 1px solid #d9e1ec;
+}
+
+body.side-panels-collapsed main:has(> aside:hover),
+body.side-panels-collapsed main:has(> aside:focus-within) {
+  grid-template-columns: 220px minmax(780px, 1fr) 44px;
+}
+
+body.side-panels-collapsed main:has(> .right:hover),
+body.side-panels-collapsed main:has(> .right:focus-within) {
+  grid-template-columns: 44px minmax(780px, 1fr) 380px;
+}
+
+body.side-panels-collapsed aside:hover > *,
+body.side-panels-collapsed aside:focus-within > *,
+body.side-panels-collapsed .right:hover > *,
+body.side-panels-collapsed .right:focus-within > * {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+body.side-panels-collapsed aside:hover::before,
+body.side-panels-collapsed aside:focus-within::before,
+body.side-panels-collapsed .right:hover::before,
+body.side-panels-collapsed .right:focus-within::before {
+  display: none;
+}
+
+body.chart-toolbar-clean .center {
+  grid-template-rows: 40px 36px minmax(660px, 1fr) auto 112px;
+}
+
+body.chart-toolbar-clean .topbar {
+  gap: 6px;
+  padding: 4px 10px;
+  min-height: 40px;
+  overflow: hidden;
+}
+
+body.chart-toolbar-clean #symbol {
+  min-width: 88px;
+  max-width: 110px;
+  padding-left: 4px;
+}
+
+body.chart-toolbar-clean #asset {
+  width: 82px;
+}
+
+body.chart-toolbar-clean #exchange {
+  width: 104px;
+}
+
+body.chart-toolbar-clean #tf {
+  width: 70px;
+}
+
+body.chart-toolbar-clean .topbar button {
+  height: 30px;
+  padding: 4px 10px;
+}
+
+body.chart-toolbar-clean .chartbar {
+  min-height: 36px;
+  padding: 3px 10px;
+  overflow: hidden;
+  gap: 8px;
+}
+
+body.chart-toolbar-clean .chartbar .toolbar-section-label {
+  display: none;
+}
+
+body.chart-toolbar-clean .chart-controls {
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+body.chart-toolbar-clean .chart-controls button {
+  height: 28px;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+body.chart-toolbar-clean .drawing-controls,
+body.chart-toolbar-clean .layout-controls {
+  display: none !important;
+}
+
+body.chart-toolbar-clean .metadata-controls {
+  min-width: 220px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin-left: auto;
+  border-right: 0;
+}
+
+body.chart-toolbar-clean #chartGrid,
+body.chart-toolbar-clean #chartWrap,
+body.chart-toolbar-clean #chart {
+  min-height: 640px;
+}
+
+body.chart-toolbar-clean #chart {
+  height: 100%;
+}
+
+body.chart-toolbar-clean .bottom {
+  max-height: 112px;
+  overflow: hidden;
+}
+
+body.chart-toolbar-clean .result-pane-stack pre,
+body.chart-toolbar-clean .result-pane {
+  max-height: 60px;
+}
+
+body.chart-toolbar-clean .legend {
+  color: #131722;
+}
+
+@media (max-width: 1200px) {
+  body.side-panels-collapsed main {
+    grid-template-columns: 38px minmax(640px, 1fr) 38px;
+  }
+
+  body.chart-toolbar-clean .center {
+    grid-template-rows: 40px 36px minmax(520px, 1fr) auto 96px;
+  }
+}
