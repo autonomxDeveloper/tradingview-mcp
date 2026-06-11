@@ -28,6 +28,12 @@ These tests are still research and paper-trading only:
    uv sync
    ```
 
+## Model auto-detection
+
+`LMSTUDIO_MODEL` is optional. When it is not set, the live test suite calls the LM Studio OpenAI-compatible `/models` endpoint and uses the first returned model id. This keeps local runs aligned with whichever model is currently loaded in LM Studio.
+
+Set `LMSTUDIO_MODEL` only when you want to force a specific model id instead of using auto-detection.
+
 ## Run the live tests
 
 PowerShell:
@@ -35,9 +41,14 @@ PowerShell:
 ```powershell
 $env:RUN_LMSTUDIO_API_TESTS="1"
 $env:LMSTUDIO_BASE_URL="http://localhost:1234/v1"
-$env:LMSTUDIO_MODEL="your-loaded-model-name"  # optional when LM Studio has a default loaded model
 $env:LMSTUDIO_TIMEOUT_SECONDS="120"
 uv run pytest tests/test_workstation_lmstudio_live_api.py -q
+```
+
+Optional forced model:
+
+```powershell
+$env:LMSTUDIO_MODEL="your-loaded-model-name"
 ```
 
 Bash:
@@ -45,17 +56,22 @@ Bash:
 ```bash
 RUN_LMSTUDIO_API_TESTS=1 \
 LMSTUDIO_BASE_URL=http://localhost:1234/v1 \
-LMSTUDIO_MODEL=your-loaded-model-name \
 LMSTUDIO_TIMEOUT_SECONDS=120 \
 uv run pytest tests/test_workstation_lmstudio_live_api.py -q
+```
+
+Optional forced model:
+
+```bash
+export LMSTUDIO_MODEL=your-loaded-model-name
 ```
 
 ## Expected behavior
 
 The tests are skipped unless `RUN_LMSTUDIO_API_TESTS=1` is set. When enabled, they verify:
 
-- `/api/ai/analyze` returns non-empty LM Studio content.
-- `/api/ai/trade-idea` returns non-empty LM Studio content and preserves the research-only journal boundary.
-- `/api/ai/paper-trader/decision` returns non-empty LM Studio content while preserving paper-only safety flags.
+- `/api/ai/analyze` returns non-empty LM Studio content and reports a detected model id.
+- `/api/ai/trade-idea` returns non-empty LM Studio content, reports a detected model id, and preserves the research-only journal boundary.
+- `/api/ai/paper-trader/decision` returns non-empty LM Studio content, reports a detected model id, and preserves paper-only safety flags.
 
-The tests may fail if LM Studio is not running, no model is loaded, the configured model name is wrong, or the model returns an empty response.
+The tests may fail if LM Studio is not running, no model is loaded, `/models` returns no model id, the configured model name is wrong, or the model returns an empty response.
