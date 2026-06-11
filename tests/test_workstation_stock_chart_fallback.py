@@ -13,6 +13,14 @@ class FakeYahooNoDataResponse:
         return {"chart": {"result": []}}
 
 
+class FakeYahooEdgeResponse:
+    status_code = 200
+    text = "Edge: Too Many Requests"
+
+    def json(self) -> dict[str, Any]:
+        raise ValueError("not json")
+
+
 class FakeStooqCsvResponse:
     status_code = 200
     text = "\n".join(
@@ -28,11 +36,21 @@ class FakeStooqCsvResponse:
         raise ValueError("CSV response")
 
 
+class FakeStooqEdgeResponse:
+    status_code = 200
+    text = "Edge: Too Many Requests"
+
+    def json(self) -> dict[str, Any]:
+        raise ValueError("edge response")
+
+
 def test_spy_daily_chart_falls_back_to_stooq_when_yahoo_has_no_data(monkeypatch, tmp_path):
     calls: list[str] = []
 
     def fake_get(url: str, **kwargs: Any):
         calls.append(url)
+        assert "headers" in kwargs
+        assert "Mozilla/5.0" in kwargs["headers"]["User-Agent"]
         if "query1.finance.yahoo.com" in url:
             return FakeYahooNoDataResponse()
         if "stooq.com" in url:
@@ -58,6 +76,44 @@ def test_spy_daily_chart_falls_back_to_stooq_when_yahoo_has_no_data(monkeypatch,
     assert len(payload["candles"]) == 2
     assert payload["candles"][0]["close"] == 474.5
     assert payload["candles"][1]["close"] == 473.0
+
+
+def test_spy_daily_chart_falls_back_to_stooq_when_yahoo_edge_rate_limits(monkeypatch):
+    def fake_get(url: str, **kwargs: Any):
+        assert "headers" in kwargs
+        if "query1.finance.yahoo.com" in url:
+            return FakeYahooEdgeResponse()
+        if "stooq.com" in url:
+            assert kwargs["params"] == {"s": "spy.us", "i": "d"}
+            return FakeStooqCsvResponse()
+        raise AssertionError(f"unexpected URL: {url}")
+
+    monkeypatch.setattr(charts.requests, "get", fake_get)
+    monkeypatch.setattr(charts, "write_cache", lambda _key, payload, source="": payload)
+    monkeypatch.setattr(charts, "fallback_from_cache", lambda _key, payload: payload)
+
+    payload = charts.get_yahoo_chart("SPY", "1D", 2)
+
+    assert payload["source"] == "stooq_daily_csv"
+    assert payload["fallback_from"] == "INVALID_RESPONSE"
+    assert len(payload["candles"]) == 2
+
+
+def test_stooq_provider_error_text_is_not_parsed_as_candles(monkeypatch):
+    def fake_get(url: str, **_kwargs: Any):
+        if "query1.finance.yahoo.com" in url:
+            return FakeYahooEdgeResponse()
+        if "stooq.com" in url:
+            return FakeStooqEdgeResponse()
+        raise AssertionError(f"unexpected URL: {url}")
+
+    monkeypatch.setattr(charts.requests, "get", fake_get)
+    monkeypatch.setattr(charts, "fallback_from_cache", lambda _key, payload: payload)
+
+    payload = charts.get_yahoo_chart("SPY", "1D", 20)
+
+    assert payload["error"]["code"] == "INVALID_RESPONSE"
+    assert "Edge: Too Many Requests" in payload["error"]["message"]
 
 
 def test_stooq_fallback_does_not_override_intraday_errors(monkeypatch):

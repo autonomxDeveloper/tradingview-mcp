@@ -24,6 +24,17 @@ YAHOO_RANGE_BY_TIMEFRAME = {
     "1M": ("10y", "1mo"),
 }
 STOOQ_FALLBACK_TIMEFRAMES = {"1D"}
+MARKET_DATA_HEADERS = {
+    "Accept": "text/csv,application/json,text/plain,*/*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Cache-Control": "no-cache",
+    "Pragma": "no-cache",
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/125.0.0.0 Safari/537.36"
+    ),
+}
 
 
 def _json_error(code: str, message: str, **extra: Any) -> dict[str, Any]:
@@ -47,7 +58,29 @@ def _stooq_symbol(symbol: str) -> str:
     return f"{clean}.us"
 
 
+def _looks_like_provider_error(text: str) -> bool:
+    sample = (text or "").strip().lower()[:200]
+    if not sample:
+        return True
+    return any(
+        marker in sample
+        for marker in (
+            "too many requests",
+            "edge:",
+            "rate limit",
+            "access denied",
+            "forbidden",
+            "not found",
+            "no data",
+            "<html",
+            "<!doctype",
+        )
+    )
+
+
 def _parse_stooq_daily_csv(symbol: str, text: str, limit: int) -> dict[str, Any] | None:
+    if _looks_like_provider_error(text):
+        return None
     rows = list(csv.DictReader(StringIO(text)))
     candles: list[dict[str, Any]] = []
     for row in rows:
@@ -96,6 +129,7 @@ def _get_stooq_daily_chart(symbol: str, limit: int) -> dict[str, Any] | None:
         response = requests.get(
             "https://stooq.com/q/d/l/",
             params={"s": stooq_symbol, "i": "d"},
+            headers=MARKET_DATA_HEADERS,
             timeout=20,
         )
     except requests.RequestException:
@@ -124,6 +158,7 @@ def get_yahoo_chart(symbol: str, timeframe: str = "1D", limit: int = 500) -> dic
         response = requests.get(
             f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}",
             params={"range": range_value, "interval": interval, "includePrePost": "true", "events": "div,splits"},
+            headers=MARKET_DATA_HEADERS,
             timeout=20,
         )
     except requests.RequestException as exc:

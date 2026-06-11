@@ -46,7 +46,7 @@ def _chart_payload():
 def test_chart_service_shapes_candles(monkeypatch, tmp_path):
     monkeypatch.setenv("TRADING_WORKSTATION_MARKET_CACHE", str(tmp_path / "cache"))
 
-    def fake_get(url, params=None, timeout=None):
+    def fake_get(url, params=None, timeout=None, **_kwargs):
         return _FakeResponse(200, _chart_payload())
 
     monkeypatch.setattr(workstation_chart_service.requests, "get", fake_get)
@@ -66,14 +66,14 @@ def test_chart_service_shapes_candles(monkeypatch, tmp_path):
 def test_chart_service_uses_stale_cache_on_failure(monkeypatch, tmp_path):
     monkeypatch.setenv("TRADING_WORKSTATION_MARKET_CACHE", str(tmp_path / "cache"))
 
-    def good_get(url, params=None, timeout=None):
+    def good_get(url, params=None, timeout=None, **_kwargs):
         return _FakeResponse(200, _chart_payload())
 
     monkeypatch.setattr(workstation_chart_service.requests, "get", good_get)
     live = workstation_chart_service.get_yahoo_chart("AAPL", "1D", 1)
     assert live["metadata"]["cache_status"] == "live"
 
-    def failing_get(url, params=None, timeout=None):
+    def failing_get(url, params=None, timeout=None, **_kwargs):
         raise requests.RequestException("network down")
 
     monkeypatch.setattr(workstation_chart_service.requests, "get", failing_get)
