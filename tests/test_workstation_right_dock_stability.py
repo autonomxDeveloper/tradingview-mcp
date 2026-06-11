@@ -36,3 +36,34 @@ def test_right_dock_clicks_open_idempotently_and_stop_old_toggle_path():
         assert expected in stability
 
     assert "classList.toggle('research-expanded')" not in stability
+
+
+def test_right_dock_layering_stylesheet_is_loaded_by_stability_layer():
+    stability = read_static("right_dock_stability.js")
+
+    for expected in [
+        "function installLayeringStylesheet()",
+        "rightDockLayeringStylesheet",
+        "link.rel = 'stylesheet'",
+        "link.href = '/static/right_dock_layering.css'",
+        "window.installRightDockLayeringStylesheet",
+    ]:
+        assert expected in stability
+
+
+def test_right_dock_layering_css_unclamps_expanded_panel_above_chart_controls():
+    css = read_static("right_dock_layering.css")
+
+    for expected in [
+        "body.side-panels-collapsed.research-expanded .right.tradingview-right-panel",
+        "min-width: 360px;",
+        "max-width: 390px;",
+        "z-index: 140;",
+        "isolation: isolate;",
+        "body.side-panels-collapsed.research-expanded .right.tradingview-right-panel::before",
+        "display: none !important;",
+        "body.side-panels-collapsed.research-expanded .center",
+        "z-index: 1;",
+        "body.side-panels-collapsed.research-expanded .stream-status",
+    ]:
+        assert expected in css

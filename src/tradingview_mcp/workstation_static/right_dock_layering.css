@@ -1,0 +1,68 @@
+/* Stabilize the TradingView-style right dock as a click-only drawer.
+   The base cleanup CSS intentionally clamps side panels to 44px when collapsed;
+   this file restores the real drawer width only for the explicit research-expanded state
+   and keeps chart toolbar/stream controls from stacking over the drawer. */
+
+body.side-panels-collapsed .right.tradingview-right-panel {
+  z-index: 140;
+  isolation: isolate;
+  cursor: default;
+  pointer-events: auto;
+}
+
+body.side-panels-collapsed.research-expanded .right.tradingview-right-panel {
+  width: auto;
+  min-width: 360px;
+  max-width: 390px;
+  overflow: hidden !important;
+  contain: layout paint style;
+  background: #f5f7fb;
+  box-shadow: -8px 0 22px rgba(15, 23, 42, 0.10);
+}
+
+body.side-panels-collapsed.research-expanded .right.tradingview-right-panel::before,
+body.side-panels-collapsed .right.tradingview-right-panel:hover::before,
+body.side-panels-collapsed .right.tradingview-right-panel:focus-within::before {
+  display: none !important;
+}
+
+body.side-panels-collapsed.research-expanded .right.tradingview-right-panel > *,
+body.side-panels-collapsed.research-expanded .right.tradingview-right-panel .tradingview-alerts-panel,
+body.side-panels-collapsed.research-expanded .right.tradingview-right-panel .tradingview-research-stack {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+body.side-panels-collapsed.research-expanded .right.tradingview-right-panel > .tradingview-right-dock {
+  display: flex !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  z-index: 3;
+}
+
+body.side-panels-collapsed.research-expanded .right.tradingview-right-panel .tradingview-alerts-panel,
+body.side-panels-collapsed.research-expanded .right.tradingview-right-panel .tradingview-research-stack {
+  display: block !important;
+}
+
+body.side-panels-collapsed.research-expanded .right.tradingview-right-panel .tradingview-alerts-panel {
+  position: relative;
+  z-index: 2;
+}
+
+body.side-panels-collapsed.research-expanded .center {
+  z-index: 1;
+}
+
+body.side-panels-collapsed.research-expanded .topbar,
+body.side-panels-collapsed.research-expanded .chartbar,
+body.side-panels-collapsed.research-expanded #chartGrid,
+body.side-panels-collapsed.research-expanded #chartWrap {
+  z-index: auto;
+}
+
+body.side-panels-collapsed.research-expanded .stream-status,
+body.side-panels-collapsed.research-expanded [id*="stream"],
+body.side-panels-collapsed.research-expanded [id*="Stream"] {
+  max-width: min(100%, 280px);
+}
