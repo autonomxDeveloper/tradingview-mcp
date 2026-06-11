@@ -79,6 +79,12 @@
     document.querySelectorAll('.tradingview-right-dock-button.active').forEach((active) => active.classList.remove('active'));
   }
 
+  function stopLegacySidebarToggle(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+  }
+
   function handleIndependentSidebarToggle(target, event) {
     const chartTool = target.closest('.chart-tool-button');
     const chartAction = chartTool && chartTool.dataset.chartToolAction;
@@ -86,17 +92,13 @@
     const chromeAction = chromeToggle && chromeToggle.dataset.chromeToggle;
 
     if (chartAction === 'watchlist' || chromeAction === 'watchlist') {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
+      stopLegacySidebarToggle(event);
       toggleWatchlistPanel();
       return true;
     }
 
     if (!target.closest('.tradingview-right-dock-button') && (chartAction === 'research' || chromeAction === 'research')) {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
+      stopLegacySidebarToggle(event);
       toggleRightPanel();
       return true;
     }
@@ -104,45 +106,70 @@
     return false;
   }
 
-  installLayeringStylesheet();
-
-  document.addEventListener('click', (event) => {
-    const target = event.target;
-    if (!(target instanceof Element)) return;
-
+  function handleRightDockButton(target, event) {
     const dockButton = target.closest('.tradingview-right-dock-button');
-    if (dockButton) {
-      const wasOpen = document.body.classList.contains('research-expanded');
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-      toggleRightPanel();
-      if (wasOpen) {
-        clearActiveDockButtons();
-      } else {
-        setActiveDockButton(dockButton);
-        activateDataAction(dockButton.dataset.rightDockAction || '');
-      }
-      return;
+    if (!dockButton) return false;
+    const wasOpen = document.body.classList.contains('research-expanded');
+    stopLegacySidebarToggle(event);
+    toggleRightPanel();
+    if (wasOpen) {
+      clearActiveDockButtons();
+    } else {
+      setActiveDockButton(dockButton);
+      activateDataAction(dockButton.dataset.rightDockAction || '');
     }
+    return true;
+  }
 
-    if (handleIndependentSidebarToggle(target, event)) return;
-
+  function handlePanelSurfaceClick(target, event) {
     const rightPanel = target.closest('.right.tradingview-right-panel');
-    if (!rightPanel) return;
+    if (!rightPanel) return false;
 
     if (target.closest('.tradingview-alerts-panel') || target.closest('.tradingview-research-stack')) {
       event.stopPropagation();
-      return;
+      return true;
     }
 
     if (document.body.classList.contains('side-panels-collapsed')) {
-      event.preventDefault();
+      stopLegacySidebarToggle(event);
+      setRightPanelOpen(true);
+      return true;
+    }
+
+    return false;
+  }
+
+  function handleSidebarPointerIntent(event) {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest('.tradingview-alerts-panel') || target.closest('.tradingview-research-stack')) return;
+    if (target.closest('.tradingview-right-dock-button')) {
       event.stopPropagation();
       event.stopImmediatePropagation();
-      setRightPanelOpen(true);
+      return;
     }
-  }, true);
+    const chromeToggle = target.closest('[data-chrome-toggle]');
+    const chartTool = target.closest('.chart-tool-button');
+    const action = (chromeToggle && chromeToggle.dataset.chromeToggle) || (chartTool && chartTool.dataset.chartToolAction) || '';
+    if (action === 'watchlist' || action === 'research') {
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+    }
+  }
+
+  function handleSidebarClick(event) {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (handleRightDockButton(target, event)) return;
+    if (handleIndependentSidebarToggle(target, event)) return;
+    handlePanelSurfaceClick(target, event);
+  }
+
+  installLayeringStylesheet();
+
+  document.addEventListener('pointerdown', handleSidebarPointerIntent, true);
+  document.addEventListener('mousedown', handleSidebarPointerIntent, true);
+  document.addEventListener('click', handleSidebarClick, true);
 
   window.setTradingViewRightPanelOpen = setRightPanelOpen;
   window.setTradingViewWatchlistPanelOpen = setWatchlistPanelOpen;
