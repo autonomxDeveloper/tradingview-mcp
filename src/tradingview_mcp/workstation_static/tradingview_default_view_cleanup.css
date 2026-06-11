@@ -287,3 +287,128 @@ body.chart-toolbar-clean .legend {
     display: none !important;
   }
 }
+
+/* Explicit chart chrome controls. The default viewport is chart-first: top tools are collapsed,
+   and side rails expand only when clicked so symbols/results remain reachable without hover overlays. */
+body.top-tools-collapsed .topbar {
+  min-height: 34px;
+  padding-block: 3px;
+  overflow: hidden;
+}
+
+body.top-tools-collapsed .topbar > :not(.chrome-toolbar-toggle):not(#topToolbarSummary) {
+  display: none !important;
+}
+
+body:not(.top-tools-collapsed) #topToolbarSummary {
+  display: none !important;
+}
+
+body.chart-toolbar-clean .chrome-toolbar-toggle {
+  height: 28px;
+  padding-inline: 9px;
+  white-space: nowrap;
+}
+
+body.chart-toolbar-clean .toolbar-summary {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: min(420px, 55vw);
+  color: #475569;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+body.side-panels-collapsed aside::before,
+body.side-panels-collapsed .right::before {
+  display: none !important;
+}
+
+body.side-panels-collapsed aside > .panel-rail-toggle,
+body.side-panels-collapsed .right > .panel-rail-toggle {
+  display: grid !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+body.side-panels-collapsed .panel-rail-toggle {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  color: #64748b;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  font-size: 11px;
+  z-index: 6;
+  cursor: pointer;
+}
+
+body.side-panels-collapsed .panel-rail-toggle:hover,
+body.side-panels-collapsed .panel-rail-toggle:focus-visible {
+  color: #2962ff;
+  outline: 2px solid rgba(41, 98, 255, .22);
+  outline-offset: -2px;
+}
+
+body.side-panels-collapsed.watchlist-expanded main {
+  grid-template-columns: 220px minmax(0, 1fr) 44px;
+}
+
+body.side-panels-collapsed.research-expanded main {
+  grid-template-columns: 44px minmax(0, 1fr) min(360px, 32vw);
+}
+
+body.side-panels-collapsed.watchlist-expanded.research-expanded main {
+  grid-template-columns: 220px minmax(0, 1fr) min(360px, 32vw);
+}
+
+body.side-panels-collapsed.watchlist-expanded aside,
+body.side-panels-collapsed.research-expanded .right {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  overflow: auto !important;
+  contain: none;
+  z-index: 32;
+}
+
+body.side-panels-collapsed.watchlist-expanded aside > *,
+body.side-panels-collapsed.research-expanded .right > * {
+  display: revert !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+body.side-panels-collapsed.watchlist-expanded aside > .panel-rail-toggle,
+body.side-panels-collapsed.research-expanded .right > .panel-rail-toggle {
+  position: sticky;
+  top: 0;
+  height: 28px;
+  min-height: 28px;
+  writing-mode: horizontal-tb;
+  letter-spacing: 0;
+  text-transform: none;
+  border-bottom: 1px solid #d9e1ec;
+  background: #f8fafc;
+  z-index: 8;
+}
+
+body.side-panels-collapsed.watchlist-expanded aside .watch,
+body.side-panels-collapsed.research-expanded .right .tabs,
+body.side-panels-collapsed.research-expanded .right .paper-order-grid {
+  display: grid !important;
+}
+
+body.side-panels-collapsed.watchlist-expanded aside pre,
+body.side-panels-collapsed.research-expanded .right pre {
+  display: block !important;
+}
