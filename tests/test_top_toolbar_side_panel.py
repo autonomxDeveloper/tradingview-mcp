@@ -19,6 +19,26 @@ def test_module_registry_loads_compact_top_toolbar_side_panel_module():
     assert "loadModuleScript('topToolbarSidePanelScript', '/static/top_toolbar_side_panel_module.js');" in registry
 
 
+def test_base_markup_renders_compact_toolbar_before_dynamic_modules():
+    html = read_static("index.html")
+
+    for expected in [
+        "top-toolbar-integrated",
+        "compact-market-toolbar",
+        "id=\"compactTradingTopToolbar\"",
+        "data-compact-timeframe=\"2h\"",
+        "data-compact-timeframe=\"2W\"",
+        "data-compact-timeframe=\"1D\"",
+        ">Indicators</button>",
+        ">Alert</button>",
+        ">Replay</button>",
+        "data-action=\"market.load\"",
+        "data-action=\"analysis.run\"",
+        "<script src=\"/static/top_toolbar_side_panel_module.js\"></script>",
+    ]:
+        assert expected in html
+
+
 def test_compact_top_toolbar_keeps_only_tradingview_like_controls_visible():
     module = read_static("top_toolbar_side_panel_module.js")
 
@@ -33,6 +53,8 @@ def test_compact_top_toolbar_keeps_only_tradingview_like_controls_visible():
         "↷",
         "#compactTradingTopToolbar #symbol",
         "body.top-toolbar-integrated .topbar > :not(#compactTradingTopToolbar)",
+        "bindCompactToolbar",
+        "data-compact-timeframe",
     ]:
         assert expected in module
 
