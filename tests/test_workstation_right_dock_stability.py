@@ -28,20 +28,22 @@ def test_right_dock_clicks_toggle_panel_and_stop_old_toggle_path():
         "function toggleRightPanel()",
         "function handleRightDockButton(target, event)",
         "'.tradingview-right-dock-button'",
-        "const wasOpen = document.body.classList.contains('research-expanded')",
+        "const section = dockButton.dataset.rightDockSection || dockButton.dataset.rightDockPanel || ''",
+        "const currentSection = document.body.dataset.rightDockSection || 'alerts'",
         "stopLegacySidebarToggle(event);",
-        "toggleRightPanel();",
+        "setRightPanelOpen(false);",
+        "setRightPanelOpen(true);",
         "clearActiveDockButtons();",
-        "setActiveDockButton(dockButton);",
+        "selectRightDockSection(section || currentSection, dockButton);",
         "activateDataAction(dockButton.dataset.rightDockAction || '')",
         "target.closest('.tradingview-alerts-panel')",
         "target.closest('.tradingview-research-stack')",
+        "target.closest('.tradingview-ai-workflow-pane')",
         "window.setTradingViewRightPanelOpen",
     ]:
         assert expected in stability
 
-    assert "setRightPanelOpen(true);\n      setActiveDockButton(dockButton);" not in stability
-    assert "classList.toggle('research-expanded')" not in stability
+    assert "toggleRightPanel();\n    if (wasOpen)" not in stability
 
 
 def test_left_and_right_sidebars_preserve_independent_state():
@@ -87,7 +89,7 @@ def test_research_panel_interactive_controls_keep_data_action_clicks_alive():
         "button, input, textarea, select, option, label, [data-action], [data-result-pane-target], a[href]",
         "if (isInteractiveResearchControl(target)) return false;",
         "event.stopPropagation();",
-        "target.closest('.tradingview-alerts-panel') || target.closest('.tradingview-research-stack')",
+        "target.closest('.tradingview-alerts-panel') || target.closest('.tradingview-research-stack') || target.closest('.tradingview-ai-workflow-pane')",
     ]:
         assert expected in stability
 
@@ -103,6 +105,36 @@ def test_right_dock_layering_stylesheet_is_loaded_by_stability_layer():
         "window.installRightDockLayeringStylesheet",
     ]:
         assert expected in stability
+
+
+def test_ai_workflow_dock_script_is_loaded_by_stability_layer():
+    stability = read_static("right_dock_stability.js")
+
+    for expected in [
+        "function installAiWorkflowDock()",
+        "tradingViewAiWorkflowDockScript",
+        "script.src = '/static/ai_workflow_dock.js'",
+        "window.installTradingViewAiWorkflowDock",
+    ]:
+        assert expected in stability
+
+
+def test_ai_workflow_has_dedicated_right_dock_section():
+    workflow = read_static("ai_workflow_dock.js")
+
+    for expected in [
+        "ensureWorkflowDockButton(dock)",
+        "button.dataset.rightDockSection = 'workflow'",
+        "workflowPane.className = 'tradingview-ai-workflow-pane tradingview-dock-section'",
+        "workflowPane.dataset.rightDockSection = 'workflow'",
+        "workflowPane.appendChild(workflow)",
+        "stack.dataset.rightDockSection = 'research'",
+        "alerts.dataset.rightDockSection = 'alerts'",
+        "window.selectTradingViewRightDockSection = selectDockSection",
+        "active-dock-section",
+        "body.side-panels-collapsed.research-expanded .right.tradingview-right-panel .tradingview-dock-section",
+    ]:
+        assert expected in workflow
 
 
 def test_right_dock_layering_css_unclamps_expanded_panel_above_chart_controls():
