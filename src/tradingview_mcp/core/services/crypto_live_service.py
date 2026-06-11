@@ -11,6 +11,23 @@ from tradingview_mcp.core.services.market_data_cache_service import fallback_fro
 SUPPORTED_CRYPTO_VENUES = {"binance", "coinbase", "kraken"}
 MAX_AGGREGATED_CANDLE_LIMIT = 5000
 BINANCE_KLINES_PAGE_LIMIT = 1000
+BINANCE_INTERVALS = {
+    "1s": "1s",
+    "1m": "1m",
+    "3m": "3m",
+    "5m": "5m",
+    "15m": "15m",
+    "30m": "30m",
+    "1h": "1h",
+    "2h": "2h",
+    "4h": "4h",
+    "6h": "6h",
+    "8h": "8h",
+    "12h": "12h",
+    "1d": "1d",
+    "3d": "3d",
+    "1w": "1w",
+}
 
 
 def _request_json(url: str, *, params: dict[str, Any] | None = None, timeout: float = 15.0) -> Any:
@@ -64,7 +81,7 @@ def _kraken_pair(symbol: str) -> str:
 def _normalize_interval(venue: str, interval: str) -> str | int:
     value = interval.strip().lower()
     if venue == "binance":
-        return {"1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m", "1h": "1h", "4h": "4h", "1d": "1d", "1w": "1w"}.get(value, "1h")
+        return BINANCE_INTERVALS.get(value, "1h")
     if venue == "coinbase":
         return {"1m": 60, "5m": 300, "15m": 900, "30m": 1800, "1h": 3600, "1d": 86400}.get(value, 3600)
     return {"1m": 1, "5m": 5, "15m": 15, "30m": 30, "1h": 60, "4h": 240, "1d": 1440}.get(value, 60)
@@ -265,8 +282,10 @@ def get_crypto_candles(symbol: str, venue: str = "binance", interval: str = "1h"
             payload = _request_json(f"https://api.exchange.coinbase.com/products/{product_id}/candles", params={"granularity": venue_interval})
             if isinstance(payload, dict) and "error" in payload:
                 return _cache_or_error(cache_key, payload)
-            bars = [{"time": row[0], "low": row[1], "high": row[2], "open": row[3], "close": row[4], "volume": row[5]} for row in payload[:clean_limit]]
-            return write_cache(cache_key, {"venue": clean_venue, "symbol": product_id, "interval": interval, "limit": clean_limit, "bars": bars, "history": _history_payload(bars, requested_limit=clean_limit, history_complete=len(bars) < clean_limit)}, source="coinbase_candles")
+            rows = sorted(payload, key=lambda row: row[0])[-clean_limit:]
+            bars = [{"time": row[0], "low": row[1], "high": row[2], "open": row[3], "close": row[4], "volume": row[5]} for row in rows]
+            result = {"venue": clean_venue, "symbol": product_id, "interval": venue_interval, "limit": clean_limit, "bars": bars, "history": _history_payload(bars, requested_limit=clean_limit, history_complete=len(payload) < clean_limit)}
+            return write_cache(cache_key, result, source="coinbase_candles")
 
         pair = _kraken_pair(symbol)
         cache_key = _cache_key("candles", clean_venue, pair, venue_interval, clean_limit)
@@ -276,9 +295,9 @@ def get_crypto_candles(symbol: str, venue: str = "binance", interval: str = "1h"
         if payload.get("error"):
             return _cache_or_error(cache_key, {"error": {"code": "UPSTREAM_ERROR", "message": payload.get("error")}})
         result = payload.get("result", {})
-        pair_keys = [key for key in result.keys() if key != "last"]
-        bars_raw = result.get(pair_keys[0], []) if pair_keys else []
-        bars = [{"time": row[0], "open": row[1], "high": row[2], "low": row[3], "close": row[4], "vwap": row[5], "volume": row[6], "count": row[7]} for row in bars_raw[-clean_limit:]]
-        return write_cache(cache_key, {"venue": clean_venue, "symbol": pair, "interval": venue_interval, "limit": clean_limit, "bars": bars, "history": _history_payload(bars, requested_limit=clean_limit, history_complete=len(bars) < clean_limit)}, source="kraken_candles")
+        rows = result.get(next((key for key in result if key != "last"), ""), [])[-clean_limit:]
+        bars = [{"time": int(row[0]), "open": row[1], "high": row[2], "low": row[3], "close": row[4], "volume": row[6]} for row in rows]
+        payload_out = {"venue": clean_venue, "symbol": pair, "interval": venue_interval, "limit": clean_limit, "bars": bars, "history": _history_payload(bars, requested_limit=clean_limit, history_complete=len(rows) < clean_limit)}
+        return write_cache(cache_key, payload_out, source="kraken_candles")
     except ValueError as exc:
         return {"error": {"code": "INVALID_SYMBOL", "message": str(exc)}}
