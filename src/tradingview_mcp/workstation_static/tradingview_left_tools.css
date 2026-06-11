@@ -2,21 +2,30 @@
    Replaces the decorative pseudo rail with a real, isolated toolbar so the
    watchlist rail and chart controls do not overlap. */
 
+:root {
+  --tv-left-toolbar-left: 0px;
+  --tv-left-toolbar-top: 0px;
+  --tv-left-toolbar-bottom: 0px;
+  --tv-left-toolbar-width: 47px;
+}
+
 body.tradingview-chart-first .center::before {
   display: none !important;
   content: none !important;
 }
 
 body.tradingview-chart-first .center {
-  padding-left: 48px;
+  padding-left: var(--tv-left-toolbar-width, 48px);
 }
 
 body.tradingview-chart-first #chartToolRail.chart-tool-rail {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 47px;
-  min-width: 47px;
-  max-width: 47px;
+  position: fixed;
+  left: var(--tv-left-toolbar-left, 0px);
+  top: var(--tv-left-toolbar-top, 0px);
+  bottom: var(--tv-left-toolbar-bottom, 0px);
+  width: var(--tv-left-toolbar-width, 47px);
+  min-width: var(--tv-left-toolbar-width, 47px);
+  max-width: var(--tv-left-toolbar-width, 47px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -26,7 +35,7 @@ body.tradingview-chart-first #chartToolRail.chart-tool-rail {
   overflow: visible;
   background: #fff;
   border-right: 1px solid var(--tv-line);
-  z-index: 220;
+  z-index: 520;
   isolation: isolate;
 }
 
@@ -82,11 +91,11 @@ body.tradingview-chart-first .chart-tool-button.has-submenu::after {
 }
 
 body.tradingview-chart-first .chart-tool-menu {
-  position: absolute;
-  left: 48px;
-  top: 8px;
-  width: min(330px, calc(100vw - 116px));
-  max-height: min(720px, calc(100vh - 72px));
+  position: fixed;
+  left: calc(var(--tv-left-toolbar-left, 0px) + var(--tv-left-toolbar-width, 47px));
+  top: calc(var(--tv-left-toolbar-top, 0px) + 8px);
+  width: min(330px, calc(100vw - var(--tv-left-toolbar-left, 0px) - var(--tv-left-toolbar-width, 47px) - 20px));
+  max-height: min(720px, calc(100vh - var(--tv-left-toolbar-top, 0px) - var(--tv-left-toolbar-bottom, 0px) - 16px));
   overflow: auto;
   padding: 8px 0;
   background: #fff;
@@ -94,7 +103,7 @@ body.tradingview-chart-first .chart-tool-menu {
   border: 1px solid #d8dee8;
   border-radius: 8px;
   box-shadow: 0 10px 32px rgba(15, 23, 42, 0.18);
-  z-index: 260;
+  z-index: 540;
 }
 
 body.tradingview-chart-first .chart-tool-menu[hidden] {
@@ -168,16 +177,16 @@ body.tradingview-chart-first .chart-tool-menu-star {
 }
 
 body.tradingview-chart-first .chart-tool-status {
-  position: absolute;
-  left: 58px;
-  bottom: 10px;
-  max-width: min(420px, calc(100vw - 140px));
+  position: fixed;
+  left: calc(var(--tv-left-toolbar-left, 0px) + var(--tv-left-toolbar-width, 47px) + 10px);
+  bottom: calc(var(--tv-left-toolbar-bottom, 0px) + 10px);
+  max-width: min(420px, calc(100vw - var(--tv-left-toolbar-left, 0px) - var(--tv-left-toolbar-width, 47px) - 36px));
   padding: 7px 10px;
   border-radius: 7px;
   background: rgba(19, 23, 34, .88);
   color: #fff;
   font-size: 12px;
-  z-index: 240;
+  z-index: 530;
   pointer-events: none;
 }
 
@@ -186,14 +195,11 @@ body.tradingview-chart-first .chart-tool-status[hidden] {
 }
 
 @media (max-width: 1200px) {
-  body.tradingview-chart-first .center {
-    padding-left: 40px;
+  :root {
+    --tv-left-toolbar-width: 39px;
   }
 
   body.tradingview-chart-first #chartToolRail.chart-tool-rail {
-    width: 39px;
-    min-width: 39px;
-    max-width: 39px;
     padding-inline: 2px;
   }
 
@@ -201,9 +207,5 @@ body.tradingview-chart-first .chart-tool-status[hidden] {
     width: 34px;
     min-width: 34px;
     height: 34px;
-  }
-
-  body.tradingview-chart-first .chart-tool-menu {
-    left: 40px;
   }
 }
