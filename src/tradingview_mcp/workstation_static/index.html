@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="/static/tradingview_default_view_cleanup.css" />
   <link rel="stylesheet" href="/static/chart_date_range.css" />
 </head>
-<body class="tradingview-chart-first side-panels-collapsed day-mode-default chart-toolbar-clean top-tools-collapsed">
+<body class="tradingview-chart-first side-panels-collapsed day-mode-default chart-toolbar-clean top-tools-collapsed top-toolbar-integrated">
 <header><b>Autonomx Trading Research Workstation</b><span id="status" class="muted">loading...</span></header>
 <main>
   <aside aria-label="Collapsed watchlist panel">
@@ -21,15 +21,28 @@
     <pre id="risk"></pre>
   </aside>
   <section class="center">
-    <div class="bar topbar" aria-label="Main workstation toolbar">
+    <div class="bar topbar compact-market-toolbar" aria-label="TradingView-style compact chart toolbar">
+      <div id="compactTradingTopToolbar" aria-label="TradingView-style compact chart toolbar">
+        <input id="symbol" value="BTCUSDT" aria-label="Symbol" />
+        <button type="button" class="tv-compact-top-button" data-compact-action="symbolPrompt" title="Load or compare symbol">＋</button>
+        <button type="button" class="tv-compact-top-button" data-compact-timeframe="2h" title="Set timeframe to 2h">2h</button>
+        <button type="button" class="tv-compact-top-button" data-compact-timeframe="2W" title="Set timeframe to 2W">2W</button>
+        <button type="button" class="tv-compact-top-button" data-compact-timeframe="1D" title="Set timeframe to 1D">D</button>
+        <select id="tf" aria-label="Timeframe"><option>1m</option><option>5m</option><option>15m</option><option>1h</option><option selected>1D</option><option>1W</option></select>
+        <button type="button" class="tv-compact-top-button" data-compact-action="fit" title="Candles / chart type">▥</button>
+        <button type="button" class="tv-compact-top-button" data-compact-action="indicators" title="Open indicators and chart tools">Indicators</button>
+        <button type="button" class="tv-compact-top-button" data-compact-action="layout" title="Layout grid">⌗</button>
+        <button type="button" class="tv-compact-top-button" data-compact-action="alerts" title="Open alerts / research panel">Alert</button>
+        <button type="button" class="tv-compact-top-button" data-compact-action="replay" title="Open journal timeline / replay">Replay</button>
+        <button type="button" class="tv-compact-top-button" data-compact-action="reset" title="Reset chart layout">↶</button>
+        <button type="button" class="tv-compact-top-button" data-compact-action="fit" title="Auto-fit chart">↷</button>
+        <button type="button" class="tv-compact-load-button" data-action="market.load">Load</button>
+        <button type="button" class="secondary tv-compact-load-button tv-compact-ai-button" data-action="analysis.run">AI</button>
+      </div>
       <button type="button" class="secondary chrome-toolbar-toggle" data-chrome-toggle="top-tools" aria-expanded="false">Show tools</button>
       <span id="topToolbarSummary" class="toolbar-summary">BTCUSDT · 1D · chart tools hidden</span>
-      <input id="symbol" value="BTCUSDT" aria-label="Symbol" />
       <select id="asset" aria-label="Asset type"><option>auto</option><option>stock</option><option selected>crypto</option></select>
       <input id="exchange" value="BINANCE" aria-label="Exchange" />
-      <select id="tf" aria-label="Timeframe"><option>1m</option><option>5m</option><option>15m</option><option>1h</option><option selected>1D</option><option>1W</option></select>
-      <button data-action="market.load">Load</button>
-      <button class="secondary" data-action="analysis.run">AI analyze</button>
     </div>
     <div class="bar chartbar" aria-label="Chart workstation controls">
       <div class="toolbar-section chart-controls" aria-label="Chart controls">
@@ -244,6 +257,7 @@
 <script src="/static/snapshot_browser.js"></script>
 <script src="/static/export_preview.js"></script>
 <script src="/static/workspace_cleanup.js"></script>
+<script src="/static/top_toolbar_side_panel_module.js"></script>
 <script src="/static/module_registry.js"></script>
 <script src="/static/slot2_chart.js"></script>
 </body>
