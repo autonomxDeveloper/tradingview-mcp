@@ -120,6 +120,27 @@ def test_chrome_defaults_crypto_daily_weekly_to_full_history_window():
         assert expected in chrome
 
 
+def test_chrome_supports_tradingview_style_custom_intervals():
+    chrome = read_static("workstation_chrome_controls.js")
+
+    for expected in [
+        "CUSTOM_INTERVAL_STORAGE_KEY",
+        "CRYPTO_INTERVALS",
+        "STOCK_INTERVALS",
+        "'1s'",
+        "'3m'",
+        "'2h'",
+        "'3D'",
+        "function normalizeIntervalLabel(value)",
+        "function supportedInterval(value)",
+        "function openCustomIntervalPrompt()",
+        "id = 'customIntervalButton'",
+        "button.textContent = '+ interval'",
+        "window.workstationCustomIntervals",
+    ]:
+        assert expected in chrome
+
+
 def test_crypto_history_fetch_shim_loads_before_app_and_rewrites_daily_weekly_limits():
     index = read_static("index.html")
     shim = read_static("crypto_history_fetch_shim.js")
