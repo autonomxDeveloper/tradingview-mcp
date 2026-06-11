@@ -122,7 +122,7 @@ async function boot() {
 
 function activeIsCrypto() { const symbol = $('symbol').value.toUpperCase(); return $('asset').value === 'crypto' || symbol.endsWith('USDT') || symbol.endsWith('-USD'); }
 function normalizeBars(rawBars) { return rawBars.filter((bar) => Number.isFinite(bar.open) && Number.isFinite(bar.high) && Number.isFinite(bar.low) && Number.isFinite(bar.close)); }
-function marketCandleLimit(timeframe, isCrypto) { const tf = String(timeframe || '').toLowerCase(); if (!isCrypto) return 500; if (tf === '1d' || tf === '1w') return 1500; return 600; }
+function marketCandleLimit(timeframe, isCrypto) { const tf = String(timeframe || '').toLowerCase(); if (!isCrypto) return 500; if (tf === '1d' || tf === '1w') return 5000; return 600; }
 
 async function loadMarket() {
   const symbol = $('symbol').value.trim();
@@ -162,70 +162,67 @@ function toggleMacdPane() { macdVisible = !macdVisible; setPaneVisibility('macdW
 function toggleAtrPane() { atrVisible = !atrVisible; setPaneVisibility('atrWrap', atrVisible); if (atrVisible) { ensureAtrChart(); renderAtrPane(); atrChart.resize($('atrChart').clientWidth, $('atrChart').clientHeight); atrChart.timeScale().fitContent(); } }
 function setPaneVisibility(id, visible) { const pane = $(id); if (pane) pane.style.display = visible ? 'block' : 'none'; }
 function renderRsiPane() { if (!rsiVisible) return; ensureRsiChart(); const values = relativeStrengthIndex(14); const last = values[values.length - 1]; rsiSeries.setData(values); rsiTopLine.setData(values.map((point) => ({ time: point.time, value: 70 }))); rsiBottomLine.setData(values.map((point) => ({ time: point.time, value: 30 }))); $('rsiLegend').textContent = last ? `RSI 14 ${last.value.toFixed(2)}` : 'RSI 14'; }
-function renderMacdPane() { if (!macdVisible) return; ensureMacdChart(); const values = macdValues(); const lastMacd = values.macd[values.macd.length - 1]; const lastSignal = values.signal[values.signal.length - 1]; macdSeries.setData(values.macd); macdSignalSeries.setData(values.signal); macdHistogram.setData(values.histogram); $('macdLegend').textContent = lastMacd && lastSignal ? `MACD ${lastMacd.value.toFixed(4)} Signal ${lastSignal.value.toFixed(4)}` : 'MACD 12 26 9'; }
-function renderAtrPane() { if (!atrVisible) return; ensureAtrChart(); const values = averageTrueRange(14); const last = values[values.length - 1]; atrSeries.setData(values); $('atrLegend').textContent = last ? `ATR 14 ${last.value.toFixed(4)}` : 'ATR 14'; }
+function renderMacdPane() { if (!macdVisible) return; ensureMacdChart(); const values = macdValues(); const lastMacd = values.macd[values.macd.length - 1]; const lastSignal = values.signal[values.signal.length - 1]; macdSeries.setData(values.macd); macdSignalSeries.setData(values.signal); macdHistogram.setData(values.histogram.map((point) => ({ time: point.time, value: point.value, color: point.value >= 0 ? '#22c55e' : '#ef4444' }))); $('macdLegend').textContent = lastMacd ? `MACD ${lastMacd.value.toFixed(3)} / ${(lastSignal?.value || 0).toFixed(3)}` : 'MACD'; }
+function renderAtrPane() { if (!atrVisible) return; ensureAtrChart(); const values = averageTrueRange(14); const last = values[values.length - 1]; atrSeries.setData(values); $('atrLegend').textContent = last ? `ATR 14 ${last.value.toFixed(2)}` : 'ATR 14'; }
 
-function ensureOverlay(name) { if (!overlaySeries[name]) overlaySeries[name] = chart.addLineSeries({ lineWidth: 2, lastValueVisible: false, priceLineVisible: false }); return overlaySeries[name]; }
-function applyOverlayData() { Object.entries(overlayState).forEach(([name, enabled]) => { if (!enabled) { if (overlaySeries[name]) overlaySeries[name].setData([]); return; } const series = ensureOverlay(name); if (name === 'sma20') series.setData(movingAverage(20)); if (name === 'sma50') series.setData(movingAverage(50)); if (name === 'ema21') series.setData(exponentialMovingAverage(21)); }); }
-function toggleOverlay(name) { overlayState[name] = !overlayState[name]; applyOverlayData(); }
-function toggleVolume() { volumeVisible = !volumeVisible; volume.applyOptions({ visible: volumeVisible }); }
-function drawingStorageKey() { return `workstation-drawings:${$('symbol').value.toUpperCase()}:${$('tf').value}`; }
-function emptyDrawings() { return { levels: [], notes: [], zones: [], guides: [] }; }
-function levelColor(kind) { if (kind === 'support' || kind === 'demand') return '#22c55e'; if (kind === 'resistance' || kind === 'supply') return '#ef4444'; if (kind === 'alert') return '#f59e0b'; return '#60a5fa'; }
+function fitChart() { if (chart) chart.timeScale().fitContent(); }
+function applyOverlayData() { Object.values(overlaySeries).forEach((series) => series.setData([])); if (overlayState.sma20) overlaySeries.sma20.setData(movingAverage(20)); if (overlayState.sma50) overlaySeries.sma50.setData(movingAverage(50)); if (overlayState.ema21) overlaySeries.ema21.setData(exponentialMovingAverage(21)); }
+function toggleOverlay(key) { if (!overlaySeries[key]) overlaySeries[key] = chart.addLineSeries({ lineWidth: 2, lastValueVisible: false, priceLineVisible: false }); overlayState[key] = !overlayState[key]; applyOverlayData(); }
+function updateLegend(param) { const point = param && param.time ? currentBars.find((bar) => bar.time === param.time) : currentBars[currentBars.length - 1]; if (!point) { $('legend').textContent = 'No chart data loaded.'; return; } const change = currentBars.length > 1 ? point.close - currentBars[0].close : 0; const pct = currentBars.length > 1 ? (change / currentBars[0].close) * 100 : 0; $('legend').textContent = `${$('symbol').value.toUpperCase()} O ${point.open.toFixed(2)} H ${point.high.toFixed(2)} L ${point.low.toFixed(2)} C ${point.close.toFixed(2)} ${change.toFixed(2)} (${pct.toFixed(2)}%) Vol ${formatVolume(point.volume)}`; }
+function updateChartMeta() { const symbol = $('symbol').value.toUpperCase(); const tf = $('tf').value; const slots = window.workstationChartSlots || {}; if (slots.primary) slots.primary.textContent = `${symbol} ${tf}`; }
+function formatVolume(value) { if (!Number.isFinite(value)) return '0'; if (value >= 1e9) return (value / 1e9).toFixed(2) + 'B'; if (value >= 1e6) return (value / 1e6).toFixed(2) + 'M'; if (value >= 1e3) return (value / 1e3).toFixed(2) + 'K'; return value.toFixed(0); }
 
-function addLevel(price, label, kind = 'level') { const cleanPrice = Number(price); if (!Number.isFinite(cleanPrice) || cleanPrice <= 0) { print('Enter a positive price level.'); return; } const cleanKind = ['level', 'support', 'resistance', 'alert'].includes(kind) ? kind : 'level'; drawings.levels.push({ price: cleanPrice, label: (label || cleanKind).trim() || cleanKind, kind: cleanKind }); persistDrawings(); renderDrawings(); }
-function addLevelFromInput() { addLevel($('levelPrice').value, $('levelLabel').value, $('levelKind').value); }
-function addLevelFromLastClose() { if (!currentBars.length) return; const last = currentBars[currentBars.length - 1]; addLevel(last.close, $('levelLabel').value || 'last close', $('levelKind').value); }
-function addNoteAtLastClose() { if (!currentBars.length) return; const text = ($('noteText').value || '').trim(); if (!text) { print('Enter note text first.'); return; } const last = currentBars[currentBars.length - 1]; drawings.notes.push({ time: last.time, price: last.close, text }); persistDrawings(); renderDrawings(); }
-function addZoneFromInput() { if (!currentBars.length) return; const low = Number($('zoneLow').value), high = Number($('zoneHigh').value); if (!Number.isFinite(low) || !Number.isFinite(high) || low <= 0 || high <= 0 || low === high) { print('Enter two positive, different zone prices.'); return; } const last = currentBars[currentBars.length - 1], visibleStart = currentBars[Math.max(0, currentBars.length - 60)] || currentBars[0], kind = $('zoneKind').value || 'zone', label = ($('zoneLabel').value || kind).trim() || kind; drawings.zones.push({ startTime: visibleStart.time, endTime: last.time, low: Math.min(low, high), high: Math.max(low, high), label, kind }); persistDrawings(); renderDrawings(); }
-function addGuideFromInput() { if (!currentBars.length) return; const startPrice = Number($('guideStartPrice').value), endPrice = Number($('guideEndPrice').value); if (!Number.isFinite(startPrice) || !Number.isFinite(endPrice) || startPrice <= 0 || endPrice <= 0) { print('Enter positive guide start and end prices.'); return; } const last = currentBars[currentBars.length - 1], visibleStart = currentBars[Math.max(0, currentBars.length - 60)] || currentBars[0], kind = $('guideKind').value || 'guide', label = ($('guideLabel').value || kind).trim() || kind; drawings.guides.push({ startTime: visibleStart.time, endTime: last.time, startPrice, endPrice, label, kind }); persistDrawings(); renderDrawings(); }
+function initDateRangeBar() {
+  const rangeBar = $('dateRangeBar');
+  if (!rangeBar) return;
+  const buttons = Array.from(rangeBar.querySelectorAll('[data-chart-range]'));
+  buttons.forEach((button) => {
+    button.onclick = () => applyChartRange(button.dataset.chartRange || 'all');
+  });
+  updateDateRangeBar();
+}
 
-function persistDrawings() { localStorage.setItem(drawingStorageKey(), JSON.stringify(drawings)); }
-function restoreDrawings() { try { const loaded = JSON.parse(localStorage.getItem(drawingStorageKey()) || 'null'); drawings = Array.isArray(loaded) ? { levels: loaded, notes: [], zones: [], guides: [] } : { ...emptyDrawings(), ...(loaded || {}) }; } catch (_) { drawings = emptyDrawings(); } renderDrawings(); }
-function renderDrawings() { renderLevels(); renderHtmlDrawings(); }
-function renderLevels() { priceLineHandles.forEach((handle) => candles.removePriceLine(handle)); priceLineHandles = []; drawings.levels.forEach((level) => { const handle = candles.createPriceLine({ price: level.price, color: levelColor(level.kind), lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: level.label }); priceLineHandles.push(handle); }); }
-function renderHtmlDrawings() { renderZones(); renderGuides(); renderNotes(); }
-function renderZones() { const overlay = $('zonesOverlay'); if (!overlay || !chart || !candles) return; overlay.innerHTML = ''; drawings.zones.forEach((zone) => { const x1 = chart.timeScale().timeToCoordinate(zone.startTime), x2 = chart.timeScale().timeToCoordinate(zone.endTime), yHigh = candles.priceToCoordinate(zone.high), yLow = candles.priceToCoordinate(zone.low); if (x1 === null || x2 === null || yHigh === null || yLow === null) return; const el = document.createElement('div'); el.className = `chart-zone ${zone.kind || 'zone'}`; el.style.left = `${Math.max(0, Math.min(x1, x2))}px`; el.style.top = `${Math.max(0, Math.min(yHigh, yLow))}px`; el.style.width = `${Math.max(8, Math.abs(x2 - x1))}px`; el.style.height = `${Math.max(6, Math.abs(yLow - yHigh))}px`; const label = document.createElement('div'); label.className = 'chart-zone-label'; label.textContent = zone.label || zone.kind || 'zone'; el.appendChild(label); overlay.appendChild(el); }); }
-function guideColor(kind) { if (kind === 'support') return '#22c55e'; if (kind === 'resistance') return '#ef4444'; return '#60a5fa'; }
-function renderGuides() { const overlay = $('guidesOverlay'); if (!overlay || !chart || !candles) return; overlay.setAttribute('width', String($('chartWrap').clientWidth)); overlay.setAttribute('height', String($('chartWrap').clientHeight)); overlay.style.position = 'absolute'; overlay.style.inset = '0'; overlay.style.pointerEvents = 'none'; overlay.style.zIndex = '4'; overlay.innerHTML = ''; drawings.guides.forEach((guide) => { const x1 = chart.timeScale().timeToCoordinate(guide.startTime), x2 = chart.timeScale().timeToCoordinate(guide.endTime), y1 = candles.priceToCoordinate(guide.startPrice), y2 = candles.priceToCoordinate(guide.endPrice); if (x1 === null || x2 === null || y1 === null || y2 === null) return; const path = document.createElementNS('http://www.w3.org/2000/svg', 'line'); path.setAttribute('x1', String(x1)); path.setAttribute('y1', String(y1)); path.setAttribute('x2', String(x2)); path.setAttribute('y2', String(y2)); path.setAttribute('stroke', guideColor(guide.kind)); path.setAttribute('stroke-width', '2'); overlay.appendChild(path); const label = document.createElementNS('http://www.w3.org/2000/svg', 'text'); label.setAttribute('x', String((x1 + x2) / 2)); label.setAttribute('y', String((y1 + y2) / 2 - 5)); label.setAttribute('fill', '#e5e7eb'); label.setAttribute('font-size', '11'); label.textContent = guide.label || guide.kind || 'guide'; overlay.appendChild(label); }); }
-function renderNotes() { const overlay = $('notesOverlay'); if (!overlay || !chart || !candles) return; overlay.innerHTML = ''; drawings.notes.forEach((note) => { const x = chart.timeScale().timeToCoordinate(note.time), y = candles.priceToCoordinate(note.price); if (x === null || y === null) return; const el = document.createElement('div'); el.className = 'chart-note'; el.textContent = note.text; el.style.left = `${Math.max(0, x)}px`; el.style.top = `${Math.max(0, y - 36)}px`; overlay.appendChild(el); }); }
-function clearDrawings() { drawings = emptyDrawings(); persistDrawings(); renderDrawings(); }
-function exportDrawings() { print({ symbol: $('symbol').value.toUpperCase(), timeframe: $('tf').value, drawings }); }
-function importDrawings() { const raw = prompt('Paste exported drawings JSON'); if (!raw) return; try { const payload = JSON.parse(raw); drawings = { ...emptyDrawings(), ...(payload.drawings || payload) }; persistDrawings(); renderDrawings(); print('Drawings imported.'); } catch (error) { print(`Could not import drawings: ${error.message}`); } }
-function clearLevels() { drawings.levels = []; persistDrawings(); renderDrawings(); }
-function fitChart() { chart.timeScale().fitContent(); renderHtmlDrawings(); updateDateRangeButtons('All'); if (rsiChart && rsiVisible) rsiChart.timeScale().fitContent(); if (macdChart && macdVisible) macdChart.timeScale().fitContent(); if (atrChart && atrVisible) atrChart.timeScale().fitContent(); }
-function updateChartMeta() { const metadata = lastPayload?.metadata || {}; const source = metadata.source || lastPayload?.source || 'unknown source'; const cache = metadata.cache_status ? ` · ${metadata.cache_status}${metadata.stale ? ' stale' : ''}` : ''; $('chartMeta').textContent = `${$('symbol').value.toUpperCase()} · ${$('tf').value} · ${source}${cache}`; }
-function updateLegend(param) { if (!currentBars.length) { $('legend').textContent = 'No chart data loaded.'; return; } let bar = currentBars[currentBars.length - 1]; if (param && param.time) { const match = currentBars.find((candidate) => candidate.time === param.time); if (match) bar = match; } const change = bar.close - bar.open, changePct = bar.open ? (change / bar.open) * 100 : 0, klass = change >= 0 ? 'up' : 'down'; $('legend').innerHTML = `<strong>${$('symbol').value.toUpperCase()}</strong> O ${fmt(bar.open)} H ${fmt(bar.high)} L ${fmt(bar.low)} C ${fmt(bar.close)} <span class="${klass}">${fmt(change)} (${changePct.toFixed(2)}%)</span> Vol ${fmtVolume(bar.volume)}`; }
-function fmt(value) { if (!Number.isFinite(value)) return '-'; return Math.abs(value) >= 1000 ? value.toFixed(2) : value.toPrecision(6).replace(/0+$/, '').replace(/\.$/, ''); }
-function fmtVolume(value) { if (!Number.isFinite(value)) return '-'; if (value >= 1000000000) return (value / 1000000000).toFixed(2) + 'B'; if (value >= 1000000) return (value / 1000000).toFixed(2) + 'M'; if (value >= 1000) return (value / 1000).toFixed(2) + 'K'; return String(value); }
-function formatDate(time) { if (!Number.isFinite(time)) return '-'; return new Date(time * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); }
-function historyMetadata() { return lastPayload?.history || lastPayload?.metadata?.history || {}; }
-function updateDateRangeBar() { const summary = $('dateRangeSummary'); if (!summary) return; if (!currentBars.length) { summary.textContent = 'No loaded chart history.'; updateDateRangeButtons(''); return; } const first = currentBars[0], last = currentBars[currentBars.length - 1], history = historyMetadata(); const complete = history.history_complete === true ? 'full venue history loaded' : 'loaded window'; const loaded = history.bars_count || currentBars.length; summary.textContent = `${loaded} candles · ${formatDate(first.time)} → ${formatDate(last.time)} · ${complete}`; }
-function updateDateRangeButtons(activeRange) { document.querySelectorAll('[data-chart-range]').forEach((button) => button.classList.toggle('active', button.dataset.chartRange === activeRange)); }
-function setChartRange(range) { if (!chart || !currentBars.length) return; const last = currentBars[currentBars.length - 1].time; const first = currentBars[0].time; let from = first; if (range === '5D') from = last - 5 * 86400; if (range === '1M') from = last - 31 * 86400; if (range === '3M') from = last - 93 * 86400; if (range === '6M') from = last - 186 * 86400; if (range === '1Y') from = last - 366 * 86400; if (range === '5Y') from = last - 5 * 366 * 86400; if (range === 'YTD') { const date = new Date(last * 1000); from = Date.UTC(date.getUTCFullYear(), 0, 1) / 1000; } if (range === 'All') { fitChart(); return; } chart.timeScale().setVisibleRange({ from: Math.max(first, from), to: last }); renderHtmlDrawings(); updateDateRangeButtons(range); }
-function initDateRangeBar() { document.querySelectorAll('[data-chart-range]').forEach((button) => { button.addEventListener('click', () => setChartRange(button.dataset.chartRange)); }); }
+function updateDateRangeBar() {
+  const summary = $('dateRangeSummary');
+  if (!summary) return;
+  if (!currentBars.length) {
+    summary.textContent = 'No loaded chart history.';
+    return;
+  }
+  const first = new Date(currentBars[0].time * 1000);
+  const last = new Date(currentBars[currentBars.length - 1].time * 1000);
+  const history = lastPayload && lastPayload.history ? lastPayload.history : {};
+  const mode = history.history_complete ? 'full venue history loaded' : 'loaded window';
+  summary.textContent = `${currentBars.length} candles · ${formatDate(first)} → ${formatDate(last)} · ${mode}`;
+}
 
-function getPrimaryChartContext() { const rsi = relativeStrengthIndex(14); const macd = macdValues(); const atr = averageTrueRange(14); const latest = currentBars[currentBars.length - 1] || null; return { symbol: $('symbol').value.toUpperCase(), asset_type: activeIsCrypto() ? 'crypto' : 'stock', exchange: $('exchange').value, timeframe: $('tf').value, source: lastPayload?.metadata?.source || lastPayload?.source || 'unknown', latest_bar: latest, first_bar: currentBars[0] || null, bars_count: currentBars.length, history: historyMetadata(), recent_bars: currentBars.slice(-80), overlays: { ...overlayState }, indicators: { volume_visible: volumeVisible, rsi_visible: rsiVisible, macd_visible: macdVisible, atr_visible: atrVisible, latest_rsi14: rsi[rsi.length - 1] || null, latest_macd: { macd: macd.macd[macd.macd.length - 1] || null, signal: macd.signal[macd.signal.length - 1] || null, histogram: macd.histogram[macd.histogram.length - 1] || null }, latest_atr14: atr[atr.length - 1] || null }, drawings: JSON.parse(JSON.stringify(drawings)), layout: typeof currentLayoutState === 'function' ? currentLayoutState() : null, paper_hint: { simulated_only: true, live_orders: false } }; }
-window.getPrimaryChartContext = getPrimaryChartContext;
+function formatDate(date) {
+  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
 
-function layoutCatalogKey() { return 'workstation-layouts'; }
-function layoutStorageKey(name) { return `workstation-layout:${(name || 'default').trim() || 'default'}`; }
-function currentLayoutName() { return ($('layoutName')?.value || 'default').trim() || 'default'; }
-function readLayoutCatalog() { try { return JSON.parse(localStorage.getItem(layoutCatalogKey()) || '[]').filter(Boolean); } catch (_) { return []; } }
-function writeLayoutCatalog(names) { localStorage.setItem(layoutCatalogKey(), JSON.stringify([...new Set(names)].sort())); }
-function rememberLayoutName(name) { const names = readLayoutCatalog(); if (!names.includes(name)) writeLayoutCatalog([...names, name]); }
-function currentLayoutState() { return { symbol: $('symbol').value, asset: $('asset').value, exchange: $('exchange').value, timeframe: $('tf').value, volumeVisible, rsiVisible, macdVisible, atrVisible, overlayState: { ...overlayState } }; }
-function saveLayoutLocal(name, state) { localStorage.setItem(layoutStorageKey(name), JSON.stringify(state)); rememberLayoutName(name); }
-async function saveLayout() { const name = currentLayoutName(); const state = currentLayoutState(); saveLayoutLocal(name, state); try { await post('/api/layouts', { name, state }); print(`Layout saved: ${name} (server + local)`); } catch (error) { print(`Layout saved locally: ${name}. Server save failed: ${error.message}`); } }
-async function loadLayout() { const name = currentLayoutName(); try { const response = await api('/api/layouts'); const match = (response.layouts || []).find((item) => item.name === name); if (match && match.state) { applyLayoutState(match.state); print(`Layout loaded: ${name} (server)`); return; } } catch (_) { /* fall back below */ } const raw = localStorage.getItem(layoutStorageKey(name)); if (!raw) { print(`No saved layout named: ${name}`); return; } try { const state = JSON.parse(raw); applyLayoutState(state); print(`Layout loaded: ${name} (local)`); } catch (error) { print(`Could not load layout: ${error.message}`); } }
-async function listLayouts() { const localNames = readLayoutCatalog(); try { const response = await api('/api/layouts'); print({ server: (response.layouts || []).map((item) => item.name), local: localNames }); } catch (error) { print(localNames.length ? { local: localNames, server_error: error.message } : 'No saved layouts.'); } }
-function deleteLayout() { const name = currentLayoutName(); localStorage.removeItem(layoutStorageKey(name)); writeLayoutCatalog(readLayoutCatalog().filter((item) => item !== name)); print(`Layout deleted locally: ${name}`); }
-function resetLayout() { overlayState = { sma20: false, sma50: false, ema21: false }; volumeVisible = true; rsiVisible = false; macdVisible = false; atrVisible = false; setPaneVisibility('rsiWrap', false); setPaneVisibility('macdWrap', false); setPaneVisibility('atrWrap', false); if (volume) volume.applyOptions({ visible: true }); applyOverlayData(); print('Layout reset.'); }
-function applyLayoutState(state) { if (state.symbol) $('symbol').value = state.symbol; if (state.asset) $('asset').value = state.asset; if (state.exchange) $('exchange').value = state.exchange; if (state.timeframe) $('tf').value = state.timeframe; overlayState = { sma20: false, sma50: false, ema21: false, ...(state.overlayState || {}) }; volumeVisible = state.volumeVisible !== false; rsiVisible = !!state.rsiVisible; macdVisible = !!state.macdVisible; atrVisible = !!state.atrVisible; setPaneVisibility('rsiWrap', rsiVisible); setPaneVisibility('macdWrap', macdVisible); setPaneVisibility('atrWrap', atrVisible); if (volume) volume.applyOptions({ visible: volumeVisible }); loadMarket(); }
+function applyChartRange(range) {
+  if (!chart || !currentBars.length) return;
+  if (range === 'all') {
+    chart.timeScale().fitContent();
+    return;
+  }
+  const daysByRange = { '5d': 5, '1m': 31, '3m': 93, '6m': 186, ytd: null, '1y': 366, '5y': 366 * 5 };
+  const last = currentBars[currentBars.length - 1].time;
+  let from = null;
+  if (range === 'ytd') {
+    const lastDate = new Date(last * 1000);
+    from = Date.UTC(lastDate.getUTCFullYear(), 0, 1) / 1000;
+  } else {
+    const days = daysByRange[range];
+    from = days ? last - days * 86400 : null;
+  }
+  if (from === null) {
+    chart.timeScale().fitContent();
+    return;
+  }
+  chart.timeScale().setVisibleRange({ from, to: last });
+}
 
-async function saveIdea() { const body = { symbol: $('symbol').value, asset_type: activeIsCrypto() ? 'crypto' : 'stock', timeframe: $('tf').value, bias: 'unknown', hypothesis: $('hypothesis').value, invalidation: $('invalidation').value, backtest_plan: $('backtestPlan').value, source: 'workstation' }; print(await post('/api/ideas', body)); }
-async function loadIdeas() { print(await api('/api/ideas?limit=100')); }
-function showPayload() { print(lastPayload || 'No payload'); }
-async function loadJournal() { print(await api('/api/journal?limit=100')); }
+function restoreDrawings() { priceLineHandles.forEach((handle) => candles.removePriceLine(handle)); priceLineHandles = []; drawings.levels.forEach((level) => { priceLineHandles.push(candles.createPriceLine({ price: +level.price, color: level.color || '#f59e0b', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: level.label || 'level' })); }); }
 
-boot().catch((error) => print(error.message));
+boot().catch((error) => print({ error: String(error) }));
