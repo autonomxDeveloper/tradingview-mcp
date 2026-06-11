@@ -247,6 +247,8 @@ def get_crypto_candles(symbol: str, venue: str = "binance", interval: str = "1h"
 
     try:
         venue_interval = _normalize_interval(clean_venue, interval)
+        if clean_venue == "binance" and str(venue_interval).lower() in {"1d", "1w"}:
+            clean_limit = MAX_AGGREGATED_CANDLE_LIMIT
         if clean_venue == "binance":
             clean_symbol = _binance_symbol(symbol)
             cache_key = _cache_key("candles", clean_venue, clean_symbol, venue_interval, clean_limit)
