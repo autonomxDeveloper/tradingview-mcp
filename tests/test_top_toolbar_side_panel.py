@@ -59,6 +59,23 @@ def test_compact_top_toolbar_keeps_only_tradingview_like_controls_visible():
         assert expected in module
 
 
+def test_compact_top_toolbar_forces_visibility_when_chart_overlays_row():
+    module = read_static("top_toolbar_side_panel_module.js")
+
+    for expected in [
+        "forceCompactToolbarVisible",
+        "topbar.style.setProperty('display', 'flex', 'important')",
+        "topbar.style.setProperty('position', 'sticky', 'important')",
+        "topbar.style.setProperty('z-index', '500', 'important')",
+        "control.style.setProperty('pointer-events', 'auto', 'important')",
+        "window.requestAnimationFrame(installCompactTopToolbar)",
+        "appendCoreToolbarItems(compact, topbar)",
+        "makeSymbolInput",
+        "makeTimeframeSelect",
+    ]:
+        assert expected in module
+
+
 def test_chart_tools_are_moved_from_upper_toolbar_to_right_sidebar_panel():
     module = read_static("top_toolbar_side_panel_module.js")
 
