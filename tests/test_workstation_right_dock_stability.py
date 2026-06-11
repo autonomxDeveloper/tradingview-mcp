@@ -79,6 +79,19 @@ def test_sidebar_controller_intercepts_legacy_pointer_and_click_paths():
         assert expected in stability
 
 
+def test_research_panel_interactive_controls_keep_data_action_clicks_alive():
+    stability = read_static("right_dock_stability.js")
+
+    for expected in [
+        "function isInteractiveResearchControl(target)",
+        "button, input, textarea, select, option, label, [data-action], [data-result-pane-target], a[href]",
+        "if (isInteractiveResearchControl(target)) return false;",
+        "event.stopPropagation();",
+        "target.closest('.tradingview-alerts-panel') || target.closest('.tradingview-research-stack')",
+    ]:
+        assert expected in stability
+
+
 def test_right_dock_layering_stylesheet_is_loaded_by_stability_layer():
     stability = read_static("right_dock_stability.js")
 
