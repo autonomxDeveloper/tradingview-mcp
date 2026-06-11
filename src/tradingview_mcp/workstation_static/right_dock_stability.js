@@ -24,6 +24,15 @@
     document.body.appendChild(script);
   }
 
+  function installAiWorkflowDock() {
+    if (document.getElementById('tradingViewAiWorkflowDockScript')) return;
+    const script = document.createElement('script');
+    script.id = 'tradingViewAiWorkflowDockScript';
+    script.src = '/static/ai_workflow_dock.js';
+    script.defer = true;
+    document.body.appendChild(script);
+  }
+
   function refreshChartSurface() {
     const resize = window.resizePrimaryChartToSurface || window.scheduleChartSurfaceRefresh;
     if (typeof resize === 'function') {
@@ -105,6 +114,15 @@
     return Boolean(target.closest('button, input, textarea, select, option, label, [data-action], [data-result-pane-target], a[href]'));
   }
 
+  function selectRightDockSection(section, dockButton) {
+    if (section && typeof window.selectTradingViewRightDockSection === 'function') {
+      window.selectTradingViewRightDockSection(section, dockButton || null);
+      return true;
+    }
+    if (dockButton) setActiveDockButton(dockButton);
+    return false;
+  }
+
   function handleIndependentSidebarToggle(target, event) {
     const chartTool = target.closest('.chart-tool-button');
     const chartAction = chartTool && chartTool.dataset.chartToolAction;
@@ -119,6 +137,9 @@
 
     if (!target.closest('.tradingview-right-dock-button') && (chartAction === 'research' || chromeAction === 'research')) {
       stopLegacySidebarToggle(event);
+      if (!document.body.classList.contains('research-expanded')) {
+        selectRightDockSection(document.body.dataset.rightDockSection || 'research');
+      }
       toggleRightPanel();
       return true;
     }
@@ -129,15 +150,20 @@
   function handleRightDockButton(target, event) {
     const dockButton = target.closest('.tradingview-right-dock-button');
     if (!dockButton) return false;
+    const section = dockButton.dataset.rightDockSection || dockButton.dataset.rightDockPanel || '';
+    const currentSection = document.body.dataset.rightDockSection || 'alerts';
     const wasOpen = document.body.classList.contains('research-expanded');
     stopLegacySidebarToggle(event);
-    toggleRightPanel();
-    if (wasOpen) {
+
+    if (wasOpen && section && section === currentSection) {
+      setRightPanelOpen(false);
       clearActiveDockButtons();
-    } else {
-      setActiveDockButton(dockButton);
-      activateDataAction(dockButton.dataset.rightDockAction || '');
+      return true;
     }
+
+    setRightPanelOpen(true);
+    selectRightDockSection(section || currentSection, dockButton);
+    activateDataAction(dockButton.dataset.rightDockAction || '');
     return true;
   }
 
@@ -145,7 +171,7 @@
     const rightPanel = target.closest('.right.tradingview-right-panel');
     if (!rightPanel) return false;
 
-    if (target.closest('.tradingview-alerts-panel') || target.closest('.tradingview-research-stack')) {
+    if (target.closest('.tradingview-alerts-panel') || target.closest('.tradingview-research-stack') || target.closest('.tradingview-ai-workflow-pane')) {
       if (isInteractiveResearchControl(target)) return false;
       event.stopPropagation();
       return true;
@@ -154,6 +180,7 @@
     if (document.body.classList.contains('side-panels-collapsed')) {
       stopLegacySidebarToggle(event);
       setRightPanelOpen(true);
+      selectRightDockSection(document.body.dataset.rightDockSection || 'research');
       return true;
     }
 
@@ -163,7 +190,7 @@
   function handleSidebarPointerIntent(event) {
     const target = event.target;
     if (!(target instanceof Element)) return;
-    if (target.closest('.tradingview-alerts-panel') || target.closest('.tradingview-research-stack')) return;
+    if (target.closest('.tradingview-alerts-panel') || target.closest('.tradingview-research-stack') || target.closest('.tradingview-ai-workflow-pane')) return;
     if (target.closest('.tradingview-right-dock-button')) {
       event.stopPropagation();
       event.stopImmediatePropagation();
@@ -188,6 +215,7 @@
 
   installLayeringStylesheet();
   installLeftToolbarEnhancement();
+  installAiWorkflowDock();
 
   document.addEventListener('pointerdown', handleSidebarPointerIntent, true);
   document.addEventListener('mousedown', handleSidebarPointerIntent, true);
@@ -197,4 +225,5 @@
   window.setTradingViewWatchlistPanelOpen = setWatchlistPanelOpen;
   window.installRightDockLayeringStylesheet = installLayeringStylesheet;
   window.installTradingViewLeftToolbarEnhancement = installLeftToolbarEnhancement;
+  window.installTradingViewAiWorkflowDock = installAiWorkflowDock;
 })();
