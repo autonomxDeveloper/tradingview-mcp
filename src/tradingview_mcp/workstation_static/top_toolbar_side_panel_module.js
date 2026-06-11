@@ -49,6 +49,37 @@
     return button;
   }
 
+  function makeSymbolInput() {
+    const input = document.createElement('input');
+    input.id = 'symbol';
+    input.value = 'BTCUSDT';
+    input.setAttribute('aria-label', 'Symbol');
+    return input;
+  }
+
+  function makeTimeframeSelect() {
+    const select = document.createElement('select');
+    select.id = 'tf';
+    select.setAttribute('aria-label', 'Timeframe');
+    ['1m', '5m', '15m', '1h', '1D', '1W'].forEach((value) => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = value;
+      if (value === '1D') option.selected = true;
+      select.appendChild(option);
+    });
+    return select;
+  }
+
+  function makeActionButton(label, action, className) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = label;
+    button.dataset.action = action;
+    button.className = className || 'tv-compact-load-button';
+    return button;
+  }
+
   function setInterval(value) {
     const timeframe = document.getElementById('tf');
     if (!timeframe) return;
@@ -73,43 +104,89 @@
     }
   }
 
+  function appendCoreToolbarItems(compact, topbar) {
+    if (!compact.querySelector('#symbol')) {
+      compact.appendChild(document.getElementById('symbol') || makeSymbolInput());
+    }
+    if (!compact.querySelector('[data-compact-action="symbolPrompt"]')) compact.appendChild(topButton('＋', 'Load or compare symbol', { dataset: { compactAction: 'symbolPrompt' } }));
+    QUICK_INTERVALS.forEach((item) => {
+      if (!compact.querySelector(`[data-compact-timeframe="${item.value}"]`)) {
+        compact.appendChild(topButton(item.label, `Set timeframe to ${item.label}`, { dataset: { compactTimeframe: item.value } }));
+      }
+    });
+    if (!compact.querySelector('#tf')) {
+      compact.appendChild(document.getElementById('tf') || makeTimeframeSelect());
+    }
+    const compactActions = [
+      ['▥', 'Candles / chart type', 'fit'],
+      ['Indicators', 'Open indicators and chart tools', 'indicators'],
+      ['⌗', 'Layout grid', 'layout'],
+      ['Alert', 'Open alerts / research panel', 'alerts'],
+      ['Replay', 'Open journal timeline / replay', 'replay'],
+      ['↶', 'Reset chart layout', 'reset'],
+      ['↷', 'Auto-fit chart', 'fit'],
+    ];
+    compactActions.forEach(([label, title, action]) => {
+      if (!compact.querySelector(`[data-compact-action="${action}"]`) || (action === 'fit' && compact.querySelectorAll('[data-compact-action="fit"]').length < 2)) {
+        compact.appendChild(topButton(label, title, { dataset: { compactAction: action } }));
+      }
+    });
+
+    const load = topbar.querySelector('[data-action="market.load"]') || document.querySelector('[data-action="market.load"]');
+    const analyze = topbar.querySelector('[data-action="analysis.run"]') || document.querySelector('[data-action="analysis.run"]');
+    if (!compact.querySelector('[data-action="market.load"]')) {
+      const loadButton = load || makeActionButton('Load', 'market.load');
+      loadButton.textContent = 'Load';
+      loadButton.classList.add('tv-compact-load-button');
+      compact.appendChild(loadButton);
+    }
+    if (!compact.querySelector('[data-action="analysis.run"]')) {
+      const aiButton = analyze || makeActionButton('AI', 'analysis.run', 'secondary tv-compact-load-button tv-compact-ai-button');
+      aiButton.textContent = 'AI';
+      aiButton.classList.add('tv-compact-load-button', 'tv-compact-ai-button');
+      compact.appendChild(aiButton);
+    }
+  }
+
   function ensureCompactToolbarMarkup(topbar) {
     let compact = document.getElementById('compactTradingTopToolbar');
-    if (compact) return compact;
-
-    compact = document.createElement('div');
-    compact.id = 'compactTradingTopToolbar';
-    compact.setAttribute('aria-label', 'TradingView-style compact chart toolbar');
-
-    const symbol = document.getElementById('symbol');
-    const timeframe = document.getElementById('tf');
-    const load = topbar.querySelector('[data-action="market.load"]');
-    const analyze = topbar.querySelector('[data-action="analysis.run"]');
-
-    if (symbol) compact.appendChild(symbol);
-    compact.appendChild(topButton('＋', 'Load or compare symbol', { dataset: { compactAction: 'symbolPrompt' } }));
-    QUICK_INTERVALS.forEach((item) => compact.appendChild(topButton(item.label, `Set timeframe to ${item.label}`, { dataset: { compactTimeframe: item.value } })));
-    if (timeframe) compact.appendChild(timeframe);
-    compact.appendChild(topButton('▥', 'Candles / chart type', { dataset: { compactAction: 'fit' } }));
-    compact.appendChild(topButton('Indicators', 'Open indicators and chart tools', { dataset: { compactAction: 'indicators' } }));
-    compact.appendChild(topButton('⌗', 'Layout grid', { dataset: { compactAction: 'layout' } }));
-    compact.appendChild(topButton('Alert', 'Open alerts / research panel', { dataset: { compactAction: 'alerts' } }));
-    compact.appendChild(topButton('Replay', 'Open journal timeline / replay', { dataset: { compactAction: 'replay' } }));
-    compact.appendChild(topButton('↶', 'Reset chart layout', { dataset: { compactAction: 'reset' } }));
-    compact.appendChild(topButton('↷', 'Auto-fit chart', { dataset: { compactAction: 'fit' } }));
-    if (load) {
-      load.textContent = 'Load';
-      load.classList.add('tv-compact-load-button');
-      compact.appendChild(load);
+    if (!compact) {
+      compact = document.createElement('div');
+      compact.id = 'compactTradingTopToolbar';
+      compact.setAttribute('aria-label', 'TradingView-style compact chart toolbar');
+      topbar.prepend(compact);
     }
-    if (analyze) {
-      analyze.textContent = 'AI';
-      analyze.classList.add('tv-compact-load-button', 'tv-compact-ai-button');
-      compact.appendChild(analyze);
-    }
-
-    topbar.prepend(compact);
+    appendCoreToolbarItems(compact, topbar);
     return compact;
+  }
+
+  function forceVisibleElement(element, display) {
+    if (!element) return;
+    element.hidden = false;
+    element.removeAttribute('hidden');
+    element.removeAttribute('aria-hidden');
+    element.style.setProperty('display', display || 'flex', 'important');
+    element.style.setProperty('visibility', 'visible', 'important');
+    element.style.setProperty('opacity', '1', 'important');
+  }
+
+  function forceCompactToolbarVisible(topbar, compact) {
+    forceVisibleElement(topbar, 'flex');
+    forceVisibleElement(compact, 'flex');
+    topbar.style.setProperty('min-height', '42px', 'important');
+    topbar.style.setProperty('height', '42px', 'important');
+    topbar.style.setProperty('position', 'sticky', 'important');
+    topbar.style.setProperty('top', '0', 'important');
+    topbar.style.setProperty('z-index', '500', 'important');
+    topbar.style.setProperty('background', '#ffffff', 'important');
+    topbar.style.setProperty('border-bottom', '1px solid #d9e1ec', 'important');
+    compact.style.setProperty('align-items', 'center', 'important');
+    compact.style.setProperty('gap', '7px', 'important');
+    compact.style.setProperty('min-height', '34px', 'important');
+    compact.querySelectorAll('input, select, button').forEach((control) => {
+      forceVisibleElement(control, control.tagName === 'BUTTON' ? 'inline-grid' : 'inline-block');
+      control.style.setProperty('pointer-events', 'auto', 'important');
+    });
   }
 
   function bindCompactToolbar(compact) {
@@ -152,7 +229,14 @@
   }
 
   function installCompactTopToolbar() {
-    const topbar = document.querySelector('.topbar');
+    const center = document.querySelector('.center');
+    let topbar = document.querySelector('.topbar');
+    if (!topbar && center) {
+      topbar = document.createElement('div');
+      topbar.className = 'bar topbar compact-market-toolbar';
+      topbar.setAttribute('aria-label', 'TradingView-style compact chart toolbar');
+      center.prepend(topbar);
+    }
     if (!topbar) return false;
 
     document.body.classList.add('top-toolbar-integrated');
@@ -160,6 +244,7 @@
     topbar.classList.add('compact-market-toolbar');
 
     const compact = ensureCompactToolbarMarkup(topbar);
+    forceCompactToolbarVisible(topbar, compact);
     bindCompactToolbar(compact);
     refreshChartSurface();
     return true;
@@ -176,12 +261,17 @@
       body.top-toolbar-integrated .topbar {
         display: flex !important;
         visibility: visible !important;
-        min-height: 42px;
-        height: 42px;
+        opacity: 1 !important;
+        min-height: 42px !important;
+        height: 42px !important;
         padding: 0 8px;
         overflow: hidden;
         flex-wrap: nowrap;
-        z-index: 120;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 500 !important;
+        background: #fff !important;
+        border-bottom: 1px solid #d9e1ec !important;
       }
       body.top-toolbar-integrated.top-tools-collapsed .topbar > :not(#compactTradingTopToolbar),
       body.top-toolbar-integrated .topbar > :not(#compactTradingTopToolbar) {
@@ -190,12 +280,15 @@
       #compactTradingTopToolbar {
         display: flex !important;
         visibility: visible !important;
+        opacity: 1 !important;
         align-items: center;
         gap: 7px;
         width: 100%;
         min-width: 0;
+        min-height: 34px;
         white-space: nowrap;
         overflow: hidden;
+        pointer-events: auto !important;
       }
       #compactTradingTopToolbar #symbol {
         display: inline-block !important;
@@ -230,6 +323,7 @@
         font-size: 14px !important;
         font-weight: 650 !important;
         white-space: nowrap;
+        pointer-events: auto !important;
       }
       .tv-compact-top-button:hover,
       .tv-compact-top-button:focus-visible,
@@ -331,6 +425,10 @@
   function install() {
     installSideToolStyles();
     if (!installCompactTopToolbar()) {
+      window.requestAnimationFrame(installCompactTopToolbar);
+      window.setTimeout(installCompactTopToolbar, 120);
+      window.setTimeout(installCompactTopToolbar, 400);
+    } else {
       window.requestAnimationFrame(installCompactTopToolbar);
       window.setTimeout(installCompactTopToolbar, 120);
     }
