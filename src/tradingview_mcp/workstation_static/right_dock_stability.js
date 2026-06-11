@@ -101,6 +101,10 @@
     event.stopImmediatePropagation();
   }
 
+  function isInteractiveResearchControl(target) {
+    return Boolean(target.closest('button, input, textarea, select, option, label, [data-action], [data-result-pane-target], a[href]'));
+  }
+
   function handleIndependentSidebarToggle(target, event) {
     const chartTool = target.closest('.chart-tool-button');
     const chartAction = chartTool && chartTool.dataset.chartToolAction;
@@ -142,6 +146,7 @@
     if (!rightPanel) return false;
 
     if (target.closest('.tradingview-alerts-panel') || target.closest('.tradingview-research-stack')) {
+      if (isInteractiveResearchControl(target)) return false;
       event.stopPropagation();
       return true;
     }
