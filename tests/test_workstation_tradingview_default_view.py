@@ -15,8 +15,15 @@ def test_workstation_defaults_to_chart_first_tradingview_shell():
     index = read_static("index.html")
     css = read_static("tradingview_chart_first.css")
 
-    assert 'body class="tradingview-chart-first"' in index
+    for expected in [
+        "tradingview-chart-first",
+        "side-panels-collapsed",
+        "day-mode-default",
+        "chart-toolbar-clean",
+    ]:
+        assert expected in index
     assert '/static/tradingview_chart_first.css' in index
+    assert '/static/tradingview_default_view_cleanup.css' in index
     assert 'id="symbol" value="AAPL"' in index
     assert '<option>stock</option>' in index
     assert 'id="chartGrid" class="layout-grid layout-grid-1"' in index
