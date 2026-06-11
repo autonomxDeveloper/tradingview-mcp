@@ -21,7 +21,7 @@
   <section class="center">
     <div class="bar topbar">
       <input id="symbol" value="AAPL" aria-label="Symbol" />
-      <select id="asset" aria-label="Asset type"><option>auto</option><option>stock</option><option>crypto</option></select>
+      <select id="asset" aria-label="Asset type" data-default-asset="stock"><option>auto</option><option>stock</option><option>crypto</option></select>
       <input id="exchange" value="NASDAQ" aria-label="Exchange" />
       <select id="tf" aria-label="Timeframe"><option>1m</option><option>5m</option><option>15m</option><option>1h</option><option selected>1D</option><option>1W</option></select>
       <button data-action="market.load">Load</button>
@@ -136,15 +136,15 @@
           <button id="resultTab-journal" data-result-pane-target="journal" role="tab" aria-controls="resultPane-journal">Journal</button>
           <button id="resultTab-diagnostics" data-result-pane-target="diagnostics" role="tab" aria-controls="resultPane-diagnostics">Diagnostics</button>
         </div>
-        <div class="result-pane-stack">
-          <pre id="resultPane-general" class="result-pane active-result-pane" role="tabpanel" aria-labelledby="resultTab-general">Ready.</pre>
-          <pre id="resultPane-payload" class="result-pane" role="tabpanel" aria-labelledby="resultTab-payload">Load a market snapshot to view payload data.</pre>
-          <pre id="resultPane-scanner" class="result-pane" role="tabpanel" aria-labelledby="resultTab-scanner">Run the scanner to view candidates.</pre>
-          <pre id="resultPane-backtests" class="result-pane" role="tabpanel" aria-labelledby="resultTab-backtests">Run or list backtests to view results.</pre>
-          <pre id="resultPane-paper" class="result-pane" role="tabpanel" aria-labelledby="resultTab-paper">Refresh the simulated paper account to view orders, fills, and positions.</pre>
-          <pre id="resultPane-ideas" class="result-pane" role="tabpanel" aria-labelledby="resultTab-ideas">Save or load ideas to view research records.</pre>
-          <pre id="resultPane-journal" class="result-pane" role="tabpanel" aria-labelledby="resultTab-journal">Load the journal to view research history.</pre>
-          <pre id="resultPane-diagnostics" class="result-pane" role="tabpanel" aria-labelledby="resultTab-diagnostics">Open modules or diagnostics to view frontend state.</pre>
+        <div id="resultPaneStack" class="result-pane-stack">
+          <pre id="resultPane-general" class="result-pane">Ready.</pre>
+          <pre id="resultPane-payload" class="result-pane hidden"></pre>
+          <pre id="resultPane-scanner" class="result-pane hidden"></pre>
+          <pre id="resultPane-backtests" class="result-pane hidden"></pre>
+          <pre id="resultPane-paper" class="result-pane hidden"></pre>
+          <pre id="resultPane-ideas" class="result-pane hidden"></pre>
+          <pre id="resultPane-journal" class="result-pane hidden"></pre>
+          <pre id="resultPane-diagnostics" class="result-pane hidden"></pre>
         </div>
       </div>
       <pre id="output" class="legacy-output hidden">Ready.</pre>
@@ -161,68 +161,32 @@
         <li><span>5</span><button class="secondary" data-action="backtest.compare">Compare strategies</button></li>
         <li><span>6</span><button class="secondary" data-action="journal.load">Review journal trail</button></li>
       </ol>
-      <div class="label">Scanner to idea</div>
-      <div class="tabs"><button class="secondary" data-action="scanner.scan">Scan watchlist</button><button class="secondary" data-action="scanner.useTopCandidate">Use top candidate</button><button class="secondary" data-action="ideas.save">Save idea</button></div>
-      <div class="label">Idea detail</div>
-      <div class="tabs"><button class="secondary" data-action="ideas.list">Refresh ideas</button><button class="secondary" data-action="ideas.detail" data-action-arg="1">First idea</button><button class="secondary" data-action="ideas.loadWorkspace">Load selected</button></div>
-      <p class="workflow-note">Research loop: observe, hypothesize, invalidate, backtest, simulate locally, and journal. Paper trading is simulated only; no live broker orders are submitted.</p>
+      <div class="workflow-section"><div class="label">Scanner to idea</div><button class="secondary" data-action="scanner.scan">Scan watchlist</button><button class="secondary" data-action="scanner.useTop">Use top candidate</button><button class="secondary" data-action="ideas.save">Save idea</button></div>
+      <div class="workflow-section"><div class="label">Idea detail</div><button class="secondary" data-action="ideas.list">Refresh ideas</button><button class="secondary" data-action="ideas.detail" data-action-arg="1">First idea</button><button class="secondary" data-action="ideas.loadWorkspace">Load selected</button></div>
+      <p class="muted small">Research loop: observe, hypothesize, invalidate, backtest, simulate locally, and journal. Paper trading is simulated only; no live broker orders are submitted.</p>
     </div>
     <div class="panel">
       <div class="label">AI question</div>
       <textarea id="question">Give observations, risks, invalidation levels, and what to backtest next. Do not recommend taking a position.</textarea>
       <button data-action="analysis.run">Analyze current symbol</button>
-      <div class="label">Research idea</div>
-      <input id="hypothesis" class="research-idea-input" placeholder="Hypothesis" />
-      <input id="invalidation" class="research-idea-input" placeholder="Invalidation" />
-      <input id="backtestPlan" class="research-idea-input" placeholder="Backtest plan" />
-      <input id="ideaId" class="research-idea-input" placeholder="Optional idea ID for backtest link" />
-      <div class="label">Backtest</div>
-      <select id="strategy"><option>ema_cross</option><option>rsi</option><option>bollinger</option><option>macd</option><option>supertrend</option><option>donchian</option><option>rsi_pullback</option><option>keltner_breakout</option><option>triple_ema</option></select>
-      <select id="period"><option>1mo</option><option>3mo</option><option>6mo</option><option selected>1y</option><option>2y</option></select>
-      <div class="label">Paper trading</div>
-      <p class="paper-trading-warning">SIMULATED PAPER TRADING — NO LIVE ORDERS</p>
-      <div id="paperAccountSummary" class="paper-account-summary">Paper account loading...</div>
-      <div class="paper-order-grid" aria-label="Simulated paper order ticket">
-        <select id="paperSide"><option value="buy">buy</option><option value="sell">sell</option></select>
-        <select id="paperOrderType"><option value="market">market</option><option value="limit">limit</option><option value="stop">stop</option></select>
-        <input id="paperQuantity" placeholder="qty" />
-        <input id="paperLimitPrice" placeholder="limit price" />
-        <input id="paperStopPrice" placeholder="stop price" />
-        <input id="paperIdeaId" placeholder="idea id" />
-        <input id="paperNotes" class="paper-notes-input" placeholder="paper trade notes" />
-        <button data-action="paper.submit">Submit simulated order</button>
-      </div>
-      <div class="paper-order-grid paper-management-grid" aria-label="Simulated paper order management">
-        <input id="paperOrderId" placeholder="order id" />
-        <input id="paperFillPrice" placeholder="fill price" />
-        <input id="paperFillQuantity" placeholder="fill qty optional" />
-        <button class="secondary" data-action="paper.fill">Fill simulated</button>
-        <button class="secondary" data-action="paper.cancel">Cancel simulated</button>
-      </div>
-      <div class="paper-order-grid paper-management-grid" aria-label="Simulated paper account management">
-        <input id="paperMarkPrice" placeholder="mark price" />
-        <button class="secondary" data-action="paper.mark">Mark to market</button>
-        <input id="paperInitialCash" placeholder="reset cash" value="10000" />
-        <button class="secondary" data-action="paper.reset">Reset paper</button>
-        <button class="secondary" data-action="paper.refresh">Refresh paper</button>
-      </div>
-      <div id="paperTradingStatus" class="module-control-status">Paper trading is simulated locally. No live orders.</div>
     </div>
-    <div class="panel analysis-results-panel">
-      <div class="label">AI / results</div>
-      <pre id="analysis">Start LM Studio and use Analyze.</pre>
+    <div class="panel">
+      <div class="label">Research idea</div>
+      <input id="ideaHypothesis" placeholder="Hypothesis" />
+      <input id="ideaInvalidation" placeholder="Invalidation" />
+      <input id="ideaBacktest" placeholder="Backtest plan" />
+      <input id="ideaRisk" placeholder="Risk notes" />
+      <button class="secondary" data-action="ideas.save">Save idea</button>
+      <button class="secondary" data-action="ideas.list">List ideas</button>
+      <button class="secondary" data-action="ideas.loadWorkspace">Load latest idea</button>
     </div>
   </section>
 </main>
+<script src="/static/boot_registry.js"></script>
+<script src="/static/ui_bindings.js"></script>
+<script src="/static/result_panes_module.js"></script>
+<script src="/static/module_registry.js"></script>
 <script src="/static/tradingview_chart_theme_bootstrap.js"></script>
 <script src="/static/app.js"></script>
-<script id="resultsModuleScript" src="/static/results_module.js"></script>
-<script src="/static/idea_module.js"></script>
-<script src="/static/idea_detail.js"></script>
-<script src="/static/snapshot_browser.js"></script>
-<script src="/static/export_preview.js"></script>
-<script src="/static/workspace_cleanup.js"></script>
-<script src="/static/module_registry.js"></script>
-<script src="/static/slot2_chart.js"></script>
 </body>
 </html>
