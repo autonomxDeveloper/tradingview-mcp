@@ -1,4 +1,13 @@
 (function installRightDockStability() {
+  function installLayeringStylesheet() {
+    if (document.getElementById('rightDockLayeringStylesheet')) return;
+    const link = document.createElement('link');
+    link.id = 'rightDockLayeringStylesheet';
+    link.rel = 'stylesheet';
+    link.href = '/static/right_dock_layering.css';
+    document.head.appendChild(link);
+  }
+
   function refreshChartSurface() {
     const resize = window.resizePrimaryChartToSurface || window.scheduleChartSurfaceRefresh;
     if (typeof resize === 'function') {
@@ -28,6 +37,8 @@
     document.querySelectorAll('.tradingview-right-dock-button.active').forEach((active) => active.classList.remove('active'));
     button.classList.add('active');
   }
+
+  installLayeringStylesheet();
 
   document.addEventListener('click', (event) => {
     const target = event.target;
@@ -61,4 +72,5 @@
   }, true);
 
   window.setTradingViewRightPanelOpen = setRightPanelOpen;
+  window.installRightDockLayeringStylesheet = installLayeringStylesheet;
 })();
