@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 
 from tradingview_mcp.core.services import workstation_chart_service as charts
@@ -44,6 +45,95 @@ class FakeStooqEdgeResponse:
         raise ValueError("edge response")
 
 
+class FakeRow(dict):
+    pass
+
+
+class FakeHistoryFrame:
+    empty = False
+
+    def iterrows(self):
+        return iter(
+            [
+                (
+                    datetime(2024, 1, 2, tzinfo=timezone.utc),
+                    FakeRow({"Open": 470.0, "High": 472.1, "Low": 468.5, "Close": 471.2, "Volume": 1000000}),
+                ),
+                (
+                    datetime(2024, 1, 3, tzinfo=timezone.utc),
+                    FakeRow({"Open": 471.2, "High": 475.0, "Low": 470.1, "Close": 474.5, "Volume": 1200000}),
+                ),
+                (
+                    datetime(2024, 1, 4, tzinfo=timezone.utc),
+                    FakeRow({"Open": 474.5, "High": 476.0, "Low": 472.0, "Close": 473.0, "Volume": 900000}),
+                ),
+            ]
+        )
+
+
+class FakeYfinanceTicker:
+    fast_info = {"currency": "USD", "exchange": "PCX", "last_price": 473.0, "previous_close": 474.5}
+
+    def __init__(self, symbol: str):
+        self.symbol = symbol
+        self.calls: list[dict[str, Any]] = []
+
+    def history(self, **kwargs: Any) -> FakeHistoryFrame:
+        self.calls.append(kwargs)
+        assert kwargs["period"] == "1y"
+        assert kwargs["interval"] == "1d"
+        assert kwargs["auto_adjust"] is False
+        assert kwargs["prepost"] is True
+        assert kwargs["actions"] is False
+        return FakeHistoryFrame()
+
+
+class FakeYfinanceModule:
+    def __init__(self):
+        self.tickers: list[FakeYfinanceTicker] = []
+
+    def Ticker(self, symbol: str) -> FakeYfinanceTicker:
+        ticker = FakeYfinanceTicker(symbol)
+        self.tickers.append(ticker)
+        return ticker
+
+
+class EmptyYfinanceFrame:
+    empty = True
+
+
+class EmptyYfinanceTicker:
+    fast_info = {}
+
+    def __init__(self, symbol: str):
+        self.symbol = symbol
+
+    def history(self, **_kwargs: Any) -> EmptyYfinanceFrame:
+        return EmptyYfinanceFrame()
+
+
+class EmptyYfinanceModule:
+    def Ticker(self, symbol: str) -> EmptyYfinanceTicker:
+        return EmptyYfinanceTicker(symbol)
+
+
+def test_spy_daily_chart_uses_yfinance_primary_provider(monkeypatch):
+    fake_yfinance = FakeYfinanceModule()
+    monkeypatch.setattr(charts, "yf", fake_yfinance)
+    monkeypatch.setattr(charts, "write_cache", lambda _key, payload, source="": payload)
+
+    payload = charts.get_yahoo_chart("SPY", "1D", 2)
+
+    assert fake_yfinance.tickers[0].symbol == "SPY"
+    assert payload["symbol"] == "SPY"
+    assert payload["source"] == "yfinance_chart"
+    assert payload["exchange"] == "PCX"
+    assert payload["currency"] == "USD"
+    assert len(payload["candles"]) == 2
+    assert payload["candles"][0]["close"] == 474.5
+    assert payload["candles"][1]["close"] == 473.0
+
+
 def test_spy_daily_chart_falls_back_to_stooq_when_yahoo_has_no_data(monkeypatch, tmp_path):
     calls: list[str] = []
 
@@ -58,6 +148,7 @@ def test_spy_daily_chart_falls_back_to_stooq_when_yahoo_has_no_data(monkeypatch,
             return FakeStooqCsvResponse()
         raise AssertionError(f"unexpected URL: {url}")
 
+    monkeypatch.setattr(charts, "yf", EmptyYfinanceModule())
     monkeypatch.setattr(charts.requests, "get", fake_get)
     monkeypatch.setattr(charts, "write_cache", lambda _key, payload, source="": payload)
     monkeypatch.setattr(charts, "fallback_from_cache", lambda _key, payload: payload)
@@ -88,6 +179,7 @@ def test_spy_daily_chart_falls_back_to_stooq_when_yahoo_edge_rate_limits(monkeyp
             return FakeStooqCsvResponse()
         raise AssertionError(f"unexpected URL: {url}")
 
+    monkeypatch.setattr(charts, "yf", EmptyYfinanceModule())
     monkeypatch.setattr(charts.requests, "get", fake_get)
     monkeypatch.setattr(charts, "write_cache", lambda _key, payload, source="": payload)
     monkeypatch.setattr(charts, "fallback_from_cache", lambda _key, payload: payload)
@@ -107,6 +199,7 @@ def test_stooq_provider_error_text_is_not_parsed_as_candles(monkeypatch):
             return FakeStooqEdgeResponse()
         raise AssertionError(f"unexpected URL: {url}")
 
+    monkeypatch.setattr(charts, "yf", EmptyYfinanceModule())
     monkeypatch.setattr(charts.requests, "get", fake_get)
     monkeypatch.setattr(charts, "fallback_from_cache", lambda _key, payload: payload)
 
@@ -121,6 +214,7 @@ def test_stooq_fallback_does_not_override_intraday_errors(monkeypatch):
         assert "query1.finance.yahoo.com" in url
         return FakeYahooNoDataResponse()
 
+    monkeypatch.setattr(charts, "yf", EmptyYfinanceModule())
     monkeypatch.setattr(charts.requests, "get", fake_get)
     monkeypatch.setattr(charts, "fallback_from_cache", lambda _key, payload: payload)
 
