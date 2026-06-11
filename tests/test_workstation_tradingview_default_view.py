@@ -26,8 +26,12 @@ def test_workstation_defaults_to_chart_first_tradingview_shell():
     assert '/static/tradingview_chart_first.css' in index
     assert '/static/tradingview_default_view_cleanup.css' in index
     assert '/static/workstation_chrome_controls.js' in index
-    assert 'id="symbol" value="AAPL"' in index
+    assert 'id="symbol" value="BTCUSDT"' in index
     assert '<option>stock</option>' in index
+    assert '<option selected>crypto</option>' in index
+    assert 'id="exchange" value="BINANCE"' in index
+    assert 'BTCUSDT · 1D · chart tools hidden' in index
+    assert 'Loading BTCUSDT chart…' in index
     assert 'id="chartGrid" class="layout-grid layout-grid-1"' in index
     assert 'id="chart"' in index
 
