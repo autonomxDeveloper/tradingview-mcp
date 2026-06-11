@@ -17,6 +17,7 @@ from tradingview_mcp.core.services.market_data_cache_service import fallback_fro
 from tradingview_mcp.core.utils.validators import normalize_yahoo_symbol, sanitize_timeframe
 
 
+FULL_DAILY_STOCK_HISTORY_LIMIT = 2000
 YAHOO_RANGE_BY_TIMEFRAME = {
     "1m": ("1d", "1m"),
     "5m": ("5d", "5m"),
@@ -24,8 +25,8 @@ YAHOO_RANGE_BY_TIMEFRAME = {
     "30m": ("1mo", "30m"),
     "1h": ("3mo", "1h"),
     "4h": ("6mo", "1h"),
-    "1D": ("1y", "1d"),
-    "1W": ("5y", "1wk"),
+    "1D": ("10y", "1d"),
+    "1W": ("10y", "1wk"),
     "1M": ("10y", "1mo"),
 }
 YFINANCE_PERIOD_INTERVAL_BY_TIMEFRAME = {
@@ -35,8 +36,8 @@ YFINANCE_PERIOD_INTERVAL_BY_TIMEFRAME = {
     "30m": ("1mo", "30m"),
     "1h": ("3mo", "1h"),
     "4h": ("6mo", "1h"),
-    "1D": ("1y", "1d"),
-    "1W": ("5y", "1wk"),
+    "1D": ("10y", "1d"),
+    "1W": ("10y", "1wk"),
     "1M": ("10y", "1mo"),
 }
 STOOQ_FALLBACK_TIMEFRAMES = {"1D"}
@@ -59,8 +60,16 @@ def _json_error(code: str, message: str, **extra: Any) -> dict[str, Any]:
     return payload
 
 
+def _effective_chart_limit(timeframe: str, limit: int) -> int:
+    clean_limit = max(1, min(int(limit), 2000))
+    safe_timeframe = sanitize_timeframe(timeframe, "1D")
+    if safe_timeframe == "1D" and clean_limit >= 300:
+        return FULL_DAILY_STOCK_HISTORY_LIMIT
+    return clean_limit
+
+
 def _cache_key(symbol: str, timeframe: str, limit: int) -> str:
-    return f"yahoo-chart:{normalize_yahoo_symbol(symbol)}:{sanitize_timeframe(timeframe, '1D')}:{max(1, min(int(limit), 2000))}"
+    return f"yahoo-chart:{normalize_yahoo_symbol(symbol)}:{sanitize_timeframe(timeframe, '1D')}:{_effective_chart_limit(timeframe, limit)}"
 
 
 def _is_missing_number(value: Any) -> bool:
@@ -163,7 +172,7 @@ def _parse_stooq_daily_csv(symbol: str, text: str, limit: int) -> dict[str, Any]
         )
     if not candles:
         return None
-    clean_limit = max(1, min(int(limit), 2000))
+    clean_limit = _effective_chart_limit("1D", limit)
     return {
         "symbol": normalize_yahoo_symbol(symbol),
         "timeframe": "1D",
@@ -200,9 +209,9 @@ def _get_yfinance_chart(symbol: str, safe_timeframe: str, limit: int) -> dict[st
     if yf is None:
         return None
 
-    period, interval = YFINANCE_PERIOD_INTERVAL_BY_TIMEFRAME.get(safe_timeframe, ("1y", "1d"))
+    period, interval = YFINANCE_PERIOD_INTERVAL_BY_TIMEFRAME.get(safe_timeframe, ("10y", "1d"))
     yahoo_symbol = normalize_yahoo_symbol(symbol)
-    clean_limit = max(1, min(int(limit), 2000))
+    clean_limit = _effective_chart_limit(safe_timeframe, limit)
 
     try:
         ticker = yf.Ticker(yahoo_symbol)
@@ -280,7 +289,7 @@ def _get_raw_yahoo_chart(
     clean_limit: int,
     cache_key: str,
 ) -> dict[str, Any]:
-    range_value, interval = YAHOO_RANGE_BY_TIMEFRAME.get(safe_timeframe, ("1y", "1d"))
+    range_value, interval = YAHOO_RANGE_BY_TIMEFRAME.get(safe_timeframe, ("10y", "1d"))
     try:
         response = requests.get(
             f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}",
@@ -365,7 +374,7 @@ def _get_raw_yahoo_chart(
 def get_yahoo_chart(symbol: str, timeframe: str = "1D", limit: int = 500) -> dict[str, Any]:
     yahoo_symbol = normalize_yahoo_symbol(symbol)
     safe_timeframe = sanitize_timeframe(timeframe, "1D")
-    clean_limit = max(1, min(int(limit), 2000))
+    clean_limit = _effective_chart_limit(safe_timeframe, limit)
     cache_key = _cache_key(yahoo_symbol, safe_timeframe, clean_limit)
 
     yfinance_payload = _get_yfinance_chart(yahoo_symbol, safe_timeframe, clean_limit)
