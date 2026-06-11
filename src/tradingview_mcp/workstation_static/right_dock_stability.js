@@ -16,12 +16,49 @@
     }
   }
 
+  function syncChromeLabels() {
+    if (typeof window.updateWorkstationChromeLabels === 'function') {
+      window.updateWorkstationChromeLabels();
+      return;
+    }
+    document.querySelectorAll('[data-chrome-toggle="watchlist"]').forEach((button) => {
+      const expanded = document.body.classList.contains('watchlist-expanded');
+      button.setAttribute('aria-expanded', String(expanded));
+    });
+    document.querySelectorAll('[data-chrome-toggle="research"], .tradingview-right-dock-button').forEach((button) => {
+      const expanded = document.body.classList.contains('research-expanded');
+      button.setAttribute('aria-expanded', String(expanded));
+    });
+  }
+
+  function setWatchlistPanelOpen(open) {
+    const preserveRightPanel = document.body.classList.contains('research-expanded');
+    document.body.classList.toggle('watchlist-expanded', Boolean(open));
+    document.body.classList.toggle('research-expanded', preserveRightPanel);
+    document.querySelectorAll('[data-chrome-toggle="watchlist"]').forEach((button) => {
+      button.setAttribute('aria-expanded', String(Boolean(open)));
+    });
+    syncChromeLabels();
+    refreshChartSurface();
+  }
+
   function setRightPanelOpen(open) {
+    const preserveWatchlistPanel = document.body.classList.contains('watchlist-expanded');
     document.body.classList.toggle('research-expanded', Boolean(open));
+    document.body.classList.toggle('watchlist-expanded', preserveWatchlistPanel);
     document.querySelectorAll('[data-chrome-toggle="research"], .tradingview-right-dock-button').forEach((button) => {
       button.setAttribute('aria-expanded', String(Boolean(open)));
     });
+    syncChromeLabels();
     refreshChartSurface();
+  }
+
+  function toggleWatchlistPanel() {
+    setWatchlistPanelOpen(!document.body.classList.contains('watchlist-expanded'));
+  }
+
+  function toggleRightPanel() {
+    setRightPanelOpen(!document.body.classList.contains('research-expanded'));
   }
 
   function activateDataAction(action) {
@@ -36,6 +73,31 @@
   function setActiveDockButton(button) {
     document.querySelectorAll('.tradingview-right-dock-button.active').forEach((active) => active.classList.remove('active'));
     button.classList.add('active');
+  }
+
+  function handleIndependentSidebarToggle(target, event) {
+    const chartTool = target.closest('.chart-tool-button');
+    const chartAction = chartTool && chartTool.dataset.chartToolAction;
+    const chromeToggle = target.closest('[data-chrome-toggle]');
+    const chromeAction = chromeToggle && chromeToggle.dataset.chromeToggle;
+
+    if (chartAction === 'watchlist' || chromeAction === 'watchlist') {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      toggleWatchlistPanel();
+      return true;
+    }
+
+    if (!target.closest('.tradingview-right-dock-button') && (chartAction === 'research' || chromeAction === 'research')) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      toggleRightPanel();
+      return true;
+    }
+
+    return false;
   }
 
   installLayeringStylesheet();
@@ -55,6 +117,8 @@
       return;
     }
 
+    if (handleIndependentSidebarToggle(target, event)) return;
+
     const rightPanel = target.closest('.right.tradingview-right-panel');
     if (!rightPanel) return;
 
@@ -72,5 +136,6 @@
   }, true);
 
   window.setTradingViewRightPanelOpen = setRightPanelOpen;
+  window.setTradingViewWatchlistPanelOpen = setWatchlistPanelOpen;
   window.installRightDockLayeringStylesheet = installLayeringStylesheet;
 })();

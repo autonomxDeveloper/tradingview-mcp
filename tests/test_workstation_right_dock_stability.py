@@ -38,6 +38,25 @@ def test_right_dock_clicks_open_idempotently_and_stop_old_toggle_path():
     assert "classList.toggle('research-expanded')" not in stability
 
 
+def test_left_and_right_sidebars_preserve_independent_state():
+    stability = read_static("right_dock_stability.js")
+
+    for expected in [
+        "function setWatchlistPanelOpen(open)",
+        "function toggleWatchlistPanel()",
+        "function toggleRightPanel()",
+        "function handleIndependentSidebarToggle(target, event)",
+        "const preserveRightPanel = document.body.classList.contains('research-expanded')",
+        "const preserveWatchlistPanel = document.body.classList.contains('watchlist-expanded')",
+        "document.body.classList.toggle('research-expanded', preserveRightPanel)",
+        "document.body.classList.toggle('watchlist-expanded', preserveWatchlistPanel)",
+        "chartAction === 'watchlist' || chromeAction === 'watchlist'",
+        "chartAction === 'research' || chromeAction === 'research'",
+        "window.setTradingViewWatchlistPanelOpen",
+    ]:
+        assert expected in stability
+
+
 def test_right_dock_layering_stylesheet_is_loaded_by_stability_layer():
     stability = read_static("right_dock_stability.js")
 
