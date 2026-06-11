@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from tradingview_mcp.core.services import workstation_chart_service as charts
@@ -71,6 +71,19 @@ class FakeHistoryFrame:
         )
 
 
+class LongFakeHistoryFrame:
+    empty = False
+
+    def iterrows(self):
+        base = datetime(2018, 1, 2, tzinfo=timezone.utc)
+        for index in range(2200):
+            price = 250.0 + index
+            yield (
+                base + timedelta(days=index),
+                FakeRow({"Open": price, "High": price + 1.0, "Low": price - 1.0, "Close": price + 0.5, "Volume": 1000000 + index}),
+            )
+
+
 class FakeYfinanceTicker:
     fast_info = {"currency": "USD", "exchange": "PCX", "last_price": 473.0, "previous_close": 474.5}
 
@@ -80,7 +93,7 @@ class FakeYfinanceTicker:
 
     def history(self, **kwargs: Any) -> FakeHistoryFrame:
         self.calls.append(kwargs)
-        assert kwargs["period"] == "1y"
+        assert kwargs["period"] == "10y"
         assert kwargs["interval"] == "1d"
         assert kwargs["auto_adjust"] is False
         assert kwargs["prepost"] is True
@@ -88,12 +101,21 @@ class FakeYfinanceTicker:
         return FakeHistoryFrame()
 
 
+class LongFakeYfinanceTicker(FakeYfinanceTicker):
+    def history(self, **kwargs: Any) -> LongFakeHistoryFrame:
+        self.calls.append(kwargs)
+        assert kwargs["period"] == "10y"
+        assert kwargs["interval"] == "1d"
+        return LongFakeHistoryFrame()
+
+
 class FakeYfinanceModule:
-    def __init__(self):
+    def __init__(self, ticker_cls=FakeYfinanceTicker):
+        self.ticker_cls = ticker_cls
         self.tickers: list[FakeYfinanceTicker] = []
 
     def Ticker(self, symbol: str) -> FakeYfinanceTicker:
-        ticker = FakeYfinanceTicker(symbol)
+        ticker = self.ticker_cls(symbol)
         self.tickers.append(ticker)
         return ticker
 
@@ -129,9 +151,23 @@ def test_spy_daily_chart_uses_yfinance_primary_provider(monkeypatch):
     assert payload["source"] == "yfinance_chart"
     assert payload["exchange"] == "PCX"
     assert payload["currency"] == "USD"
-    assert len(payload["candles"]) == 2
-    assert payload["candles"][0]["close"] == 474.5
-    assert payload["candles"][1]["close"] == 473.0
+    assert len(payload["candles"]) == 3
+    assert payload["candles"][0]["close"] == 471.2
+    assert payload["candles"][2]["close"] == 473.0
+
+
+def test_spy_daily_chart_expands_to_multi_year_history(monkeypatch):
+    fake_yfinance = FakeYfinanceModule(LongFakeYfinanceTicker)
+    monkeypatch.setattr(charts, "yf", fake_yfinance)
+    monkeypatch.setattr(charts, "write_cache", lambda _key, payload, source="": payload)
+
+    payload = charts.get_yahoo_chart("SPY", "1D", 500)
+
+    assert fake_yfinance.tickers[0].calls[0]["period"] == "10y"
+    assert payload["range"] == "10y"
+    assert payload["interval"] == "1d"
+    assert len(payload["candles"]) == charts.FULL_DAILY_STOCK_HISTORY_LIMIT
+    assert payload["candles"][0]["time"] < payload["candles"][-1]["time"]
 
 
 def test_spy_daily_chart_falls_back_to_stooq_when_yahoo_has_no_data(monkeypatch, tmp_path):
@@ -164,9 +200,9 @@ def test_spy_daily_chart_falls_back_to_stooq_when_yahoo_has_no_data(monkeypatch,
     assert payload["fallback_from"] == "NO_CHART_DATA"
     assert payload["timeframe"] == "1D"
     assert payload["interval"] == "1d"
-    assert len(payload["candles"]) == 2
-    assert payload["candles"][0]["close"] == 474.5
-    assert payload["candles"][1]["close"] == 473.0
+    assert len(payload["candles"]) == 3
+    assert payload["candles"][0]["close"] == 471.2
+    assert payload["candles"][2]["close"] == 473.0
 
 
 def test_spy_daily_chart_falls_back_to_stooq_when_yahoo_edge_rate_limits(monkeypatch):
@@ -188,7 +224,7 @@ def test_spy_daily_chart_falls_back_to_stooq_when_yahoo_edge_rate_limits(monkeyp
 
     assert payload["source"] == "stooq_daily_csv"
     assert payload["fallback_from"] == "INVALID_RESPONSE"
-    assert len(payload["candles"]) == 2
+    assert len(payload["candles"]) == 3
 
 
 def test_stooq_provider_error_text_is_not_parsed_as_candles(monkeypatch):
