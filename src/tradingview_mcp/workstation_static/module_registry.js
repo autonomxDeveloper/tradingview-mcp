@@ -143,6 +143,10 @@ window.workstationModules = {
     file: 'top_toolbar_side_panel_module.js',
     owns: ['compact TradingView-style top toolbar', 'side-panel chart tools', 'toolbar relocation'],
   },
+  sidebarExpansionRepair: {
+    file: 'sidebar_expansion_repair.js',
+    owns: ['expanded watchlist and research panel geometry after redesign'],
+  },
   uiBindings: {
     file: 'ui_bindings.js',
     owns: ['data-action event binding', 'declarative control dispatch', 'legacy global handler bridge'],
@@ -227,6 +231,7 @@ function loadWorkstationModules() {
   loadModuleScript('bootDiagnosticsScript', '/static/boot_diagnostics.js');
   loadModuleScript('legacyBindingPruneScript', '/static/legacy_binding_prune.js');
   loadModuleScript('topToolbarSidePanelScript', '/static/top_toolbar_side_panel_module.js');
+  loadModuleScript('sidebarExpansionRepairScript', '/static/sidebar_expansion_repair.js');
   loadModuleScript('uiBindingsScript', '/static/ui_bindings.js');
   if (window.workstationBoot) window.workstationBoot.run();
 }
