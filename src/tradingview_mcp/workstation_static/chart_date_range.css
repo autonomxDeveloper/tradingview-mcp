@@ -1,0 +1,65 @@
+.chart-date-range-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 34px;
+  padding: 5px 10px;
+  border-top: 1px solid #dbe3ef;
+  border-bottom: 1px solid #dbe3ef;
+  background: #ffffff;
+  color: #334155;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.chart-date-range-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+.chart-date-range-buttons button {
+  height: 24px;
+  min-width: 32px;
+  padding: 2px 7px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chart-date-range-buttons button:hover,
+.chart-date-range-buttons button.active {
+  background: #e8f0ff;
+  color: #1d4ed8;
+}
+
+.chart-date-range-summary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #64748b;
+  font-size: 12px;
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .chart-date-range-bar {
+    gap: 6px;
+    padding-inline: 6px;
+  }
+
+  .chart-date-range-buttons button {
+    min-width: 28px;
+    padding-inline: 5px;
+  }
+
+  .chart-date-range-summary {
+    max-width: 42vw;
+  }
+}
