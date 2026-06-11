@@ -23,10 +23,10 @@
   <section class="center">
     <div class="bar topbar" aria-label="Main workstation toolbar">
       <button type="button" class="secondary chrome-toolbar-toggle" data-chrome-toggle="top-tools" aria-expanded="false">Show tools</button>
-      <span id="topToolbarSummary" class="toolbar-summary">AAPL · 1D · chart tools hidden</span>
-      <input id="symbol" value="AAPL" aria-label="Symbol" />
-      <select id="asset" aria-label="Asset type"><option>auto</option><option>stock</option><option>crypto</option></select>
-      <input id="exchange" value="NASDAQ" aria-label="Exchange" />
+      <span id="topToolbarSummary" class="toolbar-summary">BTCUSDT · 1D · chart tools hidden</span>
+      <input id="symbol" value="BTCUSDT" aria-label="Symbol" />
+      <select id="asset" aria-label="Asset type"><option>auto</option><option>stock</option><option selected>crypto</option></select>
+      <input id="exchange" value="BINANCE" aria-label="Exchange" />
       <select id="tf" aria-label="Timeframe"><option>1m</option><option>5m</option><option>15m</option><option>1h</option><option selected>1D</option><option>1W</option></select>
       <button data-action="market.load">Load</button>
       <button class="secondary" data-action="analysis.run">AI analyze</button>
@@ -84,7 +84,7 @@
     </div>
     <div id="chartGrid" class="layout-grid layout-grid-1">
       <div id="chartWrap" class="chart-cell active-chart-cell" data-chart-slot="1">
-        <div id="legend" class="legend">Loading AAPL chart…</div>
+        <div id="legend" class="legend">Loading BTCUSDT chart…</div>
         <div id="zonesOverlay" class="zones-overlay"></div>
         <svg id="guidesOverlay" class="guides-overlay"></svg>
         <div id="notesOverlay" class="notes-overlay"></div>
