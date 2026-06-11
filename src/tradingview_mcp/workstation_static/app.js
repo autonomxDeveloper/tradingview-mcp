@@ -36,6 +36,9 @@ function initChart() {
   candles = chart.addCandlestickSeries({ priceLineVisible: true, lastValueVisible: true });
   volume = chart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '', lastValueVisible: false, priceLineVisible: false });
   volume.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+  window.workstationPrimaryChart = chart;
+  window.workstationPrimaryCandles = candles;
+  window.workstationPrimaryVolume = volume;
   chart.subscribeCrosshairMove((param) => updateLegend(param));
   styleIndicatorPane('rsiWrap', 'rsiChart', 'rsiLegend');
   styleIndicatorPane('macdWrap', 'macdChart', 'macdLegend');
@@ -96,6 +99,7 @@ function ensureAtrChart() { if (atrChart) return; atrChart = LightweightCharts.c
 
 async function boot() {
   initChart();
+  initDateRangeBar();
   const health = await api('/api/health');
   $('status').textContent = 'LM Studio ' + health.lmstudio_base_url;
   print({ workstation: health.workstation, ideas: health.ideas, backtests: health.backtests, layouts: health.layouts }, 'risk');
@@ -118,15 +122,18 @@ async function boot() {
 
 function activeIsCrypto() { const symbol = $('symbol').value.toUpperCase(); return $('asset').value === 'crypto' || symbol.endsWith('USDT') || symbol.endsWith('-USD'); }
 function normalizeBars(rawBars) { return rawBars.filter((bar) => Number.isFinite(bar.open) && Number.isFinite(bar.high) && Number.isFinite(bar.low) && Number.isFinite(bar.close)); }
+function marketCandleLimit(timeframe, isCrypto) { const tf = String(timeframe || '').toLowerCase(); if (!isCrypto) return 500; if (tf === '1d' || tf === '1w') return 1500; return 600; }
 
 async function loadMarket() {
   const symbol = $('symbol').value.trim();
   const timeframe = $('tf').value;
-  if (activeIsCrypto()) {
-    lastPayload = await api(`/api/crypto/candles?symbol=${encodeURIComponent(symbol)}&venue=binance&interval=${encodeURIComponent(timeframe.toLowerCase())}&limit=300`);
+  const isCrypto = activeIsCrypto();
+  const candleLimit = marketCandleLimit(timeframe, isCrypto);
+  if (isCrypto) {
+    lastPayload = await api(`/api/crypto/candles?symbol=${encodeURIComponent(symbol)}&venue=binance&interval=${encodeURIComponent(timeframe.toLowerCase())}&limit=${candleLimit}`);
     currentBars = normalizeBars((lastPayload.bars || []).map((bar) => ({ time: bar.open_time ? Math.floor(bar.open_time / 1000) : bar.time, open: +bar.open, high: +bar.high, low: +bar.low, close: +bar.close, volume: +bar.volume })));
   } else {
-    lastPayload = await api(`/api/stock/yahoo-chart?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}&limit=300`);
+    lastPayload = await api(`/api/stock/yahoo-chart?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}&limit=${candleLimit}`);
     currentBars = normalizeBars((lastPayload.candles || []).map((bar) => ({ time: bar.time, open: +bar.open, high: +bar.high, low: +bar.low, close: +bar.close, volume: +bar.volume })));
   }
   renderChartSeries();
@@ -136,6 +143,7 @@ async function loadMarket() {
   restoreDrawings();
   fitChart();
   updateChartMeta();
+  updateDateRangeBar();
   updateLegend();
   print(lastPayload);
   scheduleChartSurfaceRefresh();
@@ -185,13 +193,19 @@ function clearDrawings() { drawings = emptyDrawings(); persistDrawings(); render
 function exportDrawings() { print({ symbol: $('symbol').value.toUpperCase(), timeframe: $('tf').value, drawings }); }
 function importDrawings() { const raw = prompt('Paste exported drawings JSON'); if (!raw) return; try { const payload = JSON.parse(raw); drawings = { ...emptyDrawings(), ...(payload.drawings || payload) }; persistDrawings(); renderDrawings(); print('Drawings imported.'); } catch (error) { print(`Could not import drawings: ${error.message}`); } }
 function clearLevels() { drawings.levels = []; persistDrawings(); renderDrawings(); }
-function fitChart() { chart.timeScale().fitContent(); renderHtmlDrawings(); if (rsiChart && rsiVisible) rsiChart.timeScale().fitContent(); if (macdChart && macdVisible) macdChart.timeScale().fitContent(); if (atrChart && atrVisible) atrChart.timeScale().fitContent(); }
+function fitChart() { chart.timeScale().fitContent(); renderHtmlDrawings(); updateDateRangeButtons('All'); if (rsiChart && rsiVisible) rsiChart.timeScale().fitContent(); if (macdChart && macdVisible) macdChart.timeScale().fitContent(); if (atrChart && atrVisible) atrChart.timeScale().fitContent(); }
 function updateChartMeta() { const metadata = lastPayload?.metadata || {}; const source = metadata.source || lastPayload?.source || 'unknown source'; const cache = metadata.cache_status ? ` · ${metadata.cache_status}${metadata.stale ? ' stale' : ''}` : ''; $('chartMeta').textContent = `${$('symbol').value.toUpperCase()} · ${$('tf').value} · ${source}${cache}`; }
 function updateLegend(param) { if (!currentBars.length) { $('legend').textContent = 'No chart data loaded.'; return; } let bar = currentBars[currentBars.length - 1]; if (param && param.time) { const match = currentBars.find((candidate) => candidate.time === param.time); if (match) bar = match; } const change = bar.close - bar.open, changePct = bar.open ? (change / bar.open) * 100 : 0, klass = change >= 0 ? 'up' : 'down'; $('legend').innerHTML = `<strong>${$('symbol').value.toUpperCase()}</strong> O ${fmt(bar.open)} H ${fmt(bar.high)} L ${fmt(bar.low)} C ${fmt(bar.close)} <span class="${klass}">${fmt(change)} (${changePct.toFixed(2)}%)</span> Vol ${fmtVolume(bar.volume)}`; }
 function fmt(value) { if (!Number.isFinite(value)) return '-'; return Math.abs(value) >= 1000 ? value.toFixed(2) : value.toPrecision(6).replace(/0+$/, '').replace(/\.$/, ''); }
 function fmtVolume(value) { if (!Number.isFinite(value)) return '-'; if (value >= 1000000000) return (value / 1000000000).toFixed(2) + 'B'; if (value >= 1000000) return (value / 1000000).toFixed(2) + 'M'; if (value >= 1000) return (value / 1000).toFixed(2) + 'K'; return String(value); }
+function formatDate(time) { if (!Number.isFinite(time)) return '-'; return new Date(time * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); }
+function historyMetadata() { return lastPayload?.history || lastPayload?.metadata?.history || {}; }
+function updateDateRangeBar() { const summary = $('dateRangeSummary'); if (!summary) return; if (!currentBars.length) { summary.textContent = 'No loaded chart history.'; updateDateRangeButtons(''); return; } const first = currentBars[0], last = currentBars[currentBars.length - 1], history = historyMetadata(); const complete = history.history_complete === true ? 'full venue history loaded' : 'loaded window'; const loaded = history.bars_count || currentBars.length; summary.textContent = `${loaded} candles · ${formatDate(first.time)} → ${formatDate(last.time)} · ${complete}`; }
+function updateDateRangeButtons(activeRange) { document.querySelectorAll('[data-chart-range]').forEach((button) => button.classList.toggle('active', button.dataset.chartRange === activeRange)); }
+function setChartRange(range) { if (!chart || !currentBars.length) return; const last = currentBars[currentBars.length - 1].time; const first = currentBars[0].time; let from = first; if (range === '5D') from = last - 5 * 86400; if (range === '1M') from = last - 31 * 86400; if (range === '3M') from = last - 93 * 86400; if (range === '6M') from = last - 186 * 86400; if (range === '1Y') from = last - 366 * 86400; if (range === '5Y') from = last - 5 * 366 * 86400; if (range === 'YTD') { const date = new Date(last * 1000); from = Date.UTC(date.getUTCFullYear(), 0, 1) / 1000; } if (range === 'All') { fitChart(); return; } chart.timeScale().setVisibleRange({ from: Math.max(first, from), to: last }); renderHtmlDrawings(); updateDateRangeButtons(range); }
+function initDateRangeBar() { document.querySelectorAll('[data-chart-range]').forEach((button) => { button.addEventListener('click', () => setChartRange(button.dataset.chartRange)); }); }
 
-function getPrimaryChartContext() { const rsi = relativeStrengthIndex(14); const macd = macdValues(); const atr = averageTrueRange(14); const latest = currentBars[currentBars.length - 1] || null; return { symbol: $('symbol').value.toUpperCase(), asset_type: activeIsCrypto() ? 'crypto' : 'stock', exchange: $('exchange').value, timeframe: $('tf').value, source: lastPayload?.metadata?.source || lastPayload?.source || 'unknown', latest_bar: latest, recent_bars: currentBars.slice(-80), overlays: { ...overlayState }, indicators: { volume_visible: volumeVisible, rsi_visible: rsiVisible, macd_visible: macdVisible, atr_visible: atrVisible, latest_rsi14: rsi[rsi.length - 1] || null, latest_macd: { macd: macd.macd[macd.macd.length - 1] || null, signal: macd.signal[macd.signal.length - 1] || null, histogram: macd.histogram[macd.histogram.length - 1] || null }, latest_atr14: atr[atr.length - 1] || null }, drawings: JSON.parse(JSON.stringify(drawings)), layout: typeof currentLayoutState === 'function' ? currentLayoutState() : null, paper_hint: { simulated_only: true, live_orders: false } }; }
+function getPrimaryChartContext() { const rsi = relativeStrengthIndex(14); const macd = macdValues(); const atr = averageTrueRange(14); const latest = currentBars[currentBars.length - 1] || null; return { symbol: $('symbol').value.toUpperCase(), asset_type: activeIsCrypto() ? 'crypto' : 'stock', exchange: $('exchange').value, timeframe: $('tf').value, source: lastPayload?.metadata?.source || lastPayload?.source || 'unknown', latest_bar: latest, first_bar: currentBars[0] || null, bars_count: currentBars.length, history: historyMetadata(), recent_bars: currentBars.slice(-80), overlays: { ...overlayState }, indicators: { volume_visible: volumeVisible, rsi_visible: rsiVisible, macd_visible: macdVisible, atr_visible: atrVisible, latest_rsi14: rsi[rsi.length - 1] || null, latest_macd: { macd: macd.macd[macd.macd.length - 1] || null, signal: macd.signal[macd.signal.length - 1] || null, histogram: macd.histogram[macd.histogram.length - 1] || null }, latest_atr14: atr[atr.length - 1] || null }, drawings: JSON.parse(JSON.stringify(drawings)), layout: typeof currentLayoutState === 'function' ? currentLayoutState() : null, paper_hint: { simulated_only: true, live_orders: false } }; }
 window.getPrimaryChartContext = getPrimaryChartContext;
 
 function layoutCatalogKey() { return 'workstation-layouts'; }
