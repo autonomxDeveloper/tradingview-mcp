@@ -1,6 +1,9 @@
 """Yahoo chart helpers for the research workstation."""
 from __future__ import annotations
 
+import csv
+from datetime import datetime, timezone
+from io import StringIO
 from typing import Any
 
 import requests
@@ -20,6 +23,7 @@ YAHOO_RANGE_BY_TIMEFRAME = {
     "1W": ("5y", "1wk"),
     "1M": ("10y", "1mo"),
 }
+STOOQ_FALLBACK_TIMEFRAMES = {"1D"}
 
 
 def _json_error(code: str, message: str, **extra: Any) -> dict[str, Any]:
@@ -30,6 +34,84 @@ def _json_error(code: str, message: str, **extra: Any) -> dict[str, Any]:
 
 def _cache_key(symbol: str, timeframe: str, limit: int) -> str:
     return f"yahoo-chart:{normalize_yahoo_symbol(symbol)}:{sanitize_timeframe(timeframe, '1D')}:{max(1, min(int(limit), 2000))}"
+
+
+def _stooq_symbol(symbol: str) -> str:
+    clean = normalize_yahoo_symbol(symbol).strip().lower()
+    if not clean:
+        return clean
+    if clean.startswith("^") or "-" in clean:
+        return clean
+    if "." in clean:
+        return clean
+    return f"{clean}.us"
+
+
+def _parse_stooq_daily_csv(symbol: str, text: str, limit: int) -> dict[str, Any] | None:
+    rows = list(csv.DictReader(StringIO(text)))
+    candles: list[dict[str, Any]] = []
+    for row in rows:
+        try:
+            date_text = row.get("Date") or ""
+            date_value = datetime.strptime(date_text, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            open_price = float(row.get("Open") or "nan")
+            high_price = float(row.get("High") or "nan")
+            low_price = float(row.get("Low") or "nan")
+            close_price = float(row.get("Close") or "nan")
+            volume = int(float(row.get("Volume") or 0))
+        except (TypeError, ValueError):
+            continue
+        candles.append(
+            {
+                "time": int(date_value.timestamp()),
+                "open": open_price,
+                "high": high_price,
+                "low": low_price,
+                "close": close_price,
+                "volume": volume,
+            }
+        )
+    if not candles:
+        return None
+    clean_limit = max(1, min(int(limit), 2000))
+    return {
+        "symbol": normalize_yahoo_symbol(symbol),
+        "timeframe": "1D",
+        "range": "stooq_daily_history",
+        "interval": "1d",
+        "currency": "USD",
+        "exchange": "US",
+        "regular_market_price": candles[-1]["close"],
+        "previous_close": candles[-2]["close"] if len(candles) > 1 else None,
+        "candles": candles[-clean_limit:],
+        "source": "stooq_daily_csv",
+    }
+
+
+def _get_stooq_daily_chart(symbol: str, limit: int) -> dict[str, Any] | None:
+    stooq_symbol = _stooq_symbol(symbol)
+    if not stooq_symbol or stooq_symbol.startswith("^") or "-" in stooq_symbol:
+        return None
+    try:
+        response = requests.get(
+            "https://stooq.com/q/d/l/",
+            params={"s": stooq_symbol, "i": "d"},
+            timeout=20,
+        )
+    except requests.RequestException:
+        return None
+    if response.status_code >= 400:
+        return None
+    return _parse_stooq_daily_csv(symbol, response.text, limit)
+
+
+def _fallback_stock_chart(cache_key: str, symbol: str, safe_timeframe: str, limit: int, error_payload: dict[str, Any]) -> dict[str, Any]:
+    if safe_timeframe in STOOQ_FALLBACK_TIMEFRAMES:
+        stooq_payload = _get_stooq_daily_chart(symbol, limit)
+        if stooq_payload and stooq_payload.get("candles"):
+            stooq_payload["fallback_from"] = error_payload.get("error", {}).get("code")
+            return write_cache(cache_key, stooq_payload, source="stooq_daily_csv")
+    return fallback_from_cache(cache_key, error_payload)
 
 
 def get_yahoo_chart(symbol: str, timeframe: str = "1D", limit: int = 500) -> dict[str, Any]:
@@ -45,25 +127,28 @@ def get_yahoo_chart(symbol: str, timeframe: str = "1D", limit: int = 500) -> dic
             timeout=20,
         )
     except requests.RequestException as exc:
-        return fallback_from_cache(cache_key, _json_error("REQUEST_FAILED", str(exc)))
+        return _fallback_stock_chart(cache_key, yahoo_symbol, safe_timeframe, clean_limit, _json_error("REQUEST_FAILED", str(exc)))
 
     try:
         payload = response.json()
     except ValueError:
-        return fallback_from_cache(cache_key, _json_error("INVALID_RESPONSE", response.text[:500]))
+        return _fallback_stock_chart(cache_key, yahoo_symbol, safe_timeframe, clean_limit, _json_error("INVALID_RESPONSE", response.text[:500]))
 
     if response.status_code >= 400:
-        return fallback_from_cache(
+        return _fallback_stock_chart(
             cache_key,
+            yahoo_symbol,
+            safe_timeframe,
+            clean_limit,
             _json_error("UPSTREAM_ERROR", "Yahoo chart request failed.", status_code=response.status_code, payload=payload),
         )
 
     chart = payload.get("chart", {})
     if chart.get("error"):
-        return fallback_from_cache(cache_key, _json_error("YAHOO_CHART_ERROR", "Yahoo chart returned an error.", details=chart.get("error")))
+        return _fallback_stock_chart(cache_key, yahoo_symbol, safe_timeframe, clean_limit, _json_error("YAHOO_CHART_ERROR", "Yahoo chart returned an error.", details=chart.get("error")))
     results = chart.get("result") or []
     if not results:
-        return fallback_from_cache(cache_key, _json_error("NO_CHART_DATA", f"No chart data returned for {yahoo_symbol}."))
+        return _fallback_stock_chart(cache_key, yahoo_symbol, safe_timeframe, clean_limit, _json_error("NO_CHART_DATA", f"No chart data returned for {yahoo_symbol}."))
 
     result = results[0]
     timestamps = result.get("timestamp") or []
@@ -94,6 +179,9 @@ def get_yahoo_chart(symbol: str, timeframe: str = "1D", limit: int = 500) -> dic
                 "volume": int(volumes[index]) if index < len(volumes) and volumes[index] is not None else 0,
             }
         )
+
+    if not candles:
+        return _fallback_stock_chart(cache_key, yahoo_symbol, safe_timeframe, clean_limit, _json_error("NO_VALID_CANDLES", f"No valid candles returned for {yahoo_symbol}."))
 
     candles = candles[-clean_limit:]
     meta = result.get("meta", {})
