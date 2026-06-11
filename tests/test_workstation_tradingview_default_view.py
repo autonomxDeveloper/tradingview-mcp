@@ -138,6 +138,40 @@ def test_chart_tool_rail_uses_real_clickable_buttons_not_static_decoration():
         assert expected in cleanup
 
 
+def test_right_panel_uses_tradingview_style_alerts_dock():
+    chrome = read_static("workstation_chrome_controls.js")
+
+    for expected in [
+        "RIGHT_DOCK_ACTIONS",
+        "TRADINGVIEW_ALERT_ROWS",
+        "function installTradingViewRightPanel()",
+        "function installTradingViewRightDockStyles()",
+        "tradingview-right-panel",
+        "tradingview-right-dock",
+        "tradingview-right-dock-button",
+        "tradingview-right-dock-badge",
+        "tradingview-alerts-panel",
+        "tradingview-alert-tabs",
+        "tradingview-alert-action",
+        "tradingview-alert-list",
+        "tradingview-alert-row",
+        "BTCUSDT 1D full-history loaded",
+        "Log <span class=\"count\">9</span>",
+        "window.installTradingViewRightPanel",
+    ]:
+        assert expected in chrome
+
+    for expected in [
+        "grid-template-columns: minmax(0, 1fr) 46px",
+        "body.side-panels-collapsed .right.tradingview-right-panel > .tradingview-right-dock",
+        "body.side-panels-collapsed:not(.research-expanded) .right.tradingview-right-panel .tradingview-alerts-panel",
+        "body.side-panels-collapsed.research-expanded main",
+        "background: #f5f7fb",
+        "border-left: 1px solid #d7dce5",
+    ]:
+        assert expected in chrome
+
+
 def test_chrome_defaults_crypto_daily_weekly_to_full_history_window():
     chrome = read_static("workstation_chrome_controls.js")
 
