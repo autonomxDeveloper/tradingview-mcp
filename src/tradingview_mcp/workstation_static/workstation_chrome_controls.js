@@ -1,4 +1,16 @@
 (function() {
+  const FULL_CRYPTO_HISTORY_CANDLE_LIMIT = 5000;
+
+  function preferFullCryptoHistory() {
+    const original = window.marketCandleLimit;
+    window.marketCandleLimit = function(timeframe, isCrypto) {
+      const tf = String(timeframe || '').toLowerCase();
+      if (isCrypto && (tf === '1d' || tf === '1w')) return FULL_CRYPTO_HISTORY_CANDLE_LIMIT;
+      if (typeof original === 'function') return original(timeframe, isCrypto);
+      return isCrypto ? 600 : 500;
+    };
+  }
+
   function ready(fn) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, { once: true });
     else fn();
@@ -62,6 +74,7 @@
     updateChromeLabels();
   }
 
+  preferFullCryptoHistory();
   window.toggleTopTools = toggleTopTools;
   window.toggleWorkstationPanel = togglePanel;
 
