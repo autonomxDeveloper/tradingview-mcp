@@ -11,12 +11,13 @@ def read_static(name: str) -> str:
     return (STATIC / name).read_text(encoding="utf-8")
 
 
-def test_default_chart_uses_explicit_stock_source_and_fallback():
+def test_default_chart_uses_stock_source_contract_and_fallback():
     index = read_static("index.html")
     app = read_static("app.js")
 
     assert 'id="symbol" value="AAPL"' in index
-    assert '<option selected>stock</option>' in index
+    assert '<option>stock</option>' in index
+    assert 'data-default-asset="stock"' in index
     assert 'id="tf" aria-label="Timeframe"' in index
     assert '<option selected>1D</option>' in index
     assert "await loadDefaultChart();" in app
