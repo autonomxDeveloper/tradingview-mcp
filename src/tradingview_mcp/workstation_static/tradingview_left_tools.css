@@ -1,0 +1,209 @@
+/* TradingView-style left drawing toolbar and flyout menus.
+   Replaces the decorative pseudo rail with a real, isolated toolbar so the
+   watchlist rail and chart controls do not overlap. */
+
+body.tradingview-chart-first .center::before {
+  display: none !important;
+  content: none !important;
+}
+
+body.tradingview-chart-first .center {
+  padding-left: 48px;
+}
+
+body.tradingview-chart-first #chartToolRail.chart-tool-rail {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 47px;
+  min-width: 47px;
+  max-width: 47px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  box-sizing: border-box;
+  overflow: visible;
+  background: #fff;
+  border-right: 1px solid var(--tv-line);
+  z-index: 220;
+  isolation: isolate;
+}
+
+body.tradingview-chart-first .chart-tool-rail-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+}
+
+body.tradingview-chart-first .chart-tool-rail-section + .chart-tool-rail-section {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #eef2f6;
+}
+
+body.tradingview-chart-first .chart-tool-button {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  padding: 0;
+  background: transparent;
+  color: #131722;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+body.tradingview-chart-first .chart-tool-button:hover,
+body.tradingview-chart-first .chart-tool-button:focus-visible,
+body.tradingview-chart-first .chart-tool-button.active {
+  background: #eef1f6;
+  outline: none;
+}
+
+body.tradingview-chart-first .chart-tool-button.has-submenu::after {
+  content: "";
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 4px solid #7a8291;
+  transform: translateY(-50%);
+}
+
+body.tradingview-chart-first .chart-tool-menu {
+  position: absolute;
+  left: 48px;
+  top: 8px;
+  width: min(330px, calc(100vw - 116px));
+  max-height: min(720px, calc(100vh - 72px));
+  overflow: auto;
+  padding: 8px 0;
+  background: #fff;
+  color: #131722;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  box-shadow: 0 10px 32px rgba(15, 23, 42, 0.18);
+  z-index: 260;
+}
+
+body.tradingview-chart-first .chart-tool-menu[hidden] {
+  display: none !important;
+}
+
+body.tradingview-chart-first .chart-tool-menu-heading {
+  padding: 8px 12px 6px;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+body.tradingview-chart-first .chart-tool-menu-group + .chart-tool-menu-group {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #edf2f7;
+}
+
+body.tradingview-chart-first .chart-tool-menu-item {
+  width: 100%;
+  min-height: 37px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto 22px;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 0;
+  padding: 6px 10px;
+  background: #fff;
+  color: #131722;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+body.tradingview-chart-first .chart-tool-menu-item:hover,
+body.tradingview-chart-first .chart-tool-menu-item:focus-visible,
+body.tradingview-chart-first .chart-tool-menu-item.active {
+  background: #f2f5fa;
+  outline: none;
+}
+
+body.tradingview-chart-first .chart-tool-menu-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  color: #111827;
+  font-size: 17px;
+}
+
+body.tradingview-chart-first .chart-tool-menu-label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+body.tradingview-chart-first .chart-tool-menu-shortcut {
+  color: #8a93a3;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+body.tradingview-chart-first .chart-tool-menu-star {
+  color: #8a93a3;
+  font-size: 17px;
+}
+
+body.tradingview-chart-first .chart-tool-status {
+  position: absolute;
+  left: 58px;
+  bottom: 10px;
+  max-width: min(420px, calc(100vw - 140px));
+  padding: 7px 10px;
+  border-radius: 7px;
+  background: rgba(19, 23, 34, .88);
+  color: #fff;
+  font-size: 12px;
+  z-index: 240;
+  pointer-events: none;
+}
+
+body.tradingview-chart-first .chart-tool-status[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 1200px) {
+  body.tradingview-chart-first .center {
+    padding-left: 40px;
+  }
+
+  body.tradingview-chart-first #chartToolRail.chart-tool-rail {
+    width: 39px;
+    min-width: 39px;
+    max-width: 39px;
+    padding-inline: 2px;
+  }
+
+  body.tradingview-chart-first .chart-tool-button {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+  }
+
+  body.tradingview-chart-first .chart-tool-menu {
+    left: 40px;
+  }
+}
