@@ -174,9 +174,17 @@ def live_ai_request() -> dict[str, object]:
     }
 
 
-def assert_model_was_detected(payload: dict[str, Any]) -> None:
-    model = payload.get("ai", {}).get("model") or payload.get("trade_idea", {}).get("model") or payload.get("ai_response", {}).get("model")
-    assert str(model or "").strip()
+def ai_envelope(payload: dict[str, Any], key: str) -> dict[str, Any]:
+    value = payload.get(key)
+    assert isinstance(value, dict), f"Expected {key} response envelope, got keys={sorted(payload)}"
+    return value
+
+
+def assert_lmstudio_envelope_has_content(payload: dict[str, Any], key: str) -> None:
+    envelope = ai_envelope(payload, key)
+    assert "error" not in envelope
+    assert str(envelope.get("content") or "").strip()
+    assert str(envelope.get("model") or "").strip()
 
 
 def test_live_lmstudio_analyze_endpoint_returns_model_content(monkeypatch: pytest.MonkeyPatch):
@@ -186,11 +194,10 @@ def test_live_lmstudio_analyze_endpoint_returns_model_content(monkeypatch: pytes
     assert response.status_code == 200
     payload = response.json()
 
-    assert "error" not in payload.get("ai", {})
-    assert str(payload["ai"].get("content") or "").strip()
-    assert_model_was_detected(payload)
+    assert_lmstudio_envelope_has_content(payload, "analysis")
     assert payload["market"]["symbol"] == "AAPL"
     assert payload["market"]["asset_type"] == "stock"
+    assert payload["structured_analysis"].get("not_financial_advice") is True
 
 
 def test_live_lmstudio_trade_idea_endpoint_preserves_research_boundary(monkeypatch: pytest.MonkeyPatch):
@@ -208,11 +215,10 @@ def test_live_lmstudio_trade_idea_endpoint_preserves_research_boundary(monkeypat
     assert response.status_code == 200
     payload = response.json()
 
-    assert "error" not in payload.get("ai", {})
-    assert str(payload["ai"].get("content") or "").strip()
-    assert_model_was_detected(payload)
+    assert_lmstudio_envelope_has_content(payload, "trade_idea")
     assert payload["journal_event"]["payload"]["live_execution"] is False
-    assert payload["journal_event"]["payload"]["not_financial_advice"] is True
+    assert payload["journal_event"]["payload"].get("simulated_only") is True
+    assert payload["structured_trade_idea"].get("not_financial_advice") is True
 
 
 def test_live_lmstudio_paper_decision_endpoint_stays_paper_only(monkeypatch: pytest.MonkeyPatch):
@@ -232,9 +238,7 @@ def test_live_lmstudio_paper_decision_endpoint_stays_paper_only(monkeypatch: pyt
     assert response.status_code == 200
     payload = response.json()
 
-    assert "error" not in payload.get("ai", {})
-    assert str(payload["ai"].get("content") or "").strip()
-    assert_model_was_detected(payload)
+    assert_lmstudio_envelope_has_content(payload, "ai_response")
     assert payload["paper_only"] is True
     assert payload["live_execution"] is False
     assert payload["execution_submitted"] is False
