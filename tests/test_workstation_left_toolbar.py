@@ -31,14 +31,16 @@ def test_left_toolbar_replaces_decorative_pseudo_rail_with_real_toolbar():
     for expected in [
         "body.tradingview-chart-first .center::before",
         "display: none !important;",
+        "--tv-left-toolbar-left: 0px;",
+        "--tv-left-toolbar-width: 47px;",
         "body.tradingview-chart-first #chartToolRail.chart-tool-rail",
-        "position: absolute;",
-        "width: 47px;",
-        "z-index: 220;",
+        "position: fixed;",
+        "left: var(--tv-left-toolbar-left, 0px);",
+        "z-index: 520;",
         "isolation: isolate;",
         "body.tradingview-chart-first .chart-tool-menu",
-        "left: 48px;",
-        "z-index: 260;",
+        "left: calc(var(--tv-left-toolbar-left, 0px) + var(--tv-left-toolbar-width, 47px));",
+        "z-index: 540;",
     ]:
         assert expected in css
 
@@ -82,9 +84,25 @@ def test_left_toolbar_clicks_open_menu_and_keep_chart_surface_clean():
         "className = 'chart-tool-button has-submenu'",
         "button.setAttribute('aria-haspopup', 'menu');",
         "button.dataset.chartToolAction = group.id;",
-        "center.insertBefore(rail, center.firstChild);",
-        "center.append(menu, status);",
+        "document.body.append(rail, menu, status);",
         "document.body.classList.add('tradingview-left-toolbar-enhanced');",
         "if (target.closest('#chartToolRail') || target.closest('#chartToolMenu')) return;",
+    ]:
+        assert expected in js
+
+
+def test_left_toolbar_tracks_watchlist_edge_outside_sidebar_stacking_context():
+    js = read_static("tradingview_left_tools.js")
+
+    for expected in [
+        "function getLeftPanelRightEdge(centerRect)",
+        "document.body.classList.contains('watchlist-expanded')",
+        "panel.getBoundingClientRect()",
+        "return Math.max(rightEdge, rect.right);",
+        "function syncToolbarGeometry()",
+        "rootStyle.setProperty('--tv-left-toolbar-left'",
+        "installGeometryObservers()",
+        "new ResizeObserver(scheduleSync)",
+        "new MutationObserver(scheduleSync)",
     ]:
         assert expected in js
