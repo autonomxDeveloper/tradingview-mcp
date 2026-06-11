@@ -80,44 +80,54 @@ body.side-panels-collapsed .right:focus-within::before {
 }
 
 body.chart-toolbar-clean .center {
-  grid-template-rows: 40px 36px minmax(660px, 1fr) auto 112px;
+  grid-template-rows: auto auto minmax(660px, 1fr) auto 112px;
 }
 
 body.chart-toolbar-clean .topbar {
-  gap: 6px;
+  gap: 8px;
   padding: 4px 10px;
-  min-height: 40px;
-  overflow: hidden;
+  min-height: 42px;
+  overflow: visible;
+  align-items: center;
+  flex-wrap: nowrap;
+  position: relative;
+  z-index: 35;
 }
 
 body.chart-toolbar-clean #symbol {
-  min-width: 88px;
-  max-width: 110px;
+  min-width: 92px;
+  max-width: 118px;
   padding-left: 4px;
 }
 
 body.chart-toolbar-clean #asset {
-  width: 82px;
+  width: 88px;
 }
 
 body.chart-toolbar-clean #exchange {
-  width: 104px;
+  width: 112px;
 }
 
 body.chart-toolbar-clean #tf {
-  width: 70px;
+  width: 76px;
 }
 
 body.chart-toolbar-clean .topbar button {
-  height: 30px;
-  padding: 4px 10px;
+  height: 32px;
+  padding: 4px 12px;
+  flex: 0 0 auto;
 }
 
 body.chart-toolbar-clean .chartbar {
-  min-height: 36px;
-  padding: 3px 10px;
-  overflow: hidden;
+  min-height: 38px;
+  padding: 4px 10px;
+  overflow-x: auto;
+  overflow-y: visible;
   gap: 8px;
+  align-items: center;
+  position: relative;
+  z-index: 34;
+  scrollbar-width: thin;
 }
 
 body.chart-toolbar-clean .chartbar .toolbar-section-label {
@@ -127,12 +137,14 @@ body.chart-toolbar-clean .chartbar .toolbar-section-label {
 body.chart-toolbar-clean .chart-controls {
   gap: 4px;
   flex: 0 0 auto;
+  min-width: max-content;
 }
 
 body.chart-toolbar-clean .chart-controls button {
-  height: 28px;
-  padding: 3px 8px;
+  height: 30px;
+  padding: 4px 9px;
   font-size: 12px;
+  flex: 0 0 auto;
 }
 
 body.chart-toolbar-clean .drawing-controls,
@@ -141,12 +153,13 @@ body.chart-toolbar-clean .layout-controls {
 }
 
 body.chart-toolbar-clean .metadata-controls {
-  min-width: 220px;
+  min-width: 240px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   margin-left: auto;
   border-right: 0;
+  flex: 1 1 auto;
 }
 
 body.chart-toolbar-clean #chartGrid,
@@ -179,6 +192,10 @@ body.chart-toolbar-clean .legend {
   }
 
   body.chart-toolbar-clean .center {
-    grid-template-rows: 40px 36px minmax(520px, 1fr) auto 96px;
+    grid-template-rows: auto auto minmax(520px, 1fr) auto 96px;
+  }
+
+  body.chart-toolbar-clean .topbar {
+    overflow-x: auto;
   }
 }
