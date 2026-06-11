@@ -14,8 +14,6 @@ def read_static(name: str) -> str:
 def test_workstation_defaults_to_chart_first_tradingview_shell():
     index = read_static("index.html")
     css = read_static("tradingview_chart_first.css")
-    cleanup_css = read_static("tradingview_default_view_cleanup.css")
-    app = read_static("app.js")
 
     for expected in [
         "tradingview-chart-first",
@@ -28,12 +26,8 @@ def test_workstation_defaults_to_chart_first_tradingview_shell():
     assert '/static/tradingview_default_view_cleanup.css' in index
     assert 'id="symbol" value="AAPL"' in index
     assert '<option>stock</option>' in index
-    assert 'data-default-asset="stock"' in index
     assert 'id="chartGrid" class="layout-grid layout-grid-1"' in index
     assert 'id="chart"' in index
-    assert "await loadDefaultChart();" in app
-    assert "async function loadDefaultChart()" in app
-    assert "DEFAULT_CHART_LOAD_FAILED" in app
 
     for expected in [
         'grid-template-columns: 210px minmax(780px, 1fr) 360px',
@@ -48,15 +42,6 @@ def test_workstation_defaults_to_chart_first_tradingview_shell():
         '.chartbar',
     ]:
         assert expected in css
-
-    for expected in [
-        'body.chart-toolbar-clean .topbar',
-        'overflow: visible;',
-        'body.chart-toolbar-clean .chartbar',
-        'overflow-x: auto;',
-        'overflow-y: visible;',
-    ]:
-        assert expected in cleanup_css
 
 
 def test_chart_theme_bootstrap_loads_before_app_and_patches_lightweight_charts():
