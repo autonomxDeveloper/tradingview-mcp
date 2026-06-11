@@ -26,11 +26,52 @@ def lmstudio_base_url() -> str:
     return os.environ.get("LMSTUDIO_BASE_URL", "http://localhost:1234/v1").rstrip("/")
 
 
-def detect_lmstudio_model() -> str:
-    configured = os.environ.get("LMSTUDIO_MODEL")
-    if configured:
-        return configured
+def _lmstudio_timeout() -> float:
+    return float(os.environ.get("LMSTUDIO_MODEL_DETECT_TIMEOUT_SECONDS", os.environ.get("LMSTUDIO_TIMEOUT_SECONDS", "120")))
 
+
+def _probe_lmstudio_chat(model_id: str | None) -> tuple[str, str]:
+    body: dict[str, Any] = {
+        "messages": [
+            {
+                "role": "user",
+                "content": (
+                    "Reply with exactly this JSON and no markdown: "
+                    '{"summary":"lmstudio_ready","not_financial_advice":true}'
+                ),
+            }
+        ],
+        "temperature": 0.1,
+        "max_tokens": 80,
+    }
+    if model_id:
+        body["model"] = model_id
+
+    try:
+        response = requests.post(
+            f"{lmstudio_base_url()}/chat/completions",
+            json=body,
+            timeout=_lmstudio_timeout(),
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except requests.RequestException as exc:
+        raise ProviderUnavailable(f"LM Studio chat probe failed for {model_id or 'default loaded model'}: {exc}") from exc
+    except ValueError as exc:
+        raise ProviderUnavailable(f"LM Studio chat probe returned non-JSON for {model_id or 'default loaded model'}.") from exc
+
+    choices = payload.get("choices") or []
+    message = choices[0].get("message", {}) if choices and isinstance(choices[0], dict) else {}
+    content = str(message.get("content") or "").strip()
+    response_model = str(payload.get("model") or model_id or "").strip()
+    if not content:
+        raise ProviderUnavailable(f"LM Studio returned an empty response for {model_id or 'default loaded model'}.")
+    if not response_model:
+        raise ProviderUnavailable(f"LM Studio returned content but no model id for {model_id or 'default loaded model'}.")
+    return response_model, content
+
+
+def _lmstudio_model_ids() -> list[str]:
     try:
         response = requests.get(
             f"{lmstudio_base_url()}/models",
@@ -47,41 +88,52 @@ def detect_lmstudio_model() -> str:
     if not isinstance(models, list):
         raise ProviderUnavailable("LM Studio /models response did not include a data list.")
 
+    model_ids: list[str] = []
     for model in models:
         if not isinstance(model, dict):
             continue
         model_id = str(model.get("id") or model.get("name") or "").strip()
-        if model_id:
-            return model_id
+        if model_id and model_id not in model_ids:
+            model_ids.append(model_id)
+    return model_ids
 
-    raise ProviderUnavailable("LM Studio is running but /models returned no loaded model id.")
+
+def detect_lmstudio_model() -> tuple[str | None, str]:
+    configured = os.environ.get("LMSTUDIO_MODEL")
+    if configured:
+        response_model, _ = _probe_lmstudio_chat(configured)
+        return configured, response_model
+
+    probe_errors: list[str] = []
+
+    try:
+        response_model, _ = _probe_lmstudio_chat(None)
+        return None, response_model
+    except ProviderUnavailable as exc:
+        probe_errors.append(str(exc))
+
+    for model_id in _lmstudio_model_ids():
+        try:
+            response_model, _ = _probe_lmstudio_chat(model_id)
+            return model_id, response_model
+        except ProviderUnavailable as exc:
+            probe_errors.append(str(exc))
+
+    details = "; ".join(probe_errors[-5:]) if probe_errors else "No model ids were returned from /models."
+    raise ProviderUnavailable(f"LM Studio is running, but no probed model returned non-empty chat content. {details}")
 
 
-def require_lmstudio_ready(monkeypatch: pytest.MonkeyPatch) -> str:
-    detected_model = detect_lmstudio_model()
-    monkeypatch.setenv("LMSTUDIO_MODEL", detected_model)
-
-    result = workstation_app._call_lmstudio(
-        [
-            {
-                "role": "user",
-                "content": (
-                    "Reply with exactly this JSON and no markdown: "
-                    '{"summary":"lmstudio_ready","not_financial_advice":true}'
-                ),
-            }
-        ],
-        max_tokens=80,
-    )
-    if "error" in result:
-        raise ProviderUnavailable(str(result["error"]))
-    if not str(result.get("content") or "").strip():
-        raise ProviderUnavailable("LM Studio returned an empty response.")
-    return detected_model
+def require_lmstudio_ready(monkeypatch: pytest.MonkeyPatch) -> tuple[str | None, str]:
+    model_param, response_model = detect_lmstudio_model()
+    if model_param:
+        monkeypatch.setenv("LMSTUDIO_MODEL", model_param)
+    else:
+        monkeypatch.delenv("LMSTUDIO_MODEL", raising=False)
+    return model_param, response_model
 
 
 def make_live_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
-    detected_model = require_lmstudio_ready(monkeypatch)
+    model_param, _response_model = require_lmstudio_ready(monkeypatch)
 
     monkeypatch.setenv("LMSTUDIO_TIMEOUT_SECONDS", os.environ.get("LMSTUDIO_TIMEOUT_SECONDS", "120"))
     monkeypatch.setattr(workstation_app, "get_price", lambda symbol: {"symbol": symbol, "price": 123.45, "source": "live-lmstudio-test"})
@@ -104,7 +156,7 @@ def make_live_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setattr(workstation_app, "list_paper_orders", lambda limit=100: [])
     monkeypatch.setattr(workstation_app, "list_paper_fills", lambda limit=100: [])
     monkeypatch.setattr(workstation_app, "append_journal_event", lambda event_type, payload: {"id": "lmstudio-live-event", "type": event_type, "payload": payload})
-    monkeypatch.setattr(workstation_app, "_lmstudio_model", lambda: detected_model)
+    monkeypatch.setattr(workstation_app, "_lmstudio_model", lambda: model_param)
 
     return TestClient(workstation_app.create_app())
 
