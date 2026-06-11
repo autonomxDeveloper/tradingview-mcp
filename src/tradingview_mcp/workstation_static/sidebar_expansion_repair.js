@@ -7,6 +7,60 @@
     const style = document.createElement('style');
     style.id = 'sidebarExpansionRepairStyles';
     style.textContent = `
+      :root {
+        --sidebar-slide-duration: 320ms;
+        --sidebar-slide-ease: cubic-bezier(.22, 1, .36, 1);
+      }
+
+      body.tradingview-chart-first main,
+      body.tradingview-chart-first aside,
+      body.tradingview-chart-first .right,
+      body.tradingview-chart-first .right.tradingview-right-panel {
+        transition:
+          grid-template-columns var(--sidebar-slide-duration) var(--sidebar-slide-ease),
+          width var(--sidebar-slide-duration) var(--sidebar-slide-ease),
+          min-width var(--sidebar-slide-duration) var(--sidebar-slide-ease),
+          max-width var(--sidebar-slide-duration) var(--sidebar-slide-ease),
+          padding var(--sidebar-slide-duration) var(--sidebar-slide-ease),
+          background-color 220ms ease,
+          box-shadow 220ms ease !important;
+        will-change: grid-template-columns, width, min-width, max-width;
+      }
+
+      body.tradingview-chart-first aside,
+      body.tradingview-chart-first .right,
+      body.tradingview-chart-first .right.tradingview-right-panel {
+        transform: translateZ(0);
+        backface-visibility: hidden;
+      }
+
+      body.tradingview-chart-first aside > *,
+      body.tradingview-chart-first .right.tradingview-right-panel > .tradingview-alerts-panel,
+      body.tradingview-chart-first .right.tradingview-right-panel > .tradingview-research-stack,
+      body.tradingview-chart-first .right.tradingview-right-panel .panel,
+      body.tradingview-chart-first .right.tradingview-right-panel .workflow-panel {
+        transition:
+          opacity 210ms ease,
+          visibility 210ms ease,
+          transform var(--sidebar-slide-duration) var(--sidebar-slide-ease) !important;
+        will-change: opacity, transform;
+      }
+
+      body.tradingview-chart-first.side-panels-collapsed:not(.watchlist-expanded) aside > *:not(.tv-left-toolbar):not(.tradingview-left-toolbar) {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        transform: translateX(-14px) scale(.98) !important;
+      }
+
+      body.tradingview-chart-first.side-panels-collapsed:not(.research-expanded) .right.tradingview-right-panel > .tradingview-alerts-panel,
+      body.tradingview-chart-first.side-panels-collapsed:not(.research-expanded) .right.tradingview-right-panel > .tradingview-research-stack {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        transform: translateX(18px) scale(.985) !important;
+      }
+
       body.tradingview-chart-first.side-panels-collapsed.watchlist-expanded main {
         grid-template-columns: minmax(280px, 320px) minmax(0, 1fr) 64px !important;
       }
@@ -56,6 +110,7 @@
         opacity: 1 !important;
         visibility: visible !important;
         pointer-events: auto !important;
+        transform: translateX(0) scale(1) !important;
       }
 
       body.tradingview-chart-first.side-panels-collapsed.research-expanded .right.tradingview-right-panel > .tradingview-right-dock {
@@ -82,6 +137,7 @@
         opacity: 1 !important;
         visibility: visible !important;
         pointer-events: auto !important;
+        transform: translateX(0) scale(1) !important;
         background: rgba(15, 23, 42, .92) !important;
         border-right: 0 !important;
         border-bottom: 1px solid rgba(148, 163, 184, .22) !important;
@@ -100,6 +156,7 @@
         opacity: 1 !important;
         visibility: visible !important;
         pointer-events: auto !important;
+        transform: translateX(0) scale(1) !important;
         background: rgba(8, 13, 24, .96) !important;
       }
 
@@ -123,7 +180,21 @@
 
       body.tradingview-chart-first.side-panels-collapsed:not(.research-expanded) .right.tradingview-right-panel > .tradingview-alerts-panel,
       body.tradingview-chart-first.side-panels-collapsed:not(.research-expanded) .right.tradingview-right-panel > .tradingview-research-stack {
-        display: none !important;
+        display: block !important;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        body.tradingview-chart-first main,
+        body.tradingview-chart-first aside,
+        body.tradingview-chart-first .right,
+        body.tradingview-chart-first .right.tradingview-right-panel,
+        body.tradingview-chart-first aside > *,
+        body.tradingview-chart-first .right.tradingview-right-panel > .tradingview-alerts-panel,
+        body.tradingview-chart-first .right.tradingview-right-panel > .tradingview-research-stack,
+        body.tradingview-chart-first .right.tradingview-right-panel .panel,
+        body.tradingview-chart-first .right.tradingview-right-panel .workflow-panel {
+          transition: none !important;
+        }
       }
     `;
     document.head.appendChild(style);
@@ -134,7 +205,8 @@
     if (typeof resize === 'function') {
       window.requestAnimationFrame(() => resize());
       window.setTimeout(() => resize(), 100);
-      window.setTimeout(() => resize(), 280);
+      window.setTimeout(() => resize(), 220);
+      window.setTimeout(() => resize(), 380);
     }
   }
 
@@ -205,6 +277,7 @@
       if (target.closest('[data-chrome-toggle]') || target.closest('.tradingview-right-dock-button') || target.closest('.chart-tool-button')) {
         window.setTimeout(applyGeometry, 0);
         window.setTimeout(applyGeometry, 80);
+        window.setTimeout(applyGeometry, 220);
       }
     }, true);
   }
