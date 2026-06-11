@@ -102,6 +102,20 @@ def test_collapsible_chrome_has_clickable_top_and_side_controls():
         assert expected in chrome
 
 
+def test_chrome_defaults_crypto_daily_weekly_to_full_history_window():
+    chrome = read_static("workstation_chrome_controls.js")
+
+    for expected in [
+        "FULL_CRYPTO_HISTORY_CANDLE_LIMIT = 5000",
+        "function preferFullCryptoHistory()",
+        "window.marketCandleLimit = function(timeframe, isCrypto)",
+        "tf === '1d' || tf === '1w'",
+        "return FULL_CRYPTO_HISTORY_CANDLE_LIMIT",
+        "preferFullCryptoHistory();",
+    ]:
+        assert expected in chrome
+
+
 def test_chart_theme_bootstrap_loads_before_app_and_patches_lightweight_charts():
     index = read_static("index.html")
     bootstrap = read_static("tradingview_chart_theme_bootstrap.js")
