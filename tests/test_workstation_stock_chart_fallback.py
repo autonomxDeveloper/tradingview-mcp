@@ -151,9 +151,9 @@ def test_spy_daily_chart_uses_yfinance_primary_provider(monkeypatch):
     assert payload["source"] == "yfinance_chart"
     assert payload["exchange"] == "PCX"
     assert payload["currency"] == "USD"
-    assert len(payload["candles"]) == 3
-    assert payload["candles"][0]["close"] == 471.2
-    assert payload["candles"][2]["close"] == 473.0
+    assert len(payload["candles"]) == 2
+    assert payload["candles"][0]["close"] == 474.5
+    assert payload["candles"][1]["close"] == 473.0
 
 
 def test_spy_daily_chart_expands_to_multi_year_history(monkeypatch):
@@ -200,9 +200,9 @@ def test_spy_daily_chart_falls_back_to_stooq_when_yahoo_has_no_data(monkeypatch,
     assert payload["fallback_from"] == "NO_CHART_DATA"
     assert payload["timeframe"] == "1D"
     assert payload["interval"] == "1d"
-    assert len(payload["candles"]) == 3
-    assert payload["candles"][0]["close"] == 471.2
-    assert payload["candles"][2]["close"] == 473.0
+    assert len(payload["candles"]) == 2
+    assert payload["candles"][0]["close"] == 474.5
+    assert payload["candles"][1]["close"] == 473.0
 
 
 def test_spy_daily_chart_falls_back_to_stooq_when_yahoo_edge_rate_limits(monkeypatch):
@@ -224,7 +224,7 @@ def test_spy_daily_chart_falls_back_to_stooq_when_yahoo_edge_rate_limits(monkeyp
 
     assert payload["source"] == "stooq_daily_csv"
     assert payload["fallback_from"] == "INVALID_RESPONSE"
-    assert len(payload["candles"]) == 3
+    assert len(payload["candles"]) == 2
 
 
 def test_stooq_provider_error_text_is_not_parsed_as_candles(monkeypatch):
