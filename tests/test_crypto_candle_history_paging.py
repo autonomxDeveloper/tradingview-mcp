@@ -20,7 +20,7 @@ def row(open_time: int, close: str) -> list[Any]:
     return [open_time, "1", "2", "0.5", close, "10", open_time + 59999]
 
 
-def test_binance_candles_page_backwards_and_report_history(monkeypatch):
+def test_binance_intraday_candles_page_backwards_and_report_history(monkeypatch):
     calls: list[dict[str, Any]] = []
     pages = [
         [row(3000, "3"), row(4000, "4"), row(5000, "5")],
@@ -36,7 +36,7 @@ def test_binance_candles_page_backwards_and_report_history(monkeypatch):
     monkeypatch.setattr(service.requests, "get", fake_get)
     monkeypatch.setattr(service, "write_cache", lambda _key, payload, source="": payload)
 
-    payload = service.get_crypto_candles("BTCUSDT", "binance", "1d", 5)
+    payload = service.get_crypto_candles("BTCUSDT", "binance", "1h", 5)
 
     assert payload["venue"] == "binance"
     assert payload["symbol"] == "BTCUSDT"
@@ -49,8 +49,8 @@ def test_binance_candles_page_backwards_and_report_history(monkeypatch):
         "last_open_time": 5000,
         "history_complete": False,
     }
-    assert calls[0] == {"symbol": "BTCUSDT", "interval": "1d", "limit": 3}
-    assert calls[1] == {"symbol": "BTCUSDT", "interval": "1d", "limit": 2, "endTime": 2999}
+    assert calls[0] == {"symbol": "BTCUSDT", "interval": "1h", "limit": 3}
+    assert calls[1] == {"symbol": "BTCUSDT", "interval": "1h", "limit": 2, "endTime": 2999}
 
 
 def test_crypto_candle_limit_allows_deeper_daily_history_without_unbounded_requests(monkeypatch):
