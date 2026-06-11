@@ -1,5 +1,6 @@
 (function() {
   const boundAttribute = 'data-action-bound';
+  const handledFlag = '__workstationActionHandled';
 
   function callGlobal(name, ...args) {
     const handler = window[name];
@@ -7,6 +8,12 @@
       throw new Error(`Missing workstation handler: ${name}`);
     }
     return handler(...args);
+  }
+
+  function reportActionError(error) {
+    const message = String(error && error.message ? error.message : error);
+    if (typeof print === 'function') print(message);
+    else console.error(error);
   }
 
   function actionArgument(element) {
@@ -95,27 +102,47 @@
     'journal.load': () => callGlobal('loadJournal'),
   };
 
+  function runAction(element, event) {
+    if (!element) return false;
+    const action = element.dataset.action;
+    const handler = actions[action];
+    if (!handler) return false;
+    if (event) {
+      event.preventDefault();
+      event[handledFlag] = true;
+    }
+    try {
+      const result = handler(element, event);
+      if (result && typeof result.catch === 'function') {
+        result.catch(reportActionError);
+      }
+    } catch (error) {
+      reportActionError(error);
+    }
+    return true;
+  }
+
+  function findActionElement(target) {
+    return target instanceof Element ? target.closest('[data-action]') : null;
+  }
+
+  function handleDelegatedAction(event) {
+    if (event[handledFlag]) return;
+    const element = findActionElement(event.target);
+    if (!element) return;
+    if ((element.dataset.actionEvent || 'click') !== 'click') return;
+    runAction(element, event);
+  }
+
   function bindActionElement(element) {
     if (!element || element.getAttribute(boundAttribute) === 'true') return;
     const action = element.dataset.action;
     const handler = actions[action];
     if (!handler) return;
     const eventName = element.dataset.actionEvent || 'click';
-    element.addEventListener(eventName, (event) => {
-      if (eventName === 'click') event.preventDefault();
-      try {
-        const result = handler(element, event);
-        if (result && typeof result.catch === 'function') {
-          result.catch((error) => {
-            if (typeof print === 'function') print(String(error && error.message ? error.message : error));
-            else console.error(error);
-          });
-        }
-      } catch (error) {
-        if (typeof print === 'function') print(String(error && error.message ? error.message : error));
-        else console.error(error);
-      }
-    });
+    if (eventName !== 'click') {
+      element.addEventListener(eventName, (event) => runAction(element, event));
+    }
     element.setAttribute(boundAttribute, 'true');
   }
 
@@ -124,6 +151,7 @@
   }
 
   function observeActionElements() {
+    if (window.workstationActionObserverInstalled) return;
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
@@ -134,11 +162,20 @@
       });
     });
     observer.observe(document.body, { childList: true, subtree: true });
+    window.workstationActionObserverInstalled = true;
+  }
+
+  function installDelegatedActionHandler() {
+    if (window.workstationDelegatedActionHandlerInstalled) return;
+    document.addEventListener('click', handleDelegatedAction, true);
+    window.workstationDelegatedActionHandlerInstalled = true;
   }
 
   window.bindWorkstationActions = bindWorkstationActions;
+  window.runWorkstationAction = runAction;
 
   function bootUiBindings() {
+    installDelegatedActionHandler();
     bindWorkstationActions();
     observeActionElements();
   }
