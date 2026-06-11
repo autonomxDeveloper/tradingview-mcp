@@ -19,22 +19,27 @@ def test_right_dock_stability_loads_after_chrome_controls():
     assert index.index("/static/workstation_chrome_controls.js") < index.index("/static/right_dock_stability.js")
 
 
-def test_right_dock_clicks_open_idempotently_and_stop_old_toggle_path():
+def test_right_dock_clicks_toggle_panel_and_stop_old_toggle_path():
     stability = read_static("right_dock_stability.js")
 
     for expected in [
         "function setRightPanelOpen(open)",
         "classList.toggle('research-expanded', Boolean(open))",
+        "function toggleRightPanel()",
         "'.tradingview-right-dock-button'",
+        "const wasOpen = document.body.classList.contains('research-expanded')",
         "event.stopImmediatePropagation();",
-        "setRightPanelOpen(true);",
+        "toggleRightPanel();",
+        "clearActiveDockButtons();",
         "setActiveDockButton(dockButton);",
+        "activateDataAction(dockButton.dataset.rightDockAction || '')",
         "target.closest('.tradingview-alerts-panel')",
         "target.closest('.tradingview-research-stack')",
         "window.setTradingViewRightPanelOpen",
     ]:
         assert expected in stability
 
+    assert "setRightPanelOpen(true);\n      setActiveDockButton(dockButton);" not in stability
     assert "classList.toggle('research-expanded')" not in stability
 
 
