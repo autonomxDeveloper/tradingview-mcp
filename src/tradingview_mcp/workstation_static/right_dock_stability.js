@@ -75,6 +75,10 @@
     button.classList.add('active');
   }
 
+  function clearActiveDockButtons() {
+    document.querySelectorAll('.tradingview-right-dock-button.active').forEach((active) => active.classList.remove('active'));
+  }
+
   function handleIndependentSidebarToggle(target, event) {
     const chartTool = target.closest('.chart-tool-button');
     const chartAction = chartTool && chartTool.dataset.chartToolAction;
@@ -108,12 +112,17 @@
 
     const dockButton = target.closest('.tradingview-right-dock-button');
     if (dockButton) {
+      const wasOpen = document.body.classList.contains('research-expanded');
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
-      setRightPanelOpen(true);
-      setActiveDockButton(dockButton);
-      activateDataAction(dockButton.dataset.rightDockAction || '');
+      toggleRightPanel();
+      if (wasOpen) {
+        clearActiveDockButtons();
+      } else {
+        setActiveDockButton(dockButton);
+        activateDataAction(dockButton.dataset.rightDockAction || '');
+      }
       return;
     }
 
