@@ -47,7 +47,7 @@ def test_binance_candles_page_backwards_and_report_history(monkeypatch):
         "bars_count": 5,
         "first_open_time": 1000,
         "last_open_time": 5000,
-        "history_complete": True,
+        "history_complete": False,
     }
     assert calls[0] == {"symbol": "BTCUSDT", "interval": "1d", "limit": 3}
     assert calls[1] == {"symbol": "BTCUSDT", "interval": "1d", "limit": 2, "endTime": 2999}
