@@ -9,17 +9,20 @@ export type HealthPayload = {
 export type Candle = {
   time?: string | number;
   timestamp?: string | number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume?: number;
+  open_time?: string | number;
+  open: number | string;
+  high: number | string;
+  low: number | string;
+  close: number | string;
+  volume?: number | string;
 };
 
 export type ChartPayload = {
   symbol?: string;
   timeframe?: string;
+  interval?: string;
   candles?: Candle[];
+  bars?: Candle[];
   data?: Candle[];
   error?: { code?: string; message?: string };
 };
@@ -37,6 +40,10 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   return payload as T;
 }
 
+export function chartBars(payload?: ChartPayload): Candle[] {
+  return payload?.candles ?? payload?.bars ?? payload?.data ?? [];
+}
+
 export const workstationApi = {
   health: () => requestJson<HealthPayload>('/api/health'),
   watchlist: () => requestJson<{ symbols: string[] }>('/api/watchlist'),
@@ -46,6 +53,10 @@ export const workstationApi = {
     requestJson<ChartPayload>(`/api/crypto/candles?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}&limit=${limit}`),
   analyze: (body: { symbol: string; asset_type: string; exchange: string; timeframe: string; question: string }) =>
     requestJson<Record<string, unknown>>('/api/ai/analyze', { method: 'POST', body: JSON.stringify(body) }),
+  tradeIdea: (body: { symbol: string; asset_type: string; exchange: string; timeframe: string; question: string; chart_context?: Record<string, unknown>; profile?: string; mode?: string }) =>
+    requestJson<Record<string, unknown>>('/api/ai/trade-idea', { method: 'POST', body: JSON.stringify(body) }),
+  paperDecision: (body: { symbol: string; asset_type: string; exchange: string; timeframe: string; chart_context?: Record<string, unknown>; timeframes?: string[]; profile?: string; mode?: string; risk?: Record<string, unknown> }) =>
+    requestJson<Record<string, unknown>>('/api/ai/paper-trader/decision', { method: 'POST', body: JSON.stringify(body) }),
   backtest: (body: { symbol: string; strategy: string; period: string; interval: string }) =>
     requestJson<Record<string, unknown>>('/api/backtest/run', { method: 'POST', body: JSON.stringify(body) }),
   paperAccount: () => requestJson<Record<string, unknown>>('/api/paper/account'),
