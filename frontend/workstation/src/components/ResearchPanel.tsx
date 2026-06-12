@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Activity, BrainCircuit, ClipboardList, History, LayoutPanelTop, LineChart, Newspaper, WalletCards } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,6 +53,13 @@ type AnalysisView = {
   confidence: string;
   model: string;
   fallbackText: string;
+};
+
+type WorkflowResult = {
+  step: string;
+  status: 'idle' | 'running' | 'done' | 'error';
+  message: string;
+  data?: unknown;
 };
 
 function PanelIcon({ panel }: { panel: RightPanel }) {
@@ -193,6 +200,8 @@ function AnalysisResult({ view }: { view: AnalysisView }) {
 
 export function ResearchPanel({ panel }: { panel: RightPanel }) {
   const { symbol, timeframe, assetType, exchange, leftOpen, rightOpen, bottomOpen, toggleLeft, toggleRight, toggleBottom } = useUiStore();
+  const [workflowResult, setWorkflowResult] = useState<WorkflowResult | null>(null);
+  const [runningWorkflowStep, setRunningWorkflowStep] = useState<string | null>(null);
   const resolvedAssetType = inferAssetType(symbol, assetType);
   const resolvedExchange = resolvedAssetType === 'crypto' ? exchange || 'BINANCE' : exchange || 'NASDAQ';
   const analyze = useMutation<AnalysisPayload, Error>({
@@ -208,6 +217,54 @@ export function ResearchPanel({ panel }: { panel: RightPanel }) {
   const paper = useQuery({ queryKey: ['paper-account'], queryFn: workstationApi.paperAccount, enabled: panel === 'paper' });
   const ideas = useQuery({ queryKey: ['ideas'], queryFn: workstationApi.ideas, enabled: panel === 'workflow' || panel === 'news' });
   const journal = useQuery({ queryKey: ['journal'], queryFn: workstationApi.journal, enabled: panel === 'journal' });
+
+  const runWorkflowStep = async (step: string, index: number) => {
+    const stepId = automationId(step);
+    setRunningWorkflowStep(stepId);
+    setWorkflowResult({ step, status: 'running', message: `Running ${step.toLowerCase()}...` });
+
+    try {
+      let data: unknown;
+      let message = '';
+
+      if (index === 0) {
+        data = await workstationApi.chart(symbol, timeframe, resolvedAssetType, 300);
+        message = `Scanned latest ${resolvedAssetType} market context for ${symbol} on ${timeframe}.`;
+      } else if (index === 1) {
+        data = await analyze.mutateAsync();
+        message = `Generated an LLM research thesis for ${symbol}.`;
+      } else if (index === 2) {
+        data = await workstationApi.backtest({
+          symbol,
+          strategy: 'sma_cross',
+          period: '1y',
+          interval: timeframe.toLowerCase(),
+        });
+        message = `Backtested a candidate SMA crossover setup for ${symbol}.`;
+      } else {
+        data = {
+          symbol,
+          asset_type: resolvedAssetType,
+          exchange: resolvedExchange,
+          timeframe,
+          analysis: analyze.data ?? null,
+          ideas: ideas.data ?? { ideas: [] },
+          saved_at: new Date().toISOString(),
+        };
+        message = `Built a research packet for ${symbol}.`;
+      }
+
+      setWorkflowResult({ step, status: 'done', message, data });
+    } catch (error) {
+      setWorkflowResult({
+        step,
+        status: 'error',
+        message: error instanceof Error ? error.message : `Failed to run ${step}.`,
+      });
+    } finally {
+      setRunningWorkflowStep(null);
+    }
+  };
 
   return (
     <Card data-testid={`right-panel-${panel}`} className="flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-3xl">
@@ -236,17 +293,32 @@ export function ResearchPanel({ panel }: { panel: RightPanel }) {
           <div data-testid="workflow-panel-content" className="space-y-3">
             {workflowSteps.map((step, index) => {
               const stepId = automationId(step);
+              const isRunning = runningWorkflowStep === stepId;
+              const isLastResult = workflowResult?.step === step;
               return (
                 <div key={step} data-testid={`workflow-step-${stepId}`} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
                   <div data-testid={`workflow-step-${stepId}-number`} className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-xs font-bold text-primary">{index + 1}</div>
                   <div data-testid={`workflow-step-${stepId}-text`} className="min-w-0 flex-1">
                     <div data-testid={`workflow-step-${stepId}-title`} className="text-sm font-medium">{step}</div>
-                    <div data-testid={`workflow-step-${stepId}-description`} className="text-xs text-muted-foreground">Composable workflow action</div>
+                    <div data-testid={`workflow-step-${stepId}-description`} className="text-xs text-muted-foreground">
+                      {isRunning ? 'Running workflow action...' : isLastResult ? workflowResult.message : 'Composable workflow action'}
+                    </div>
                   </div>
-                  <Button data-testid={`workflow-step-${stepId}-run-button`} variant="terminal" size="sm">Run</Button>
+                  <Button data-testid={`workflow-step-${stepId}-run-button`} variant="terminal" size="sm" onClick={() => runWorkflowStep(step, index)} disabled={Boolean(runningWorkflowStep)}>
+                    {isRunning ? 'Running' : 'Run'}
+                  </Button>
                 </div>
               );
             })}
+            {workflowResult && (
+              <div data-testid="workflow-result-card" className={`rounded-2xl border p-3 text-xs ${workflowResult.status === 'error' ? 'border-destructive/40 bg-destructive/10 text-destructive' : 'border-primary/20 bg-primary/10 text-muted-foreground'}`}>
+                <div data-testid="workflow-result-status" className="font-semibold uppercase tracking-[0.18em]">{workflowResult.status}</div>
+                <div data-testid="workflow-result-message" className="mt-2 text-sm normal-case tracking-normal text-foreground">{workflowResult.message}</div>
+                {workflowResult.data !== undefined && (
+                  <pre data-testid="workflow-result-json" className="mt-3 max-h-72 overflow-auto rounded-2xl bg-black/35 p-3 text-xs text-muted-foreground">{JSON.stringify(workflowResult.data, null, 2)}</pre>
+                )}
+              </div>
+            )}
             <pre data-testid="workflow-ideas-json" className="max-h-72 overflow-auto rounded-2xl bg-black/35 p-3 text-xs text-muted-foreground">{JSON.stringify(ideas.data ?? { ideas: [] }, null, 2)}</pre>
           </div>
         )}
