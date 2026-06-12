@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { BrainCircuit, ClipboardList, History, LineChart, WalletCards } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +8,7 @@ import { useUiStore, type RightPanel } from '@/store/ui-store';
 
 export function ResearchPanel({ panel }: { panel: RightPanel }) {
   const { symbol, timeframe, assetType, exchange } = useUiStore();
-  const analyze = useMutation({
+  const analyze = useMutation<Record<string, unknown>, Error>({
     mutationFn: () => workstationApi.analyze({
       symbol,
       asset_type: assetType,
@@ -16,6 +17,7 @@ export function ResearchPanel({ panel }: { panel: RightPanel }) {
       question: 'Give observations, risks, invalidation levels, and what to backtest next.',
     }),
   });
+  const analysisText = useMemo(() => analyze.data ? JSON.stringify(analyze.data, null, 2) : '', [analyze.data]);
   const paper = useQuery({ queryKey: ['paper-account'], queryFn: workstationApi.paperAccount, enabled: panel === 'paper' });
   const ideas = useQuery({ queryKey: ['ideas'], queryFn: workstationApi.ideas, enabled: panel === 'workflow' });
   const journal = useQuery({ queryKey: ['journal'], queryFn: workstationApi.journal, enabled: panel === 'journal' });
@@ -41,8 +43,8 @@ export function ResearchPanel({ panel }: { panel: RightPanel }) {
                 <BrainCircuit size={16} /> {analyze.isPending ? 'Analyzing...' : 'Analyze current symbol'}
               </Button>
             </div>
-            {analyze.data && <pre className="max-h-96 overflow-auto rounded-2xl bg-black/35 p-3 text-xs text-muted-foreground">{JSON.stringify(analyze.data, null, 2)}</pre>}
-            {analyze.error && <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{String(analyze.error)}</div>}
+            {analysisText && <pre className="max-h-96 overflow-auto rounded-2xl bg-black/35 p-3 text-xs text-muted-foreground">{analysisText}</pre>}
+            {analyze.error && <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{analyze.error.message}</div>}
           </div>
         )}
 
