@@ -1,10 +1,22 @@
 import '@testing-library/jest-dom/vitest';
+import { vi } from 'vitest';
 
-Object.defineProperty(HTMLElement.prototype, 'ResizeObserver', {
+class MockResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+Object.defineProperty(globalThis, 'ResizeObserver', {
   configurable: true,
-  value: class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  },
+  value: MockResizeObserver,
 });
+
+vi.mock('lightweight-charts', () => ({
+  createChart: () => ({
+    addCandlestickSeries: () => ({ setData: vi.fn() }),
+    removeSeries: vi.fn(),
+    remove: vi.fn(),
+    timeScale: () => ({ fitContent: vi.fn() }),
+  }),
+}));
