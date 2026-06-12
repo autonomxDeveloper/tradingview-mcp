@@ -1,13 +1,33 @@
 import { useMemo } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { BrainCircuit, ClipboardList, History, LineChart, WalletCards } from 'lucide-react';
+import { Activity, BrainCircuit, ClipboardList, History, LayoutPanelTop, LineChart, Newspaper, WalletCards } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { inferAssetType, workstationApi } from '@/lib/api';
 import { useUiStore, type RightPanel } from '@/store/ui-store';
 
+const panelTitles: Record<RightPanel, string> = {
+  research: 'AI Research',
+  workflow: 'AI Workflow',
+  paper: 'Paper Trading',
+  journal: 'Journal',
+  indicators: 'Indicators',
+  news: 'News',
+  layout: 'Layout',
+};
+
+function PanelIcon({ panel }: { panel: RightPanel }) {
+  if (panel === 'research') return <BrainCircuit size={16} className="text-primary" />;
+  if (panel === 'workflow') return <ClipboardList size={16} className="text-primary" />;
+  if (panel === 'paper') return <WalletCards size={16} className="text-primary" />;
+  if (panel === 'journal') return <History size={16} className="text-primary" />;
+  if (panel === 'indicators') return <Activity size={16} className="text-primary" />;
+  if (panel === 'news') return <Newspaper size={16} className="text-primary" />;
+  return <LayoutPanelTop size={16} className="text-primary" />;
+}
+
 export function ResearchPanel({ panel }: { panel: RightPanel }) {
-  const { symbol, timeframe, assetType, exchange } = useUiStore();
+  const { symbol, timeframe, assetType, exchange, leftOpen, rightOpen, bottomOpen, toggleLeft, toggleRight, toggleBottom } = useUiStore();
   const resolvedAssetType = inferAssetType(symbol, assetType);
   const resolvedExchange = resolvedAssetType === 'crypto' ? exchange || 'BINANCE' : exchange || 'NASDAQ';
   const analyze = useMutation<Record<string, unknown>, Error>({
@@ -21,18 +41,15 @@ export function ResearchPanel({ panel }: { panel: RightPanel }) {
   });
   const analysisText = useMemo(() => analyze.data ? JSON.stringify(analyze.data, null, 2) : '', [analyze.data]);
   const paper = useQuery({ queryKey: ['paper-account'], queryFn: workstationApi.paperAccount, enabled: panel === 'paper' });
-  const ideas = useQuery({ queryKey: ['ideas'], queryFn: workstationApi.ideas, enabled: panel === 'workflow' });
+  const ideas = useQuery({ queryKey: ['ideas'], queryFn: workstationApi.ideas, enabled: panel === 'workflow' || panel === 'news' });
   const journal = useQuery({ queryKey: ['journal'], queryFn: workstationApi.journal, enabled: panel === 'journal' });
 
   return (
     <Card className="flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-3xl">
       <CardHeader className="border-b border-white/10">
         <CardTitle className="flex items-center gap-2">
-          {panel === 'research' && <BrainCircuit size={16} className="text-primary" />}
-          {panel === 'workflow' && <ClipboardList size={16} className="text-primary" />}
-          {panel === 'paper' && <WalletCards size={16} className="text-primary" />}
-          {panel === 'journal' && <History size={16} className="text-primary" />}
-          {panel === 'research' ? 'AI Research' : panel === 'workflow' ? 'AI Workflow' : panel === 'paper' ? 'Paper Trading' : 'Journal'}
+          <PanelIcon panel={panel} />
+          {panelTitles[panel]}
         </CardTitle>
       </CardHeader>
       <CardContent className="min-h-0 flex-1 overflow-auto p-4">
@@ -78,6 +95,54 @@ export function ResearchPanel({ panel }: { panel: RightPanel }) {
 
         {panel === 'journal' && (
           <pre className="max-h-full overflow-auto rounded-2xl bg-black/35 p-3 text-xs text-muted-foreground">{JSON.stringify(journal.data ?? { events: [] }, null, 2)}</pre>
+        )}
+
+        {panel === 'indicators' && (
+          <div className="space-y-3">
+            {['Moving averages', 'RSI / momentum', 'Volume profile', 'Support and resistance'].map((indicator) => (
+              <button key={indicator} type="button" className="w-full rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-primary/40 hover:bg-primary/10">
+                <div className="text-sm font-medium">{indicator}</div>
+                <div className="mt-1 text-xs text-muted-foreground">Open indicator controls for {symbol} on {timeframe}.</div>
+              </button>
+            ))}
+            <p className="rounded-2xl border border-primary/20 bg-primary/10 p-3 text-xs text-muted-foreground">These controls are now interactive entry points; indicator overlays can be attached here as chart overlay support is expanded.</p>
+          </div>
+        )}
+
+        {panel === 'news' && (
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold"><Newspaper size={15} /> Market news for {symbol}</div>
+              <p className="mt-1 text-xs text-muted-foreground">News and saved research ideas are grouped here for the current symbol.</p>
+            </div>
+            <pre className="max-h-96 overflow-auto rounded-2xl bg-black/35 p-3 text-xs text-muted-foreground">{JSON.stringify(ideas.data ?? { ideas: [] }, null, 2)}</pre>
+          </div>
+        )}
+
+        {panel === 'layout' && (
+          <div className="space-y-3">
+            <button type="button" onClick={toggleLeft} className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-primary/40 hover:bg-primary/10">
+              <span>
+                <span className="block text-sm font-medium">Watchlist panel</span>
+                <span className="text-xs text-muted-foreground">Show or hide the left watchlist.</span>
+              </span>
+              <span className="text-xs font-semibold text-primary">{leftOpen ? 'Open' : 'Closed'}</span>
+            </button>
+            <button type="button" onClick={() => toggleRight()} className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-primary/40 hover:bg-primary/10">
+              <span>
+                <span className="block text-sm font-medium">Right drawer</span>
+                <span className="text-xs text-muted-foreground">Show or hide research, workflow, news, and tools.</span>
+              </span>
+              <span className="text-xs font-semibold text-primary">{rightOpen ? 'Open' : 'Closed'}</span>
+            </button>
+            <button type="button" onClick={toggleBottom} className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-primary/40 hover:bg-primary/10">
+              <span>
+                <span className="block text-sm font-medium">Console panel</span>
+                <span className="text-xs text-muted-foreground">Show or hide payload, journal, and diagnostics tabs.</span>
+              </span>
+              <span className="text-xs font-semibold text-primary">{bottomOpen ? 'Open' : 'Closed'}</span>
+            </button>
+          </div>
         )}
       </CardContent>
     </Card>
