@@ -4,7 +4,7 @@ import { createChart, type IChartApi, type UTCTimestamp } from 'lightweight-char
 import { Maximize2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { chartBars, workstationApi, type Candle } from '@/lib/api';
+import { chartBars, inferAssetType, workstationApi, type Candle } from '@/lib/api';
 import { useUiStore } from '@/store/ui-store';
 
 function normalizeCandle(candle: Candle, index: number) {
@@ -27,9 +27,10 @@ export function ChartWorkspace() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const { symbol, timeframe, assetType } = useUiStore();
+  const resolvedAssetType = inferAssetType(symbol, assetType);
   const chartQuery = useQuery({
-    queryKey: ['chart', symbol, timeframe, assetType],
-    queryFn: () => assetType === 'crypto' ? workstationApi.cryptoChart(symbol, timeframe.toLowerCase(), 300) : workstationApi.stockChart(symbol, timeframe, 300),
+    queryKey: ['chart', symbol, timeframe, resolvedAssetType],
+    queryFn: () => workstationApi.chart(symbol, timeframe, assetType, 300),
   });
 
   const candles = useMemo(() => {
@@ -72,7 +73,7 @@ export function ChartWorkspace() {
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <div>
           <div className="flex items-center gap-2 text-lg font-semibold"><span>{symbol}</span><span className="rounded-full bg-white/10 px-2 py-1 text-xs text-muted-foreground">{timeframe}</span></div>
-          <div className="text-xs text-muted-foreground">Live research chart · Lightweight Charts React wrapper</div>
+          <div className="text-xs text-muted-foreground">Live research chart · {resolvedAssetType === 'crypto' ? 'Crypto' : 'Stock'} data route</div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="terminal" size="sm">Indicators</Button>
