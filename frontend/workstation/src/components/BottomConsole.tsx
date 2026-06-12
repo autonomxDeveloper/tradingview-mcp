@@ -20,6 +20,7 @@ const consoleTabs: Array<{ value: string; icon: ElementType; label: string }> = 
 type BottomConsoleProps = { onCollapse?: () => void };
 type PaperSide = 'buy' | 'sell';
 type PaperOrderType = 'market' | 'limit';
+type PaperOrderSource = 'manual' | 'ai';
 type AiTradingMode = 'observe' | 'suggest' | 'auto-paper';
 type AiDecisionAction = 'buy' | 'sell' | 'hold';
 type CycleStatus = 'idle' | 'running' | 'paused' | 'stopped';
@@ -35,7 +36,9 @@ type PaperOrder = {
   price: number;
   status: 'filled' | 'rejected';
   message: string;
+  source: PaperOrderSource;
 };
+type PaperAccountState = { cash: number; positions: PaperPosition[]; orders: PaperOrder[] };
 type AiTradingDecision = {
   id: string;
   time: string;
@@ -73,6 +76,22 @@ type AiTradingSavedSession = {
   events: AiTradingEvent[];
 };
 
+type PaperTradingConsoleProps = {
+  paperAccount: PaperAccountState;
+  paperMessage: string;
+  marketValue: number;
+  equity: number;
+  placePaperOrder: (input: { symbol: string; side: PaperSide; type: PaperOrderType; quantity: number; price: number; source: PaperOrderSource }) => PaperOrder;
+  resetPaperAccount: () => void;
+};
+
+type AITradingConsoleProps = {
+  paperAccount: PaperAccountState;
+  paperEquity: number;
+  paperMarketValue: number;
+  placePaperOrder: (input: { symbol: string; side: PaperSide; type: PaperOrderType; quantity: number; price: number; source: PaperOrderSource }) => PaperOrder;
+};
+
 const AI_TRADING_STORAGE_KEY = 'tradingview-workstation.ai-trading-session.v1';
 const MAX_AI_EVENTS = 100;
 const MAX_AI_ORDERS = 75;
@@ -106,86 +125,35 @@ const getBars = (payload: Record<string, unknown>) => {
   return [];
 };
 
-function PaperTradingConsole() {
+function PaperTradingConsole({ paperAccount, paperMessage, marketValue, equity, placePaperOrder, resetPaperAccount }: PaperTradingConsoleProps) {
   const symbol = useUiStore((state) => state.symbol);
-  const [cash, setCash] = useState(100_000);
-  const [positions, setPositions] = useState<PaperPosition[]>([]);
-  const [orders, setOrders] = useState<PaperOrder[]>([]);
   const [side, setSide] = useState<PaperSide>('buy');
   const [orderType, setOrderType] = useState<PaperOrderType>('market');
   const [quantity, setQuantity] = useState('1');
   const [limitPrice, setLimitPrice] = useState('100');
-  const [message, setMessage] = useState('Ready to place a simulated order. Market orders use the ticket reference price.');
 
   const parsedQuantity = Number(quantity);
   const parsedPrice = Number(limitPrice);
   const referencePrice = Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : 100;
   const notional = Number.isFinite(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity * referencePrice : 0;
-  const marketValue = useMemo(() => positions.reduce((total, position) => total + position.quantity * position.averagePrice, 0), [positions]);
-  const equity = cash + marketValue;
-
-  const appendPaperOrder = (order: PaperOrder) => {
-    setOrders((items) => [order, ...items].slice(0, 25));
-    setMessage(order.message);
-  };
 
   const placeOrder = () => {
     const normalizedSymbol = symbol.trim().toUpperCase() || 'BTCUSDT';
     const qty = Number(quantity);
     const price = orderType === 'market' ? referencePrice : Number(limitPrice);
-
-    if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(price) || price <= 0) {
-      appendPaperOrder({ id: `P-${Date.now()}`, time: new Date().toLocaleTimeString(), symbol: normalizedSymbol, side, type: orderType, quantity: Number.isFinite(qty) ? qty : 0, price: Number.isFinite(price) ? price : 0, status: 'rejected', message: 'Quantity and price must be positive numbers.' });
-      return;
-    }
-
-    const cost = qty * price;
-    if (side === 'buy' && cost > cash) {
-      appendPaperOrder({ id: `P-${Date.now()}`, time: new Date().toLocaleTimeString(), symbol: normalizedSymbol, side, type: orderType, quantity: qty, price, status: 'rejected', message: `Insufficient paper cash for ${formatCurrency(cost)} order.` });
-      return;
-    }
-    if (side === 'sell') {
-      const existing = positions.find((position) => position.symbol === normalizedSymbol);
-      if (!existing || existing.quantity < qty) {
-        appendPaperOrder({ id: `P-${Date.now()}`, time: new Date().toLocaleTimeString(), symbol: normalizedSymbol, side, type: orderType, quantity: qty, price, status: 'rejected', message: 'Paper short selling is disabled. Sell quantity must be covered by an open position.' });
-        return;
-      }
-    }
-
-    if (side === 'buy') {
-      setCash((value) => value - cost);
-      setPositions((items) => {
-        const existing = items.find((position) => position.symbol === normalizedSymbol);
-        if (!existing) return [...items, { symbol: normalizedSymbol, quantity: qty, averagePrice: price }];
-        const nextQuantity = existing.quantity + qty;
-        const nextAverage = (existing.quantity * existing.averagePrice + cost) / nextQuantity;
-        return items.map((position) => position.symbol === normalizedSymbol ? { ...position, quantity: nextQuantity, averagePrice: nextAverage } : position);
-      });
-    } else {
-      setCash((value) => value + cost);
-      setPositions((items) => items.map((position) => position.symbol === normalizedSymbol ? { ...position, quantity: position.quantity - qty } : position).filter((position) => position.quantity > 0.0000001));
-    }
-
-    appendPaperOrder({ id: `P-${Date.now()}`, time: new Date().toLocaleTimeString(), symbol: normalizedSymbol, side, type: orderType, quantity: qty, price, status: 'filled', message: `${side.toUpperCase()} ${qty} ${normalizedSymbol} @ ${formatCurrency(price)} filled in paper mode.` });
-  };
-
-  const resetPaperAccount = () => {
-    setCash(100_000);
-    setPositions([]);
-    setOrders([]);
-    setMessage('Paper account reset to $100,000.');
+    placePaperOrder({ symbol: normalizedSymbol, side, type: orderType, quantity: qty, price, source: 'manual' });
   };
 
   return (
     <div data-testid="paper-trading-console" className="grid h-full min-h-[220px] gap-4 lg:grid-cols-[1.1fr_1fr_1.2fr]">
       <section data-testid="paper-account-card" className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 theme-day:border-slate-200 theme-day:bg-white">
-        <div className="mb-3 flex items-center justify-between gap-3"><div><div data-testid="paper-account-title" className="text-sm font-semibold">Paper account</div><div data-testid="paper-account-subtitle" className="text-xs text-muted-foreground">Simulated fills only. No live orders are sent.</div></div><Button data-testid="paper-reset-account-button" variant="terminal" size="sm" onClick={resetPaperAccount}>Reset</Button></div>
+        <div className="mb-3 flex items-center justify-between gap-3"><div><div data-testid="paper-account-title" className="text-sm font-semibold">Paper account</div><div data-testid="paper-account-subtitle" className="text-xs text-muted-foreground">Shared simulated account for manual and AI paper trades.</div></div><Button data-testid="paper-reset-account-button" variant="terminal" size="sm" onClick={resetPaperAccount}>Reset</Button></div>
         <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-          <div data-testid="paper-cash-card" className="rounded-xl border border-white/10 p-3 theme-day:border-slate-200"><div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Cash</div><div data-testid="paper-cash-value" className="mt-1 text-lg font-semibold">{formatCurrency(cash)}</div></div>
+          <div data-testid="paper-cash-card" className="rounded-xl border border-white/10 p-3 theme-day:border-slate-200"><div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Cash</div><div data-testid="paper-cash-value" className="mt-1 text-lg font-semibold">{formatCurrency(paperAccount.cash)}</div></div>
           <div data-testid="paper-equity-card" className="rounded-xl border border-white/10 p-3 theme-day:border-slate-200"><div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Equity</div><div data-testid="paper-equity-value" className="mt-1 text-lg font-semibold">{formatCurrency(equity)}</div></div>
           <div data-testid="paper-market-value-card" className="rounded-xl border border-white/10 p-3 theme-day:border-slate-200"><div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Positions</div><div data-testid="paper-market-value" className="mt-1 text-lg font-semibold">{formatCurrency(marketValue)}</div></div>
         </div>
-        <div data-testid="paper-status-message" className="mt-3 rounded-xl border border-primary/20 bg-primary/10 p-3 text-xs text-muted-foreground">{message}</div>
+        <div data-testid="paper-status-message" className="mt-3 rounded-xl border border-primary/20 bg-primary/10 p-3 text-xs text-muted-foreground">{paperMessage}</div>
       </section>
 
       <section data-testid="paper-order-ticket" className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 theme-day:border-slate-200 theme-day:bg-white">
@@ -200,14 +168,14 @@ function PaperTradingConsole() {
       </section>
 
       <section data-testid="paper-activity-card" className="grid min-h-0 gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4 theme-day:border-slate-200 theme-day:bg-white">
-        <div><div data-testid="paper-positions-title" className="text-sm font-semibold">Open positions</div><div data-testid="paper-positions-list" className="mt-2 max-h-24 overflow-auto rounded-xl border border-white/10 theme-day:border-slate-200">{positions.length === 0 ? <div data-testid="paper-positions-empty" className="p-3 text-xs text-muted-foreground">No open paper positions.</div> : positions.map((position) => <div key={position.symbol} data-testid={`paper-position-${safeTestId(position.symbol)}`} className="grid grid-cols-3 gap-2 border-b border-white/10 p-3 text-xs last:border-b-0 theme-day:border-slate-200"><span className="font-semibold text-foreground">{position.symbol}</span><span>{position.quantity}</span><span>{formatCurrency(position.averagePrice)}</span></div>)}</div></div>
-        <div className="min-h-0"><div data-testid="paper-orders-title" className="text-sm font-semibold">Order log</div><div data-testid="paper-orders-list" className="mt-2 max-h-36 overflow-auto rounded-xl border border-white/10 theme-day:border-slate-200">{orders.length === 0 ? <div data-testid="paper-orders-empty" className="p-3 text-xs text-muted-foreground">No paper orders yet.</div> : orders.map((order) => <div key={order.id} data-testid={`paper-order-${safeTestId(order.id)}`} className="border-b border-white/10 p-3 text-xs last:border-b-0 theme-day:border-slate-200"><div className="flex items-center justify-between gap-2"><span className="font-semibold text-foreground">{order.side.toUpperCase()} {order.quantity} {order.symbol}</span><span className={order.status === 'filled' ? 'text-primary' : 'text-destructive'}>{order.status}</span></div><div className="mt-1 text-muted-foreground">{order.time} · {order.type} · {formatCurrency(order.price)}</div><div className="mt-1 text-muted-foreground">{order.message}</div></div>)}</div></div>
+        <div><div data-testid="paper-positions-title" className="text-sm font-semibold">Open positions</div><div data-testid="paper-positions-list" className="mt-2 max-h-24 overflow-auto rounded-xl border border-white/10 theme-day:border-slate-200">{paperAccount.positions.length === 0 ? <div data-testid="paper-positions-empty" className="p-3 text-xs text-muted-foreground">No open paper positions.</div> : paperAccount.positions.map((position) => <div key={position.symbol} data-testid={`paper-position-${safeTestId(position.symbol)}`} className="grid grid-cols-3 gap-2 border-b border-white/10 p-3 text-xs last:border-b-0 theme-day:border-slate-200"><span className="font-semibold text-foreground">{position.symbol}</span><span>{position.quantity}</span><span>{formatCurrency(position.averagePrice)}</span></div>)}</div></div>
+        <div className="min-h-0"><div data-testid="paper-orders-title" className="text-sm font-semibold">Order log</div><div data-testid="paper-orders-list" className="mt-2 max-h-36 overflow-auto rounded-xl border border-white/10 theme-day:border-slate-200">{paperAccount.orders.length === 0 ? <div data-testid="paper-orders-empty" className="p-3 text-xs text-muted-foreground">No paper orders yet.</div> : paperAccount.orders.map((order) => <div key={order.id} data-testid={`paper-order-${safeTestId(order.id)}`} className="border-b border-white/10 p-3 text-xs last:border-b-0 theme-day:border-slate-200"><div className="flex items-center justify-between gap-2"><span className="font-semibold text-foreground">{order.side.toUpperCase()} {order.quantity} {order.symbol}</span><span className={order.status === 'filled' ? 'text-primary' : 'text-destructive'}>{order.status}</span></div><div className="mt-1 text-muted-foreground">{order.time} · {order.type} · {formatCurrency(order.price)} · {order.source}</div><div className="mt-1 text-muted-foreground">{order.message}</div></div>)}</div></div>
       </section>
     </div>
   );
 }
 
-function AITradingConsole() {
+function AITradingConsole({ paperAccount, paperEquity, paperMarketValue, placePaperOrder }: AITradingConsoleProps) {
   const symbol = useUiStore((state) => state.symbol);
   const timeframe = useUiStore((state) => state.timeframe);
   const assetType = useUiStore((state) => state.assetType);
@@ -239,33 +207,12 @@ function AITradingConsole() {
   const parsedMaxTrades = Number(maxTradesPerDay);
   const parsedIntervalSec = Number(cycleIntervalSec);
   const parsedCooldownSec = Number(cooldownSec);
-  const todayFilledTrades = orders.filter((order) => order.status === 'filled').length;
-  const accountEquity = 100_000;
+  const todayFilledTrades = paperAccount.orders.filter((order) => order.status === 'filled' && order.source === 'ai').length;
   const secondsSinceLastCycle = lastCycleAt ? (Date.now() - lastCycleAt) / 1000 : Number.POSITIVE_INFINITY;
   const cooldownRemaining = Math.max(0, (Number.isFinite(parsedCooldownSec) ? parsedCooldownSec : 120) - secondsSinceLastCycle);
 
-  const buildSession = (): AiTradingSavedSession => ({
-    version: 1,
-    savedAt: new Date().toISOString(),
-    mode,
-    strategy,
-    maxRiskPct,
-    maxDailyLoss,
-    minConfidence,
-    maxTradesPerDay,
-    cycleIntervalSec,
-    cooldownSec,
-    cycleCount,
-    skippedCycles,
-    lastCycleAt,
-    decision,
-    orders,
-    events,
-  });
-
-  const appendEvent = (level: AiTradingEvent['level'], message: string) => {
-    setEvents((items) => [{ id: `E-${Date.now()}-${items.length}`, time: new Date().toLocaleTimeString(), level, message }, ...items].slice(0, MAX_AI_EVENTS));
-  };
+  const buildSession = (): AiTradingSavedSession => ({ version: 1, savedAt: new Date().toISOString(), mode, strategy, maxRiskPct, maxDailyLoss, minConfidence, maxTradesPerDay, cycleIntervalSec, cooldownSec, cycleCount, skippedCycles, lastCycleAt, decision, orders, events });
+  const appendEvent = (level: AiTradingEvent['level'], message: string) => setEvents((items) => [{ id: `E-${Date.now()}-${items.length}`, time: new Date().toLocaleTimeString(), level, message }, ...items].slice(0, MAX_AI_EVENTS));
 
   const applySession = (session: Partial<AiTradingSavedSession>, source: string) => {
     if (session.mode) setMode(session.mode);
@@ -306,15 +253,7 @@ function AITradingConsole() {
   };
 
   const exportSession = () => {
-    const packet = {
-      ...buildSession(),
-      symbol: symbol.trim().toUpperCase() || 'BTCUSDT',
-      timeframe,
-      assetType: inferAssetType(symbol, assetType),
-      exchange,
-      exportedAt: new Date().toISOString(),
-      note: 'Paper-safe AI trading packet. No live broker orders are included.',
-    };
+    const packet = { ...buildSession(), symbol: symbol.trim().toUpperCase() || 'BTCUSDT', timeframe, assetType: inferAssetType(symbol, assetType), exchange, paperAccount: { cash: paperAccount.cash, equity: paperEquity, marketValue: paperMarketValue, positions: paperAccount.positions, orders: paperAccount.orders }, exportedAt: new Date().toISOString(), note: 'Paper-safe AI trading packet. No live broker orders are included.' };
     const blob = new Blob([JSON.stringify(packet, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -324,7 +263,7 @@ function AITradingConsole() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-    appendEvent('success', 'Exported AI trading packet.');
+    appendEvent('success', 'Exported AI trading packet with shared paper account snapshot.');
     setPersistMessage('Exported current AI trading packet.');
   };
 
@@ -347,27 +286,16 @@ function AITradingConsole() {
       appendEvent('info', 'No paper order placed because the model decision was HOLD.');
       return;
     }
-    const filled: PaperOrder = { id: `AI-P-${Date.now()}`, time: new Date().toLocaleTimeString(), symbol: nextDecision.symbol, side: nextDecision.action, type: 'market', quantity: nextDecision.quantity, price: nextDecision.entryPrice, status: 'filled', message: `AI ${nextDecision.action.toUpperCase()} ${nextDecision.quantity} ${nextDecision.symbol} @ ${formatCurrency(nextDecision.entryPrice)} filled in auto-paper mode.` };
+    const filled = placePaperOrder({ symbol: nextDecision.symbol, side: nextDecision.action, type: 'market', quantity: nextDecision.quantity, price: nextDecision.entryPrice, source: 'ai' });
     setOrders((items) => [filled, ...items].slice(0, MAX_AI_ORDERS));
-    appendEvent('success', filled.message);
+    appendEvent(filled.status === 'filled' ? 'success' : 'error', filled.message);
   };
 
   const runCycle = async (source: 'manual' | 'auto' = 'manual') => {
-    if (cycleStatus === 'stopped') {
-      appendEvent('error', 'Emergency stop is active. Reset the session before running another cycle.');
-      return;
-    }
-    if (runningRef.current) {
-      setSkippedCycles((value) => value + 1);
-      appendEvent('warning', 'Skipped cycle because another AI cycle is already running.');
-      return;
-    }
+    if (cycleStatus === 'stopped') { appendEvent('error', 'Emergency stop is active. Reset the session before running another cycle.'); return; }
+    if (runningRef.current) { setSkippedCycles((value) => value + 1); appendEvent('warning', 'Skipped cycle because another AI cycle is already running.'); return; }
     const safeCooldown = Number.isFinite(parsedCooldownSec) ? parsedCooldownSec : 120;
-    if (source === 'auto' && lastCycleAt && Date.now() - lastCycleAt < safeCooldown * 1000) {
-      setSkippedCycles((value) => value + 1);
-      appendEvent('info', `Skipped auto cycle during cooldown (${formatCountdown(cooldownRemaining)} remaining).`);
-      return;
-    }
+    if (source === 'auto' && lastCycleAt && Date.now() - lastCycleAt < safeCooldown * 1000) { setSkippedCycles((value) => value + 1); appendEvent('info', `Skipped auto cycle during cooldown (${formatCountdown(cooldownRemaining)} remaining).`); return; }
 
     const normalizedSymbol = symbol.trim().toUpperCase() || 'BTCUSDT';
     const resolvedAssetType = inferAssetType(normalizedSymbol, assetType);
@@ -396,14 +324,19 @@ function AITradingConsole() {
       const confidence = Number.isFinite(confidenceFromPayload) ? Math.max(0, Math.min(100, confidenceFromPayload > 1 ? confidenceFromPayload : confidenceFromPayload * 100)) : Math.max(45, Math.min(82, 58 + Math.abs(drift) * 450));
       const action: AiDecisionAction = trend.includes('bear') || rawText.includes('sell') || drift < -0.025 ? 'sell' : trend.includes('bull') || rawText.includes('buy') || drift > 0.025 ? 'buy' : 'hold';
       const stopDistance = price * 0.015;
-      const riskBudget = accountEquity * ((Number.isFinite(parsedMaxRiskPct) ? parsedMaxRiskPct : 0.5) / 100);
+      const safeEquity = paperEquity > 0 ? paperEquity : 100_000;
+      const riskBudget = safeEquity * ((Number.isFinite(parsedMaxRiskPct) ? parsedMaxRiskPct : 0.5) / 100);
       const quantity = action === 'hold' ? 0 : Math.max(0.0001, Number((riskBudget / stopDistance).toFixed(resolvedAssetType === 'crypto' ? 5 : 2)));
       const stopLoss = action === 'sell' ? price + stopDistance : price - stopDistance;
       const takeProfit = action === 'sell' ? price - stopDistance * 2 : price + stopDistance * 2;
       const riskReasons: string[] = [];
+      const notional = quantity * price;
+      const currentPosition = paperAccount.positions.find((position) => position.symbol === normalizedSymbol);
       if (action !== 'hold' && confidence < (Number.isFinite(parsedMinConfidence) ? parsedMinConfidence : 65)) riskReasons.push(`Confidence ${formatPercent(confidence)} is below minimum ${minConfidence}%.`);
-      if (action !== 'hold' && todayFilledTrades >= (Number.isFinite(parsedMaxTrades) ? parsedMaxTrades : 3)) riskReasons.push(`Max trades per day reached (${maxTradesPerDay}).`);
+      if (action !== 'hold' && todayFilledTrades >= (Number.isFinite(parsedMaxTrades) ? parsedMaxTrades : 3)) riskReasons.push(`Max AI trades per day reached (${maxTradesPerDay}).`);
       if (action !== 'hold' && riskBudget > (Number.isFinite(parsedMaxDailyLoss) ? parsedMaxDailyLoss : 500)) riskReasons.push(`Risk budget ${formatCurrency(riskBudget)} exceeds max daily loss ${formatCurrency(Number(maxDailyLoss))}.`);
+      if (action === 'buy' && notional > paperAccount.cash) riskReasons.push(`Shared paper cash ${formatCurrency(paperAccount.cash)} is below required notional ${formatCurrency(notional)}.`);
+      if (action === 'sell' && (!currentPosition || currentPosition.quantity < quantity)) riskReasons.push('Shared paper account does not have enough position quantity for covered sell.');
 
       const nextDecision: AiTradingDecision = { id: `D-${Date.now()}`, time: new Date().toLocaleTimeString(), symbol: normalizedSymbol, timeframe, action, confidence, rationale: getStructuredValue(analysisPayload, 'summary') || getAnalysisText(analysisPayload) || 'Model returned a decision from current market context.', entryPrice: price, stopLoss, takeProfit, quantity, riskStatus: action === 'hold' ? 'not_required' : riskReasons.length === 0 ? 'passed' : 'blocked', riskReasons };
       setDecision(nextDecision);
@@ -428,7 +361,7 @@ function AITradingConsole() {
     const safeIntervalMs = Math.max(15, Number.isFinite(parsedIntervalSec) ? parsedIntervalSec : 60) * 1000;
     intervalRef.current = setInterval(() => { void runCycle('auto'); }, safeIntervalMs);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); intervalRef.current = null; };
-  }, [autoEnabled, cycleStatus, parsedIntervalSec, parsedCooldownSec, symbol, timeframe, assetType, exchange, mode, strategy, maxRiskPct, maxDailyLoss, minConfidence, maxTradesPerDay, orders.length]);
+  }, [autoEnabled, cycleStatus, parsedIntervalSec, parsedCooldownSec, symbol, timeframe, assetType, exchange, mode, strategy, maxRiskPct, maxDailyLoss, minConfidence, maxTradesPerDay, paperAccount.cash, paperAccount.positions.length, paperAccount.orders.length]);
 
   const startAuto = () => { if (cycleStatus === 'stopped') { appendEvent('error', 'Emergency stop is active. Reset before starting auto cycles.'); return; } setAutoEnabled(true); setCycleStatus('idle'); appendEvent('success', `Auto cycle enabled every ${cycleIntervalSec}s with ${cooldownSec}s cooldown.`); };
   const stopAuto = () => { setAutoEnabled(false); setCycleStatus('idle'); appendEvent('warning', 'Auto cycle stopped.'); };
@@ -441,8 +374,9 @@ function AITradingConsole() {
   return (
     <div data-testid="ai-trading-console" className="grid h-full min-h-[260px] gap-4 xl:grid-cols-[1fr_1.1fr_1fr]">
       <section data-testid="ai-trading-controls-card" className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 theme-day:border-slate-200 theme-day:bg-white">
-        <div className="mb-3 flex items-start justify-between gap-3"><div><div data-testid="ai-trading-title" className="text-sm font-semibold">Automated AI Trading</div><div data-testid="ai-trading-subtitle" className="text-xs text-muted-foreground">Paper-safe controller. No live broker orders are sent.</div></div><div data-testid="ai-trading-status-pill" className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-primary">{autoEnabled ? 'auto' : cycleStatus}</div></div>
+        <div className="mb-3 flex items-start justify-between gap-3"><div><div data-testid="ai-trading-title" className="text-sm font-semibold">Automated AI Trading</div><div data-testid="ai-trading-subtitle" className="text-xs text-muted-foreground">Paper-safe controller using the shared paper account. No live broker orders are sent.</div></div><div data-testid="ai-trading-status-pill" className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-primary">{autoEnabled ? 'auto' : cycleStatus}</div></div>
         <div data-testid="ai-trading-session-stats" className="mb-3 grid grid-cols-3 gap-2 text-xs"><div data-testid="ai-trading-cycle-count" className="rounded-xl border border-white/10 p-2 theme-day:border-slate-200">Cycles <b>{cycleCount}</b></div><div data-testid="ai-trading-skipped-count" className="rounded-xl border border-white/10 p-2 theme-day:border-slate-200">Skipped <b>{skippedCycles}</b></div><div data-testid="ai-trading-cooldown-remaining" className="rounded-xl border border-white/10 p-2 theme-day:border-slate-200">Cooldown <b>{formatCountdown(cooldownRemaining)}</b></div></div>
+        <div data-testid="ai-trading-shared-account-card" className="mb-3 grid grid-cols-3 gap-2 text-xs"><div data-testid="ai-trading-paper-cash" className="rounded-xl border border-white/10 p-2 theme-day:border-slate-200">Cash <b>{formatCurrency(paperAccount.cash)}</b></div><div data-testid="ai-trading-paper-equity" className="rounded-xl border border-white/10 p-2 theme-day:border-slate-200">Equity <b>{formatCurrency(paperEquity)}</b></div><div data-testid="ai-trading-paper-positions-value" className="rounded-xl border border-white/10 p-2 theme-day:border-slate-200">Positions <b>{formatCurrency(paperMarketValue)}</b></div></div>
         <div className="grid gap-3">
           <label data-testid="ai-trading-mode-control" className="grid gap-1 text-xs text-muted-foreground">Execution mode<select data-testid="ai-trading-mode-select" value={mode} onChange={(event) => setMode(event.target.value as AiTradingMode)} className="rounded-xl border border-white/10 bg-background px-3 py-2 text-sm text-foreground outline-none theme-day:border-slate-200"><option data-testid="ai-trading-mode-option-observe" value="observe">Observe only</option><option data-testid="ai-trading-mode-option-suggest" value="suggest">Suggest trades</option><option data-testid="ai-trading-mode-option-auto-paper" value="auto-paper">Auto-paper trade</option></select></label>
           <label data-testid="ai-trading-strategy-control" className="grid gap-1 text-xs text-muted-foreground">Strategy profile<select data-testid="ai-trading-strategy-select" value={strategy} onChange={(event) => setStrategy(event.target.value)} className="rounded-xl border border-white/10 bg-background px-3 py-2 text-sm text-foreground outline-none theme-day:border-slate-200"><option data-testid="ai-trading-strategy-option-scalp" value="scalp">Scalping</option><option data-testid="ai-trading-strategy-option-intraday" value="intraday">Intraday</option><option data-testid="ai-trading-strategy-option-swing" value="swing">Swing</option><option data-testid="ai-trading-strategy-option-position" value="position">Position</option></select></label>
@@ -458,7 +392,7 @@ function AITradingConsole() {
       </section>
 
       <section data-testid="ai-trading-activity-card" className="grid min-h-0 gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4 theme-day:border-slate-200 theme-day:bg-white">
-        <div><div data-testid="ai-trading-paper-orders-title" className="text-sm font-semibold">AI paper orders</div><div data-testid="ai-trading-paper-orders-list" className="mt-2 max-h-28 overflow-auto rounded-xl border border-white/10 theme-day:border-slate-200">{orders.length === 0 ? <div data-testid="ai-trading-paper-orders-empty" className="p-3 text-xs text-muted-foreground">No AI paper orders yet.</div> : orders.map((order) => <div key={order.id} data-testid={`ai-trading-order-${safeTestId(order.id)}`} className="border-b border-white/10 p-3 text-xs last:border-b-0 theme-day:border-slate-200"><div className="flex items-center justify-between gap-2"><span className="font-semibold text-foreground">{order.side.toUpperCase()} {order.quantity} {order.symbol}</span><span className="text-primary">{order.status}</span></div><div className="mt-1 text-muted-foreground">{order.time} · {formatCurrency(order.price)}</div></div>)}</div></div>
+        <div><div data-testid="ai-trading-paper-orders-title" className="text-sm font-semibold">AI paper orders</div><div data-testid="ai-trading-paper-orders-list" className="mt-2 max-h-28 overflow-auto rounded-xl border border-white/10 theme-day:border-slate-200">{orders.length === 0 ? <div data-testid="ai-trading-paper-orders-empty" className="p-3 text-xs text-muted-foreground">No AI paper orders yet.</div> : orders.map((order) => <div key={order.id} data-testid={`ai-trading-order-${safeTestId(order.id)}`} className="border-b border-white/10 p-3 text-xs last:border-b-0 theme-day:border-slate-200"><div className="flex items-center justify-between gap-2"><span className="font-semibold text-foreground">{order.side.toUpperCase()} {order.quantity} {order.symbol}</span><span className={order.status === 'filled' ? 'text-primary' : 'text-destructive'}>{order.status}</span></div><div className="mt-1 text-muted-foreground">{order.time} · {formatCurrency(order.price)}</div></div>)}</div></div>
         <div className="min-h-0"><div data-testid="ai-trading-event-log-title" className="text-sm font-semibold">Event log</div><div data-testid="ai-trading-event-log" className="mt-2 max-h-48 overflow-auto rounded-xl border border-white/10 theme-day:border-slate-200">{events.map((event) => <div key={event.id} data-testid={`ai-trading-event-${safeTestId(event.id)}`} className="border-b border-white/10 p-3 text-xs last:border-b-0 theme-day:border-slate-200"><div className="flex items-center justify-between gap-2"><span className={event.level === 'error' ? 'font-semibold text-destructive' : event.level === 'success' ? 'font-semibold text-primary' : 'font-semibold text-foreground'}>{event.level}</span><span className="text-muted-foreground">{event.time}</span></div><div className="mt-1 text-muted-foreground">{event.message}</div></div>)}</div></div>
       </section>
     </div>
@@ -468,6 +402,58 @@ function AITradingConsole() {
 export function BottomConsole({ onCollapse }: BottomConsoleProps) {
   const health = useQuery({ queryKey: ['health'], queryFn: workstationApi.health });
   const journal = useQuery({ queryKey: ['journal-console'], queryFn: workstationApi.journal });
+  const [paperAccount, setPaperAccount] = useState<PaperAccountState>({ cash: 100_000, positions: [], orders: [] });
+  const [paperMessage, setPaperMessage] = useState('Ready to place a simulated order. Manual and AI paper trades share this account.');
+
+  const paperMarketValue = useMemo(() => paperAccount.positions.reduce((total, position) => total + position.quantity * position.averagePrice, 0), [paperAccount.positions]);
+  const paperEquity = paperAccount.cash + paperMarketValue;
+
+  const placePaperOrder = ({ symbol, side, type, quantity, price, source }: { symbol: string; side: PaperSide; type: PaperOrderType; quantity: number; price: number; source: PaperOrderSource }) => {
+    const normalizedSymbol = symbol.trim().toUpperCase() || 'BTCUSDT';
+    const qty = Number(quantity);
+    const fillPrice = Number(price);
+    const createOrder = (status: PaperOrder['status'], message: string): PaperOrder => ({ id: `${source === 'ai' ? 'AI-P' : 'P'}-${Date.now()}`, time: new Date().toLocaleTimeString(), symbol: normalizedSymbol, side, type, quantity: Number.isFinite(qty) ? qty : 0, price: Number.isFinite(fillPrice) ? fillPrice : 0, status, message, source });
+
+    if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(fillPrice) || fillPrice <= 0) {
+      const rejected = createOrder('rejected', 'Quantity and price must be positive numbers.');
+      setPaperAccount((account) => ({ ...account, orders: [rejected, ...account.orders].slice(0, 75) }));
+      setPaperMessage(rejected.message);
+      return rejected;
+    }
+
+    const cost = qty * fillPrice;
+    let result: PaperOrder;
+    setPaperAccount((account) => {
+      if (side === 'buy' && cost > account.cash) {
+        result = createOrder('rejected', `Insufficient shared paper cash for ${formatCurrency(cost)} order.`);
+        return { ...account, orders: [result, ...account.orders].slice(0, 75) };
+      }
+      const existing = account.positions.find((position) => position.symbol === normalizedSymbol);
+      if (side === 'sell' && (!existing || existing.quantity < qty)) {
+        result = createOrder('rejected', 'Paper short selling is disabled. Sell quantity must be covered by an open position.');
+        return { ...account, orders: [result, ...account.orders].slice(0, 75) };
+      }
+
+      const nextCash = side === 'buy' ? account.cash - cost : account.cash + cost;
+      const nextPositions = side === 'buy'
+        ? (() => {
+            if (!existing) return [...account.positions, { symbol: normalizedSymbol, quantity: qty, averagePrice: fillPrice }];
+            const nextQuantity = existing.quantity + qty;
+            const nextAverage = (existing.quantity * existing.averagePrice + cost) / nextQuantity;
+            return account.positions.map((position) => position.symbol === normalizedSymbol ? { ...position, quantity: nextQuantity, averagePrice: nextAverage } : position);
+          })()
+        : account.positions.map((position) => position.symbol === normalizedSymbol ? { ...position, quantity: position.quantity - qty } : position).filter((position) => position.quantity > 0.0000001);
+      result = createOrder('filled', `${source === 'ai' ? 'AI ' : ''}${side.toUpperCase()} ${qty} ${normalizedSymbol} @ ${formatCurrency(fillPrice)} filled in shared paper account.`);
+      return { cash: nextCash, positions: nextPositions, orders: [result, ...account.orders].slice(0, 75) };
+    });
+    setPaperMessage(result!.message);
+    return result!;
+  };
+
+  const resetPaperAccount = () => {
+    setPaperAccount({ cash: 100_000, positions: [], orders: [] });
+    setPaperMessage('Shared paper account reset to $100,000.');
+  };
 
   return (
     <Card data-testid="bottom-console-panel" className="h-full overflow-hidden rounded-3xl">
@@ -480,8 +466,8 @@ export function BottomConsole({ onCollapse }: BottomConsoleProps) {
         </Tabs.List>
         <div data-testid="bottom-console-tab-content" className="min-h-0 flex-1 overflow-auto p-4">
           <Tabs.Content data-testid="bottom-console-console-content" value="console" className="m-0 h-full"><div data-testid="bottom-console-ready-message" className="grid h-full place-items-center rounded-2xl border border-dashed border-white/10 text-sm text-muted-foreground">Ready. Select a symbol, run AI research, or resize the workstation panels.</div></Tabs.Content>
-          <Tabs.Content data-testid="bottom-console-paper-content" value="paper" className="m-0 h-full"><PaperTradingConsole /></Tabs.Content>
-          <Tabs.Content data-testid="bottom-console-ai-trading-content" value="ai-trading" className="m-0 h-full"><AITradingConsole /></Tabs.Content>
+          <Tabs.Content data-testid="bottom-console-paper-content" value="paper" className="m-0 h-full"><PaperTradingConsole paperAccount={paperAccount} paperMessage={paperMessage} marketValue={paperMarketValue} equity={paperEquity} placePaperOrder={placePaperOrder} resetPaperAccount={resetPaperAccount} /></Tabs.Content>
+          <Tabs.Content data-testid="bottom-console-ai-trading-content" value="ai-trading" className="m-0 h-full"><AITradingConsole paperAccount={paperAccount} paperEquity={paperEquity} paperMarketValue={paperMarketValue} placePaperOrder={placePaperOrder} /></Tabs.Content>
           <Tabs.Content data-testid="bottom-console-payload-content" value="payload" className="m-0"><pre data-testid="bottom-console-payload-json" className="text-xs text-muted-foreground">{JSON.stringify(health.data ?? {}, null, 2)}</pre></Tabs.Content>
           <Tabs.Content data-testid="bottom-console-journal-content" value="journal" className="m-0"><pre data-testid="bottom-console-journal-json" className="text-xs text-muted-foreground">{JSON.stringify(journal.data ?? {}, null, 2)}</pre></Tabs.Content>
           <Tabs.Content data-testid="bottom-console-diagnostics-content" value="diagnostics" className="m-0"><pre data-testid="bottom-console-diagnostics-json" className="text-xs text-muted-foreground">{JSON.stringify({ health: health.status, journal: journal.status }, null, 2)}</pre></Tabs.Content>
