@@ -36,6 +36,8 @@ export function AppShell() {
     setRightPanel,
   } = useUiStore();
 
+  const toolbarButtonVariant = (panel: RightPanel) => (rightOpen && rightPanel === panel ? 'default' : 'terminal');
+
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden p-3 text-foreground">
       <header className="glass-panel mb-3 flex h-16 shrink-0 items-center justify-between rounded-3xl px-4">
@@ -68,9 +70,9 @@ export function AppShell() {
             <Button key={item} size="sm" variant={item === timeframe ? 'default' : 'terminal'} onClick={() => setTimeframe(item)}>{item}</Button>
           ))}
           <span className="mx-2 h-6 w-px bg-white/10" />
-          <Button size="sm" variant="terminal"><Activity size={15} /> Indicators</Button>
-          <Button size="sm" variant="terminal"><Newspaper size={15} /> News</Button>
-          <Button size="sm" variant="terminal"><Settings size={15} /> Layout</Button>
+          <Button size="sm" variant={toolbarButtonVariant('indicators')} onClick={() => setRightPanel('indicators')}><Activity size={15} /> Indicators</Button>
+          <Button size="sm" variant={toolbarButtonVariant('news')} onClick={() => setRightPanel('news')}><Newspaper size={15} /> News</Button>
+          <Button size="sm" variant={toolbarButtonVariant('layout')} onClick={() => setRightPanel('layout')}><Settings size={15} /> Layout</Button>
         </div>
         <div className="hidden text-xs text-muted-foreground md:block">React + TypeScript workstation shell</div>
       </div>
