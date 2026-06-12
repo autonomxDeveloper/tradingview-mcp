@@ -6,6 +6,8 @@ export type HealthPayload = {
   alpaca?: Record<string, unknown>;
 };
 
+export type AssetType = 'auto' | 'stock' | 'crypto';
+
 export type Candle = {
   time?: string | number;
   timestamp?: string | number;
@@ -26,6 +28,20 @@ export type ChartPayload = {
   data?: Candle[];
   error?: { code?: string; message?: string };
 };
+
+const cryptoQuoteSuffixes = ['USDT', 'USDC', 'BTC', 'ETH'];
+
+export function inferAssetType(symbol: string, selectedAssetType: AssetType = 'auto'): Exclude<AssetType, 'auto'> {
+  const clean = symbol.trim().toUpperCase();
+  const hasPairSeparator = clean.includes('-') || clean.includes('/');
+  const hasCryptoQuoteSuffix = cryptoQuoteSuffixes.some((suffix) => clean.endsWith(suffix));
+  const isKnownCryptoTicker = ['BTC', 'ETH', 'SOL'].includes(clean);
+
+  if (selectedAssetType === 'stock') return 'stock';
+  if (selectedAssetType === 'crypto' && (hasPairSeparator || hasCryptoQuoteSuffix || isKnownCryptoTicker)) return 'crypto';
+
+  return hasPairSeparator || hasCryptoQuoteSuffix || isKnownCryptoTicker ? 'crypto' : 'stock';
+}
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -51,6 +67,12 @@ export const workstationApi = {
     requestJson<ChartPayload>(`/api/stock/yahoo-chart?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}&limit=${limit}`),
   cryptoChart: (symbol: string, interval = '1h', limit = 300) =>
     requestJson<ChartPayload>(`/api/crypto/candles?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}&limit=${limit}`),
+  chart: (symbol: string, timeframe = '1D', assetType: AssetType = 'auto', limit = 300) => {
+    const resolvedAssetType = inferAssetType(symbol, assetType);
+    return resolvedAssetType === 'crypto'
+      ? workstationApi.cryptoChart(symbol, timeframe.toLowerCase(), limit)
+      : workstationApi.stockChart(symbol, timeframe, limit);
+  },
   analyze: (body: { symbol: string; asset_type: string; exchange: string; timeframe: string; question: string }) =>
     requestJson<Record<string, unknown>>('/api/ai/analyze', { method: 'POST', body: JSON.stringify(body) }),
   tradeIdea: (body: { symbol: string; asset_type: string; exchange: string; timeframe: string; question: string; chart_context?: Record<string, unknown>; profile?: string; mode?: string }) =>
