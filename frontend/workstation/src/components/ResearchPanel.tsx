@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { Activity, BrainCircuit, ClipboardList, History, LayoutPanelTop, LineChart, Newspaper, WalletCards } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { AITradingStorageControls } from '@/components/AITradingStorageControls';
 import { inferAssetType, workstationApi } from '@/lib/api';
 import { useUiStore, type RightPanel } from '@/store/ui-store';
 
@@ -319,6 +320,7 @@ export function ResearchPanel({ panel }: { panel: RightPanel }) {
                 )}
               </div>
             )}
+            <AITradingStorageControls />
             <pre data-testid="workflow-ideas-json" className="max-h-72 overflow-auto rounded-2xl bg-black/35 p-3 text-xs text-muted-foreground">{JSON.stringify(ideas.data ?? { ideas: [] }, null, 2)}</pre>
           </div>
         )}
