@@ -1,4 +1,5 @@
 import type { ElementType } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import {
@@ -8,7 +9,6 @@ import {
   Brush,
   ChartCandlestick,
   ChevronDown,
-  Circle,
   Crosshair,
   Eraser,
   Eye,
@@ -37,6 +37,7 @@ import {
   Trash2,
   Unlock,
   WalletCards,
+  X,
   ZoomIn,
 } from 'lucide-react';
 import { useUiStore, type ChartStyle, type ChartTool, type RightPanel } from '@/store/ui-store';
@@ -44,6 +45,7 @@ import { Button } from '@/components/ui/button';
 import { ChartWorkspace } from '@/components/ChartWorkspace';
 import { ResearchPanel } from '@/components/ResearchPanel';
 import { BottomConsole } from '@/components/BottomConsole';
+import { ExternalExecutionGuard } from '@/components/ExternalExecutionGuard';
 
 const timeframes = ['1m', '5m', '15m', '1h', '2h', '1D', '1W', '2W'];
 
@@ -154,6 +156,7 @@ function ChartToolsRail() {
 }
 
 export function AppShell() {
+  const [executionGuardOpen, setExecutionGuardOpen] = useState(false);
   const {
     timeframe,
     chartStyle,
@@ -193,6 +196,7 @@ export function AppShell() {
           <Button data-testid="toggle-chart-tools-button" variant="terminal" size="icon" onClick={toggleLeft} aria-label="Toggle chart tools"><PanelLeft size={17} /></Button>
           <Button data-testid="toggle-right-drawer-button" variant="terminal" size="icon" onClick={() => toggleRight()} aria-label="Toggle research"><PanelRight size={17} /></Button>
           <Button data-testid="toggle-console-button" variant="terminal" size="icon" onClick={toggleBottom} aria-label="Toggle console"><Menu size={17} /></Button>
+          <Button data-testid="toggle-external-execution-guard-button" variant={executionGuardOpen ? 'default' : 'terminal'} size="icon" onClick={() => setExecutionGuardOpen((value) => !value)} aria-label="Toggle external execution guard"><Lock size={17} /></Button>
           <Button data-testid="run-scan-button" size="sm"><Search size={15} /> Run scan</Button>
         </div>
       </header>
@@ -201,32 +205,16 @@ export function AppShell() {
         <div data-testid="toolbar-left-actions" className="flex min-w-0 items-center gap-2 overflow-x-auto">
           <label data-testid="timeframe-select-control" className="relative flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-2 text-sm font-semibold text-foreground shadow-sm shadow-black/10 theme-day:border-slate-200 theme-day:bg-white">
             <span data-testid="timeframe-select-label" className="text-xs uppercase tracking-[0.18em] text-muted-foreground">TF</span>
-            <select
-              data-testid="timeframe-select"
-              aria-label="Timeframe"
-              className="min-w-16 cursor-pointer appearance-none bg-transparent pr-6 text-sm font-semibold outline-none"
-              value={timeframe}
-              onChange={(event) => setTimeframe(event.target.value)}
-            >
-              {timeframes.map((item) => (
-                <option key={item} data-testid={`timeframe-option-${item.toLowerCase()}`} value={item}>{item}</option>
-              ))}
+            <select data-testid="timeframe-select" aria-label="Timeframe" className="min-w-16 cursor-pointer appearance-none bg-transparent pr-6 text-sm font-semibold outline-none" value={timeframe} onChange={(event) => setTimeframe(event.target.value)}>
+              {timeframes.map((item) => <option key={item} data-testid={`timeframe-option-${item.toLowerCase()}`} value={item}>{item}</option>)}
             </select>
             <ChevronDown data-testid="timeframe-select-icon" size={15} className="pointer-events-none absolute right-3 text-muted-foreground" />
           </label>
           <label data-testid="chart-style-select-control" className="relative flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-2 text-sm font-semibold text-foreground shadow-sm shadow-black/10 theme-day:border-slate-200 theme-day:bg-white">
             <ChartCandlestick data-testid="chart-style-select-glyph" size={15} className="text-muted-foreground" />
             <span data-testid="chart-style-select-label" className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Type</span>
-            <select
-              data-testid="chart-style-select"
-              aria-label="Chart style"
-              className="min-w-36 cursor-pointer appearance-none bg-transparent pr-6 text-sm font-semibold outline-none"
-              value={chartStyle}
-              onChange={(event) => setChartStyle(event.target.value as ChartStyle)}
-            >
-              {chartStyles.map((item) => (
-                <option key={item.id} data-testid={`chart-style-option-${item.id}`} value={item.id}>{item.label}</option>
-              ))}
+            <select data-testid="chart-style-select" aria-label="Chart style" className="min-w-36 cursor-pointer appearance-none bg-transparent pr-6 text-sm font-semibold outline-none" value={chartStyle} onChange={(event) => setChartStyle(event.target.value as ChartStyle)}>
+              {chartStyles.map((item) => <option key={item.id} data-testid={`chart-style-option-${item.id}`} value={item.id}>{item.label}</option>)}
             </select>
             <ChevronDown data-testid="chart-style-select-icon" size={15} className="pointer-events-none absolute right-3 text-muted-foreground" />
           </label>
@@ -237,6 +225,15 @@ export function AppShell() {
         </div>
         <div data-testid="workstation-shell-caption" className="hidden text-xs text-muted-foreground md:block">Chart tools + AI research workspace</div>
       </div>
+
+      {executionGuardOpen && (
+        <motion.div data-testid="external-execution-guard-region" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-3 shrink-0">
+          <div className="flex items-start gap-3">
+            <div className="min-w-0 flex-1"><ExternalExecutionGuard /></div>
+            <Button data-testid="close-external-execution-guard-button" variant="terminal" size="icon" aria-label="Close external execution guard" onClick={() => setExecutionGuardOpen(false)}><X size={16} /></Button>
+          </div>
+        </motion.div>
+      )}
 
       <PanelGroup data-testid="main-panel-group" direction="horizontal" className="min-h-0 flex-1">
         {leftOpen && (
