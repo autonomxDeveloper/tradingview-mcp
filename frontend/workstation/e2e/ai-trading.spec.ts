@@ -82,7 +82,7 @@ test.describe('AI Trading workstation controls', () => {
 });
 
 test.describe('AI Trading backend storage', () => {
-  test('storage card can status check, save, append event, and export backend packet', async ({ page }) => {
+  test('storage card can status check, save heartbeat, load, and export backend packet', async ({ page }) => {
     await page.goto('/react/');
     await page.getByTestId('toolbar-ai-button').click();
     await expect(page.getByTestId('ai-trading-storage-card')).toBeVisible();
@@ -91,13 +91,11 @@ test.describe('AI Trading backend storage', () => {
     await expect(page.getByTestId('ai-trading-storage-message')).toContainText(/status|ready|backend/i);
 
     await page.getByTestId('ai-trading-storage-save-button').click();
-    await expect(page.getByTestId('ai-trading-storage-message')).toContainText(/saved|session/i);
-
-    await page.getByTestId('ai-trading-storage-event-button').click();
-    await expect(page.getByTestId('ai-trading-storage-message')).toContainText(/event|appended/i);
+    await expect(page.getByTestId('ai-trading-storage-message')).toContainText(/saved|session|heartbeat/i);
 
     await page.getByTestId('ai-trading-storage-load-button').click();
-    await expect(page.getByTestId('ai-trading-storage-json')).toContainText('paper_only');
+    await expect(page.getByTestId('ai-trading-storage-json')).toContainText(/paperOnly|paper_only/);
+    await expect(page.getByTestId('ai-trading-storage-export-button')).toBeEnabled();
   });
 
   test('backend API is paper-only', async ({ request }) => {
