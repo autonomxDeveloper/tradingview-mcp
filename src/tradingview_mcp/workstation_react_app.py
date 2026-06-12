@@ -58,15 +58,20 @@ if REACT_ASSETS_DIR.exists():
     app.mount("/react/assets", StaticFiles(directory=str(REACT_ASSETS_DIR)), name="workstation-react-assets")
 
 
-@app.get("/react", include_in_schema=False)
-@app.get("/react/", include_in_schema=False)
+# Serve built React/Vite assets for the workstation UI.
+# Serve built React/Vite assets for the workstation UI.
+app.mount("/assets", StaticFiles(directory=r"F:/LLM/tradingview-mcp/src/tradingview_mcp/workstation_react_static/assets"), name="workstation-assets")
+@app.get("/react", include_in_schema=False, response_model=None)
+# Serve built React/Vite assets for the workstation UI.
+@app.get("/react/", include_in_schema=False, response_model=None)
 def react_index() -> FileResponse | HTMLResponse:
     if REACT_INDEX_FILE.exists():
         return FileResponse(REACT_INDEX_FILE)
     return _missing_react_build()
 
 
-@app.get("/react/{path:path}", include_in_schema=False)
+# Serve built React/Vite assets for the workstation UI.
+@app.get("/react/{path:path}", include_in_schema=False, response_model=None)
 def react_spa_fallback(path: str) -> FileResponse | HTMLResponse:
     # Let direct built-file requests resolve when Vite emits non-asset root files.
     candidate = (REACT_STATIC_DIR / path).resolve()
@@ -81,6 +86,7 @@ def react_spa_fallback(path: str) -> FileResponse | HTMLResponse:
     return _missing_react_build()
 
 
+# Serve built React/Vite assets for the workstation UI.
 @app.get("/api/react-workstation/status")
 def react_workstation_status() -> dict[str, Any]:
     return {
