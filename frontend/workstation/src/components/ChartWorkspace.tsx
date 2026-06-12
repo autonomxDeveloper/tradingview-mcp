@@ -5,7 +5,7 @@ import { Eye, EyeOff, Lock, Maximize2, Search } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { chartBars, inferAssetType, workstationApi, type Candle } from '@/lib/api';
-import { useUiStore, type ChartStyle, type ChartTool } from '@/store/ui-store';
+import { useUiStore, type ChartStyle, type ChartTool, type ThemeMode } from '@/store/ui-store';
 
 type NormalizedCandle = {
   time: UTCTimestamp;
@@ -83,6 +83,21 @@ const overlayTools = new Set<ChartTool>([
   'measure',
 ]);
 
+function chartPalette(themeMode: ThemeMode) {
+  const isDay = themeMode === 'day';
+  return {
+    text: isDay ? '#334155' : '#cbd5e1',
+    grid: isDay ? 'rgba(100, 116, 139, 0.16)' : 'rgba(148, 163, 184, 0.08)',
+    border: isDay ? 'rgba(100, 116, 139, 0.24)' : 'rgba(148, 163, 184, 0.12)',
+    up: isDay ? '#16a34a' : '#22c55e',
+    down: isDay ? '#dc2626' : '#ef4444',
+    line: isDay ? '#0284c7' : '#22d3ee',
+    areaTop: isDay ? 'rgba(2, 132, 199, 0.22)' : 'rgba(34, 211, 238, 0.32)',
+    areaBottom: isDay ? 'rgba(2, 132, 199, 0.02)' : 'rgba(34, 211, 238, 0.02)',
+    hollowUp: isDay ? 'rgba(22, 163, 74, 0.08)' : 'rgba(34, 197, 94, 0.1)',
+  };
+}
+
 function normalizeCandle(candle: Candle, index: number): NormalizedCandle {
   const rawTime = candle.time ?? candle.timestamp ?? candle.open_time;
   const parsed = typeof rawTime === 'number' ? rawTime : Date.parse(String(rawTime ?? '')) / 1000;
@@ -155,6 +170,7 @@ export function ChartWorkspace() {
     activeChartTool,
     drawingsVisible,
     chartLocked,
+    themeMode,
     assetType,
     exchange,
     setSymbol,
@@ -162,6 +178,7 @@ export function ChartWorkspace() {
     toggleDrawingsVisible,
     toggleChartLocked,
   } = useUiStore();
+  const palette = chartPalette(themeMode);
   const resolvedAssetType = inferAssetType(symbol, assetType);
   const chartQuery = useQuery({
     queryKey: ['chart', symbol, timeframe, resolvedAssetType],
@@ -178,31 +195,35 @@ export function ChartWorkspace() {
     if (!containerRef.current) return;
     const chart = createChart(containerRef.current, {
       autoSize: true,
-      layout: { background: { color: 'transparent' }, textColor: '#cbd5e1' },
-      grid: { vertLines: { color: 'rgba(148, 163, 184, 0.08)' }, horzLines: { color: 'rgba(148, 163, 184, 0.08)' } },
-      rightPriceScale: { borderColor: 'rgba(148, 163, 184, 0.12)' },
-      timeScale: { borderColor: 'rgba(148, 163, 184, 0.12)' },
+      layout: { background: { color: 'transparent' }, textColor: palette.text },
+      grid: { vertLines: { color: palette.grid }, horzLines: { color: palette.grid } },
+      rightPriceScale: { borderColor: palette.border },
+      timeScale: { borderColor: palette.border },
       crosshair: { mode: activeChartTool === 'cursor' ? 0 : 1 },
     });
     chartRef.current = chart;
     return () => chart.remove();
-  }, []);
+  }, [themeMode]);
 
   useEffect(() => {
     chartRef.current?.applyOptions({
+      layout: { background: { color: 'transparent' }, textColor: palette.text },
+      grid: { vertLines: { color: palette.grid }, horzLines: { color: palette.grid } },
+      rightPriceScale: { borderColor: palette.border },
+      timeScale: { borderColor: palette.border },
       crosshair: { mode: activeChartTool === 'cursor' ? 0 : 1 },
       handleScroll: activeChartTool !== 'lock' && !chartLocked,
       handleScale: activeChartTool !== 'lock' && !chartLocked,
     });
-  }, [activeChartTool, chartLocked]);
+  }, [activeChartTool, chartLocked, themeMode, palette.text, palette.grid, palette.border]);
 
   useEffect(() => {
     if (!chartRef.current || candles.length === 0) return;
 
     if (chartStyle === 'bars') {
       const series = chartRef.current.addBarSeries({
-        upColor: '#22c55e',
-        downColor: '#ef4444',
+        upColor: palette.up,
+        downColor: palette.down,
       });
       series.setData(candles);
       chartRef.current.timeScale().fitContent();
@@ -211,7 +232,7 @@ export function ChartWorkspace() {
 
     if (chartStyle === 'line' || chartStyle === 'line-with-markers' || chartStyle === 'step-line') {
       const series = chartRef.current.addLineSeries({
-        color: '#22d3ee',
+        color: palette.line,
         lineWidth: 2,
         lineType: chartStyle === 'step-line' ? 1 : 0,
       });
@@ -221,7 +242,7 @@ export function ChartWorkspace() {
           candles.slice(-24).map((item, index) => ({
             time: item.time,
             position: index % 2 === 0 ? 'belowBar' : 'aboveBar',
-            color: index % 2 === 0 ? '#22c55e' : '#ef4444',
+            color: index % 2 === 0 ? palette.up : palette.down,
             shape: index % 2 === 0 ? 'arrowUp' : 'arrowDown',
           })),
         );
@@ -232,9 +253,9 @@ export function ChartWorkspace() {
 
     if (chartStyle === 'area' || chartStyle === 'hlc-area' || chartStyle === 'baseline') {
       const series = chartRef.current.addAreaSeries({
-        lineColor: '#22d3ee',
-        topColor: 'rgba(34, 211, 238, 0.32)',
-        bottomColor: 'rgba(34, 211, 238, 0.02)',
+        lineColor: palette.line,
+        topColor: palette.areaTop,
+        bottomColor: palette.areaBottom,
       });
       series.setData(lineData(candles));
       chartRef.current.timeScale().fitContent();
@@ -243,7 +264,7 @@ export function ChartWorkspace() {
 
     if (chartStyle === 'columns') {
       const series = chartRef.current.addHistogramSeries({
-        color: '#22d3ee',
+        color: palette.line,
         priceFormat: { type: 'price' },
       });
       series.setData(lineData(candles));
@@ -252,36 +273,36 @@ export function ChartWorkspace() {
     }
 
     const series = chartRef.current.addCandlestickSeries({
-      upColor: chartStyle === 'hollow-candles' ? 'rgba(34, 197, 94, 0.1)' : '#22c55e',
-      downColor: '#ef4444',
-      borderUpColor: '#22c55e',
-      borderDownColor: '#ef4444',
-      wickUpColor: '#22c55e',
-      wickDownColor: '#ef4444',
+      upColor: chartStyle === 'hollow-candles' ? palette.hollowUp : palette.up,
+      downColor: palette.down,
+      borderUpColor: palette.up,
+      borderDownColor: palette.down,
+      wickUpColor: palette.up,
+      wickDownColor: palette.down,
     });
     series.setData(candles);
     chartRef.current.timeScale().fitContent();
     return () => chartRef.current?.removeSeries(series);
-  }, [candles, chartStyle]);
+  }, [candles, chartStyle, themeMode, palette.up, palette.down, palette.line, palette.areaTop, palette.areaBottom, palette.hollowUp]);
 
   return (
     <Card data-testid="chart-workspace" className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-3xl">
-      <div data-testid="chart-header" className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+      <div data-testid="chart-header" className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3 theme-day:border-slate-200">
         <div data-testid="chart-symbol-search-row" className="flex min-w-0 flex-1 items-center gap-3">
-          <div data-testid="chart-symbol-search-control" className="flex min-w-[220px] items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.045] px-3 py-2">
+          <div data-testid="chart-symbol-search-control" className="flex min-w-[220px] items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.045] px-3 py-2 theme-day:border-slate-200 theme-day:bg-white">
             <Search size={16} className="text-muted-foreground" />
             <input data-testid="symbol-input" aria-label="Symbol" className="w-28 bg-transparent text-sm font-semibold outline-none" value={symbol} onChange={(event) => setSymbol(event.target.value)} />
-            <span data-testid="symbol-exchange-separator" className="h-5 w-px bg-white/10" />
+            <span data-testid="symbol-exchange-separator" className="h-5 w-px bg-white/10 theme-day:bg-slate-200" />
             <input data-testid="exchange-input" aria-label="Exchange" className="w-24 bg-transparent text-xs uppercase text-muted-foreground outline-none" value={exchange} onChange={(event) => setExchange(event.target.value)} />
           </div>
           <div data-testid="chart-title-block" className="min-w-0">
             <div data-testid="chart-symbol-row" className="flex flex-wrap items-center gap-2 text-lg font-semibold">
               <span data-testid="chart-symbol-label">{symbol}</span>
-              <span data-testid="chart-timeframe-label" className="rounded-full bg-white/10 px-2 py-1 text-xs text-muted-foreground">{timeframe}</span>
-              <span data-testid="chart-style-label" className="rounded-full bg-white/10 px-2 py-1 text-xs text-muted-foreground">{chartStyleLabels[chartStyle]}</span>
+              <span data-testid="chart-timeframe-label" className="rounded-full bg-white/10 px-2 py-1 text-xs text-muted-foreground theme-day:bg-slate-100">{timeframe}</span>
+              <span data-testid="chart-style-label" className="rounded-full bg-white/10 px-2 py-1 text-xs text-muted-foreground theme-day:bg-slate-100">{chartStyleLabels[chartStyle]}</span>
               <span data-testid="chart-active-tool-pill" className="rounded-full bg-primary/15 px-2 py-1 text-xs text-primary">{toolLabels[activeChartTool]}</span>
             </div>
-            <div data-testid="chart-route-label" className="text-xs text-muted-foreground">Live research chart · {resolvedAssetType === 'crypto' ? 'Crypto' : 'Stock'} data route</div>
+            <div data-testid="chart-route-label" className="text-xs text-muted-foreground">Live research chart · {resolvedAssetType === 'crypto' ? 'Crypto' : 'Stock'} data route · {themeMode === 'day' ? 'Day' : 'Night'} mode</div>
           </div>
         </div>
         <div data-testid="chart-actions" className="flex items-center gap-2">
@@ -298,12 +319,12 @@ export function ChartWorkspace() {
         {chartQuery.error && <div data-testid="chart-error-state" className="absolute inset-0 z-10 grid place-items-center text-sm text-destructive">{String(chartQuery.error)}</div>}
         {!chartQuery.isLoading && !chartQuery.error && candles.length === 0 && <div data-testid="chart-empty-state" className="absolute inset-0 z-10 grid place-items-center text-sm text-muted-foreground">No chart bars returned for this symbol/timeframe.</div>}
         {!chartQuery.isLoading && !chartQuery.error && candleLikeStyles.has(chartStyle) && chartStyle !== 'candles' && chartStyle !== 'hollow-candles' && (
-          <div data-testid="chart-style-fallback-note" className="absolute left-4 top-4 z-10 rounded-full border border-white/10 bg-background/80 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
+          <div data-testid="chart-style-fallback-note" className="absolute left-4 top-4 z-10 rounded-full border border-white/10 bg-background/80 px-3 py-1 text-xs text-muted-foreground backdrop-blur theme-day:border-slate-200">
             Rendering {chartStyleLabels[chartStyle]} with candlestick geometry.
           </div>
         )}
         {chartLocked && (
-          <div data-testid="chart-locked-note" className="absolute right-4 top-4 z-10 rounded-full border border-white/10 bg-background/80 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
+          <div data-testid="chart-locked-note" className="absolute right-4 top-4 z-10 rounded-full border border-white/10 bg-background/80 px-3 py-1 text-xs text-muted-foreground backdrop-blur theme-day:border-slate-200">
             Chart locked
           </div>
         )}
