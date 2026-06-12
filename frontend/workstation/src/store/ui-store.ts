@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type RightPanel = 'research' | 'workflow' | 'paper' | 'journal';
+export type RightPanel = 'research' | 'workflow' | 'paper' | 'journal' | 'indicators' | 'news' | 'layout';
 
 export type UiState = {
   symbol: string;
