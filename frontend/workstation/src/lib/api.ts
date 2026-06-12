@@ -82,6 +82,19 @@ export const workstationApi = {
   backtest: (body: { symbol: string; strategy: string; period: string; interval: string }) =>
     requestJson<Record<string, unknown>>('/api/backtest/run', { method: 'POST', body: JSON.stringify(body) }),
   paperAccount: () => requestJson<Record<string, unknown>>('/api/paper/account'),
+  aiTradingStatus: () => requestJson<Record<string, unknown>>('/api/ai-trading/status'),
+  loadAiTradingSession: (sessionId = 'default') =>
+    requestJson<Record<string, unknown>>(`/api/ai-trading/session?session_id=${encodeURIComponent(sessionId)}`),
+  saveAiTradingSession: (session: Record<string, unknown>, sessionId = 'default') =>
+    requestJson<Record<string, unknown>>('/api/ai-trading/session', { method: 'POST', body: JSON.stringify({ session_id: sessionId, session }) }),
+  appendAiTradingEvent: (body: { session_id?: string; level: 'info' | 'success' | 'warning' | 'error'; message: string; payload?: Record<string, unknown> }) =>
+    requestJson<Record<string, unknown>>('/api/ai-trading/events', { method: 'POST', body: JSON.stringify(body) }),
+  listAiTradingEvents: (sessionId = 'default', limit = 100) =>
+    requestJson<Record<string, unknown>>(`/api/ai-trading/events?session_id=${encodeURIComponent(sessionId)}&limit=${limit}`),
+  appendAiTradingOrder: (order: Record<string, unknown>, sessionId = 'default') =>
+    requestJson<Record<string, unknown>>('/api/ai-trading/orders', { method: 'POST', body: JSON.stringify({ session_id: sessionId, order }) }),
+  listAiTradingOrders: (sessionId = 'default', limit = 100) =>
+    requestJson<Record<string, unknown>>(`/api/ai-trading/orders?session_id=${encodeURIComponent(sessionId)}&limit=${limit}`),
   ideas: () => requestJson<{ ideas: unknown[] }>('/api/ideas'),
   journal: () => requestJson<{ events: unknown[] }>('/api/journal?limit=50'),
 };
