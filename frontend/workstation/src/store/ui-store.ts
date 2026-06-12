@@ -42,6 +42,8 @@ export type ChartTool =
   | 'global-mode'
   | 'delete';
 
+export type ThemeMode = 'night' | 'day';
+
 export type UiState = {
   symbol: string;
   timeframe: string;
@@ -50,6 +52,7 @@ export type UiState = {
   drawingsVisible: boolean;
   chartLocked: boolean;
   favoriteChartTools: ChartTool[];
+  themeMode: ThemeMode;
   assetType: 'auto' | 'stock' | 'crypto';
   exchange: string;
   leftOpen: boolean;
@@ -64,6 +67,8 @@ export type UiState = {
   toggleChartLocked: () => void;
   toggleFavoriteChartTool: (tool: ChartTool) => void;
   clearChartTools: () => void;
+  setThemeMode: (themeMode: ThemeMode) => void;
+  toggleThemeMode: () => void;
   setAssetType: (assetType: UiState['assetType']) => void;
   setExchange: (exchange: string) => void;
   toggleLeft: () => void;
@@ -80,6 +85,7 @@ export const useUiStore = create<UiState>((set) => ({
   drawingsVisible: true,
   chartLocked: false,
   favoriteChartTools: ['crosshair', 'trend-line', 'horizontal-line'],
+  themeMode: 'night',
   assetType: 'crypto',
   exchange: 'BINANCE',
   leftOpen: true,
@@ -111,6 +117,8 @@ export const useUiStore = create<UiState>((set) => ({
         : [...state.favoriteChartTools, tool],
     })),
   clearChartTools: () => set({ activeChartTool: 'cursor', drawingsVisible: true }),
+  setThemeMode: (themeMode) => set({ themeMode }),
+  toggleThemeMode: () => set((state) => ({ themeMode: state.themeMode === 'night' ? 'day' : 'night' })),
   setAssetType: (assetType) => set({ assetType }),
   setExchange: (exchange) => set({ exchange: exchange.trim().toUpperCase() || 'BINANCE' }),
   toggleLeft: () => set((state) => ({ leftOpen: !state.leftOpen })),
