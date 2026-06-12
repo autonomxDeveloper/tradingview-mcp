@@ -2,7 +2,7 @@ import type { ElementType } from 'react';
 import { motion } from 'framer-motion';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { Activity, Bot, BrainCircuit, ChartCandlestick, ChevronDown, History, Menu, Newspaper, PanelLeft, PanelRight, Play, Search, Settings, WalletCards } from 'lucide-react';
-import { useUiStore, type RightPanel } from '@/store/ui-store';
+import { useUiStore, type ChartStyle, type RightPanel } from '@/store/ui-store';
 import { Button } from '@/components/ui/button';
 import { WatchlistPanel } from '@/components/WatchlistPanel';
 import { ChartWorkspace } from '@/components/ChartWorkspace';
@@ -10,6 +10,27 @@ import { ResearchPanel } from '@/components/ResearchPanel';
 import { BottomConsole } from '@/components/BottomConsole';
 
 const timeframes = ['1m', '5m', '15m', '1h', '2h', '1D', '1W', '2W'];
+
+const chartStyles: Array<{ id: ChartStyle; label: string }> = [
+  { id: 'bars', label: 'Bars' },
+  { id: 'candles', label: 'Candles' },
+  { id: 'hollow-candles', label: 'Hollow candles' },
+  { id: 'volume-candles', label: 'Volume candles' },
+  { id: 'line', label: 'Line' },
+  { id: 'line-with-markers', label: 'Line with markers' },
+  { id: 'step-line', label: 'Step line' },
+  { id: 'area', label: 'Area' },
+  { id: 'hlc-area', label: 'HLC area' },
+  { id: 'baseline', label: 'Baseline' },
+  { id: 'columns', label: 'Columns' },
+  { id: 'high-low', label: 'High-low' },
+  { id: 'volume-footprint', label: 'Volume footprint' },
+  { id: 'time-price-opportunity', label: 'Time price opportunity' },
+  { id: 'session-volume-profile', label: 'Session volume profile' },
+  { id: 'heikin-ashi', label: 'Heikin Ashi' },
+  { id: 'renko', label: 'Renko' },
+  { id: 'line-break', label: 'Line break' },
+];
 
 const rightPanelButtons: Array<{ id: RightPanel; label: string; icon: ElementType }> = [
   { id: 'research', label: 'Research', icon: BrainCircuit },
@@ -22,6 +43,7 @@ export function AppShell() {
   const {
     symbol,
     timeframe,
+    chartStyle,
     exchange,
     leftOpen,
     rightOpen,
@@ -29,6 +51,7 @@ export function AppShell() {
     rightPanel,
     setSymbol,
     setTimeframe,
+    setChartStyle,
     setExchange,
     toggleLeft,
     toggleRight,
@@ -80,6 +103,22 @@ export function AppShell() {
               ))}
             </select>
             <ChevronDown data-testid="timeframe-select-icon" size={15} className="pointer-events-none absolute right-3 text-muted-foreground" />
+          </label>
+          <label data-testid="chart-style-select-control" className="relative flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-2 text-sm font-semibold text-foreground shadow-sm shadow-black/10">
+            <ChartCandlestick data-testid="chart-style-select-glyph" size={15} className="text-muted-foreground" />
+            <span data-testid="chart-style-select-label" className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Type</span>
+            <select
+              data-testid="chart-style-select"
+              aria-label="Chart style"
+              className="min-w-36 cursor-pointer appearance-none bg-transparent pr-6 text-sm font-semibold outline-none"
+              value={chartStyle}
+              onChange={(event) => setChartStyle(event.target.value as ChartStyle)}
+            >
+              {chartStyles.map((item) => (
+                <option key={item.id} data-testid={`chart-style-option-${item.id}`} value={item.id}>{item.label}</option>
+              ))}
+            </select>
+            <ChevronDown data-testid="chart-style-select-icon" size={15} className="pointer-events-none absolute right-3 text-muted-foreground" />
           </label>
           <span data-testid="toolbar-divider" className="mx-2 h-6 w-px bg-white/10" />
           <Button data-testid="toolbar-indicators-button" size="sm" variant={toolbarButtonVariant('indicators')} onClick={() => setRightPanel('indicators')}><Activity size={15} /> Indicators</Button>
