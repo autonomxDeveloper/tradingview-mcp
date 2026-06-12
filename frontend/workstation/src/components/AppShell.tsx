@@ -1,3 +1,4 @@
+import type { ElementType } from 'react';
 import { motion } from 'framer-motion';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { Activity, Bot, BrainCircuit, ChartCandlestick, History, Menu, Newspaper, PanelLeft, PanelRight, Play, Search, Settings, WalletCards } from 'lucide-react';
@@ -10,7 +11,7 @@ import { BottomConsole } from '@/components/BottomConsole';
 
 const timeframes = ['1m', '5m', '15m', '1h', '2h', '1D', '1W', '2W'];
 
-const rightPanelButtons: Array<{ id: RightPanel; label: string; icon: React.ElementType }> = [
+const rightPanelButtons: Array<{ id: RightPanel; label: string; icon: ElementType }> = [
   { id: 'research', label: 'Research', icon: BrainCircuit },
   { id: 'workflow', label: 'AI', icon: Bot },
   { id: 'paper', label: 'Paper', icon: WalletCards },
