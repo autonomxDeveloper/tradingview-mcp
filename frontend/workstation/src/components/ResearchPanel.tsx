@@ -16,6 +16,38 @@ const panelTitles: Record<RightPanel, string> = {
   layout: 'Layout',
 };
 
+type StructuredAnalysis = {
+  parsed?: boolean;
+  summary?: unknown;
+  trend?: unknown;
+  key_levels?: unknown;
+  risks?: unknown;
+  invalidation?: unknown;
+  backtest_ideas?: unknown;
+  confidence?: unknown;
+  raw?: unknown;
+};
+
+type AnalysisPayload = {
+  analysis?: {
+    content?: unknown;
+    model?: unknown;
+  };
+  structured_analysis?: StructuredAnalysis;
+};
+
+type AnalysisView = {
+  summary: string;
+  trend: string;
+  keyLevels: string[];
+  risks: string[];
+  invalidation: string;
+  backtestIdeas: string[];
+  confidence: string;
+  model: string;
+  fallbackText: string;
+};
+
 function PanelIcon({ panel }: { panel: RightPanel }) {
   if (panel === 'research') return <BrainCircuit size={16} className="text-primary" />;
   if (panel === 'workflow') return <ClipboardList size={16} className="text-primary" />;
@@ -26,11 +58,137 @@ function PanelIcon({ panel }: { panel: RightPanel }) {
   return <LayoutPanelTop size={16} className="text-primary" />;
 }
 
+function toText(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return JSON.stringify(value);
+}
+
+function toTextList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(toText).filter(Boolean);
+  const text = toText(value);
+  return text ? [text] : [];
+}
+
+function parseModelJson(content: string): StructuredAnalysis | null {
+  const trimmed = content.trim();
+  if (!trimmed) return null;
+  const withoutFence = trimmed.startsWith('```')
+    ? trimmed.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim()
+    : trimmed;
+  try {
+    const parsed = JSON.parse(withoutFence);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function buildAnalysisView(payload?: AnalysisPayload): AnalysisView | null {
+  if (!payload) return null;
+  const modelContent = toText(payload.analysis?.content);
+  const structured = payload.structured_analysis?.parsed === false
+    ? parseModelJson(modelContent) ?? payload.structured_analysis
+    : payload.structured_analysis ?? parseModelJson(modelContent);
+
+  if (!structured) {
+    return modelContent
+      ? {
+          summary: '',
+          trend: '',
+          keyLevels: [],
+          risks: [],
+          invalidation: '',
+          backtestIdeas: [],
+          confidence: '',
+          model: toText(payload.analysis?.model),
+          fallbackText: modelContent,
+        }
+      : null;
+  }
+
+  return {
+    summary: toText(structured.summary),
+    trend: toText(structured.trend),
+    keyLevels: toTextList(structured.key_levels),
+    risks: toTextList(structured.risks),
+    invalidation: toText(structured.invalidation),
+    backtestIdeas: toTextList(structured.backtest_ideas),
+    confidence: toText(structured.confidence),
+    model: toText(payload.analysis?.model),
+    fallbackText: modelContent,
+  };
+}
+
+function TextList({ items }: { items: string[] }) {
+  if (!items.length) return <div className="text-xs text-muted-foreground">No items returned.</div>;
+  return (
+    <ul className="space-y-1 text-sm text-muted-foreground">
+      {items.map((item, index) => <li key={`${item}-${index}`}>• {item}</li>)}
+    </ul>
+  );
+}
+
+function AnalysisResult({ view }: { view: AnalysisView }) {
+  return (
+    <div className="space-y-3 rounded-2xl border border-primary/20 bg-primary/10 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-sm font-semibold text-primary">LLM analysis</div>
+          {view.model && <div className="mt-1 text-xs text-muted-foreground">Model: {view.model}</div>}
+        </div>
+        {view.confidence && <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1 text-xs text-muted-foreground">Confidence: {view.confidence}</span>}
+      </div>
+
+      {view.summary && (
+        <section>
+          <div className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Summary</div>
+          <p className="text-sm leading-6 text-foreground">{view.summary}</p>
+        </section>
+      )}
+
+      {view.trend && (
+        <section>
+          <div className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Trend</div>
+          <p className="text-sm leading-6 text-muted-foreground">{view.trend}</p>
+        </section>
+      )}
+
+      <section>
+        <div className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Key levels</div>
+        <TextList items={view.keyLevels} />
+      </section>
+
+      <section>
+        <div className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Risks</div>
+        <TextList items={view.risks} />
+      </section>
+
+      {view.invalidation && (
+        <section>
+          <div className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Invalidation</div>
+          <p className="text-sm leading-6 text-muted-foreground">{view.invalidation}</p>
+        </section>
+      )}
+
+      <section>
+        <div className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Backtest next</div>
+        <TextList items={view.backtestIdeas} />
+      </section>
+
+      {!view.summary && view.fallbackText && (
+        <pre className="max-h-64 overflow-auto rounded-2xl bg-black/35 p-3 text-xs text-muted-foreground whitespace-pre-wrap">{view.fallbackText}</pre>
+      )}
+    </div>
+  );
+}
+
 export function ResearchPanel({ panel }: { panel: RightPanel }) {
   const { symbol, timeframe, assetType, exchange, leftOpen, rightOpen, bottomOpen, toggleLeft, toggleRight, toggleBottom } = useUiStore();
   const resolvedAssetType = inferAssetType(symbol, assetType);
   const resolvedExchange = resolvedAssetType === 'crypto' ? exchange || 'BINANCE' : exchange || 'NASDAQ';
-  const analyze = useMutation<Record<string, unknown>, Error>({
+  const analyze = useMutation<AnalysisPayload, Error>({
     mutationFn: () => workstationApi.analyze({
       symbol,
       asset_type: resolvedAssetType,
@@ -39,7 +197,7 @@ export function ResearchPanel({ panel }: { panel: RightPanel }) {
       question: 'Give observations, risks, invalidation levels, and what to backtest next.',
     }),
   });
-  const analysisText = useMemo(() => analyze.data ? JSON.stringify(analyze.data, null, 2) : '', [analyze.data]);
+  const analysisView = useMemo(() => buildAnalysisView(analyze.data), [analyze.data]);
   const paper = useQuery({ queryKey: ['paper-account'], queryFn: workstationApi.paperAccount, enabled: panel === 'paper' });
   const ideas = useQuery({ queryKey: ['ideas'], queryFn: workstationApi.ideas, enabled: panel === 'workflow' || panel === 'news' });
   const journal = useQuery({ queryKey: ['journal'], queryFn: workstationApi.journal, enabled: panel === 'journal' });
@@ -62,7 +220,7 @@ export function ResearchPanel({ panel }: { panel: RightPanel }) {
                 <BrainCircuit size={16} /> {analyze.isPending ? 'Analyzing...' : 'Analyze current symbol'}
               </Button>
             </div>
-            {analysisText && <pre className="max-h-96 overflow-auto rounded-2xl bg-black/35 p-3 text-xs text-muted-foreground">{analysisText}</pre>}
+            {analysisView && <AnalysisResult view={analysisView} />}
             {analyze.error && <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{analyze.error.message}</div>}
           </div>
         )}
