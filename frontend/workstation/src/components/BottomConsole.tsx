@@ -1,5 +1,5 @@
 import type { ElementType } from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
 import { useQuery } from '@tanstack/react-query';
 import { Activity, Bot, ChevronDown, Database, FileText, ShieldAlert, Terminal, WalletCards } from 'lucide-react';
@@ -23,6 +23,9 @@ type BottomConsoleProps = {
 
 type PaperSide = 'buy' | 'sell';
 type PaperOrderType = 'market' | 'limit';
+type AiTradingMode = 'observe' | 'suggest' | 'auto-paper';
+type AiDecisionAction = 'buy' | 'sell' | 'hold';
+type CycleStatus = 'idle' | 'running' | 'paused' | 'stopped';
 
 type PaperPosition = {
   symbol: string;
@@ -41,9 +44,6 @@ type PaperOrder = {
   status: 'filled' | 'rejected';
   message: string;
 };
-
-type AiTradingMode = 'observe' | 'suggest' | 'auto-paper';
-type AiDecisionAction = 'buy' | 'sell' | 'hold';
 
 type AiTradingDecision = {
   id: string;
@@ -68,10 +68,18 @@ type AiTradingEvent = {
   message: string;
 };
 
+type MarketBar = {
+  close?: string | number;
+  high?: string | number;
+  low?: string | number;
+};
+
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(value);
 
 const formatPercent = (value: number) => `${Number.isFinite(value) ? value.toFixed(0) : '0'}%`;
+
+const formatCountdown = (seconds: number) => `${Math.max(0, Math.ceil(seconds))}s`;
 
 const getAnalysisText = (payload: Record<string, unknown>) => {
   const analysis = payload.analysis as Record<string, unknown> | undefined;
@@ -85,6 +93,15 @@ const getStructuredValue = (payload: Record<string, unknown>, key: string) => {
   const structured = payload.structured_analysis as Record<string, unknown> | undefined;
   const value = structured?.[key];
   return typeof value === 'string' ? value : '';
+};
+
+const getBars = (payload: Record<string, unknown>) => {
+  if (Array.isArray(payload.candles)) return payload.candles as MarketBar[];
+  if (Array.isArray(payload.bars)) return payload.bars as MarketBar[];
+  if (Array.isArray(payload.data)) return payload.data as MarketBar[];
+  const candles = payload.candles as Record<string, unknown> | undefined;
+  if (candles && Array.isArray(candles.bars)) return candles.bars as MarketBar[];
+  return [];
 };
 
 function PaperTradingConsole() {
@@ -173,15 +190,11 @@ function PaperTradingConsole() {
       setCash((value) => value - cost);
       setPositions((items) => {
         const existing = items.find((position) => position.symbol === normalizedSymbol);
-        if (!existing) {
-          return [...items, { symbol: normalizedSymbol, quantity: qty, averagePrice: price }];
-        }
+        if (!existing) return [...items, { symbol: normalizedSymbol, quantity: qty, averagePrice: price }];
         const nextQuantity = existing.quantity + qty;
         const nextAverage = (existing.quantity * existing.averagePrice + cost) / nextQuantity;
         return items.map((position) =>
-          position.symbol === normalizedSymbol
-            ? { ...position, quantity: nextQuantity, averagePrice: nextAverage }
-            : position,
+          position.symbol === normalizedSymbol ? { ...position, quantity: nextQuantity, averagePrice: nextAverage } : position,
         );
       });
     } else {
@@ -333,34 +346,34 @@ function AITradingConsole() {
   const [maxDailyLoss, setMaxDailyLoss] = useState('500');
   const [minConfidence, setMinConfidence] = useState('65');
   const [maxTradesPerDay, setMaxTradesPerDay] = useState('3');
-  const [cycleStatus, setCycleStatus] = useState<'idle' | 'running' | 'paused' | 'stopped'>('idle');
+  const [cycleIntervalSec, setCycleIntervalSec] = useState('60');
+  const [cooldownSec, setCooldownSec] = useState('120');
+  const [autoEnabled, setAutoEnabled] = useState(false);
+  const [lastCycleAt, setLastCycleAt] = useState<number | null>(null);
+  const [cycleCount, setCycleCount] = useState(0);
+  const [skippedCycles, setSkippedCycles] = useState(0);
+  const [cycleStatus, setCycleStatus] = useState<CycleStatus>('idle');
   const [decision, setDecision] = useState<AiTradingDecision | null>(null);
   const [orders, setOrders] = useState<PaperOrder[]>([]);
   const [events, setEvents] = useState<AiTradingEvent[]>([
     { id: 'init', time: new Date().toLocaleTimeString(), level: 'info', message: 'AI trading is idle. Run one paper-safe cycle to begin.' },
   ]);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const runningRef = useRef(false);
 
   const parsedMaxRiskPct = Number(maxRiskPct);
   const parsedMaxDailyLoss = Number(maxDailyLoss);
   const parsedMinConfidence = Number(minConfidence);
   const parsedMaxTrades = Number(maxTradesPerDay);
+  const parsedIntervalSec = Number(cycleIntervalSec);
+  const parsedCooldownSec = Number(cooldownSec);
   const todayFilledTrades = orders.filter((order) => order.status === 'filled').length;
   const accountEquity = 100_000;
+  const secondsSinceLastCycle = lastCycleAt ? (Date.now() - lastCycleAt) / 1000 : Number.POSITIVE_INFINITY;
+  const cooldownRemaining = Math.max(0, (Number.isFinite(parsedCooldownSec) ? parsedCooldownSec : 120) - secondsSinceLastCycle);
 
   const appendEvent = (level: AiTradingEvent['level'], message: string) => {
-    setEvents((items) => [{ id: `E-${Date.now()}-${items.length}`, time: new Date().toLocaleTimeString(), level, message }, ...items].slice(0, 50));
-  };
-
-  const emergencyStop = () => {
-    setCycleStatus('stopped');
-    appendEvent('error', 'Emergency stop engaged. AI trading cycle execution disabled until reset.');
-  };
-
-  const resetSession = () => {
-    setCycleStatus('idle');
-    setDecision(null);
-    setOrders([]);
-    setEvents([{ id: `E-${Date.now()}`, time: new Date().toLocaleTimeString(), level: 'info', message: 'AI trading session reset.' }]);
+    setEvents((items) => [{ id: `E-${Date.now()}-${items.length}`, time: new Date().toLocaleTimeString(), level, message }, ...items].slice(0, 75));
   };
 
   const fillAiPaperOrder = (nextDecision: AiTradingDecision) => {
@@ -379,23 +392,37 @@ function AITradingConsole() {
       status: 'filled',
       message: `AI ${nextDecision.action.toUpperCase()} ${nextDecision.quantity} ${nextDecision.symbol} @ ${formatCurrency(nextDecision.entryPrice)} filled in auto-paper mode.`,
     };
-    setOrders((items) => [filled, ...items].slice(0, 25));
+    setOrders((items) => [filled, ...items].slice(0, 50));
     appendEvent('success', filled.message);
   };
 
-  const runCycle = async () => {
+  const runCycle = async (source: 'manual' | 'auto' = 'manual') => {
     if (cycleStatus === 'stopped') {
       appendEvent('error', 'Emergency stop is active. Reset the session before running another cycle.');
+      return;
+    }
+    if (runningRef.current) {
+      setSkippedCycles((value) => value + 1);
+      appendEvent('warning', 'Skipped cycle because another AI cycle is already running.');
+      return;
+    }
+    const safeCooldown = Number.isFinite(parsedCooldownSec) ? parsedCooldownSec : 120;
+    if (source === 'auto' && lastCycleAt && Date.now() - lastCycleAt < safeCooldown * 1000) {
+      setSkippedCycles((value) => value + 1);
+      appendEvent('info', `Skipped auto cycle during cooldown (${formatCountdown(cooldownRemaining)} remaining).`);
       return;
     }
 
     const normalizedSymbol = symbol.trim().toUpperCase() || 'BTCUSDT';
     const resolvedAssetType = inferAssetType(normalizedSymbol, assetType);
+    runningRef.current = true;
     setCycleStatus('running');
-    appendEvent('info', `Started AI cycle for ${normalizedSymbol} on ${timeframe}.`);
+    setLastCycleAt(Date.now());
+    setCycleCount((value) => value + 1);
+    appendEvent('info', `${source === 'auto' ? 'Auto' : 'Manual'} AI cycle started for ${normalizedSymbol} on ${timeframe}.`);
 
     try {
-      const chartContext = await workstationApi.chart(normalizedSymbol, timeframe, assetType, 300);
+      const chartContext = await workstationApi.chart(normalizedSymbol, timeframe, assetType, 300) as Record<string, unknown>;
       appendEvent('success', 'Market context loaded.');
 
       const analysisPayload = await workstationApi.analyze({
@@ -403,19 +430,13 @@ function AITradingConsole() {
         asset_type: resolvedAssetType,
         exchange,
         timeframe,
-        question: `Create a concise automated trading decision for ${normalizedSymbol}. Return a conservative buy, sell, or hold thesis with risk levels. Strategy=${strategy}. Mode=${mode}.`,
-      });
+        question: `Create a concise automated trading decision for ${normalizedSymbol}. Return a conservative buy, sell, or hold thesis with entry, stop, target, and risk levels. Strategy=${strategy}. Mode=${mode}.`,
+      }) as Record<string, unknown>;
       appendEvent('success', 'LLM analysis completed.');
 
-      const bars = Array.isArray(chartContext.candles)
-        ? chartContext.candles
-        : Array.isArray(chartContext.bars)
-          ? chartContext.bars
-          : Array.isArray(chartContext.data)
-            ? chartContext.data
-            : [];
-      const lastBar = bars[bars.length - 1] as { close?: string | number; high?: string | number; low?: string | number } | undefined;
-      const priorBar = bars[bars.length - 20] as { close?: string | number } | undefined;
+      const bars = getBars(chartContext);
+      const lastBar = bars[bars.length - 1];
+      const priorBar = bars[Math.max(0, bars.length - 20)];
       const close = Number(lastBar?.close ?? 100);
       const priorClose = Number(priorBar?.close ?? close);
       const price = Number.isFinite(close) && close > 0 ? close : 100;
@@ -474,12 +495,71 @@ function AITradingConsole() {
       } else if (mode === 'observe') {
         appendEvent('info', 'Observe mode only: no order created.');
       }
-      setCycleStatus('idle');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'AI trading cycle failed.';
       appendEvent('error', message);
-      setCycleStatus('idle');
+    } finally {
+      runningRef.current = false;
+      setCycleStatus((value) => (value === 'stopped' || value === 'paused' ? value : 'idle'));
     }
+  };
+
+  useEffect(() => {
+    if (!autoEnabled || cycleStatus === 'stopped') {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = null;
+      return;
+    }
+
+    const safeIntervalMs = Math.max(15, Number.isFinite(parsedIntervalSec) ? parsedIntervalSec : 60) * 1000;
+    intervalRef.current = setInterval(() => {
+      void runCycle('auto');
+    }, safeIntervalMs);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    };
+  }, [autoEnabled, cycleStatus, parsedIntervalSec, parsedCooldownSec, symbol, timeframe, assetType, exchange, mode, strategy, maxRiskPct, maxDailyLoss, minConfidence, maxTradesPerDay, orders.length]);
+
+  const startAuto = () => {
+    if (cycleStatus === 'stopped') {
+      appendEvent('error', 'Emergency stop is active. Reset before starting auto cycles.');
+      return;
+    }
+    setAutoEnabled(true);
+    setCycleStatus('idle');
+    appendEvent('success', `Auto cycle enabled every ${cycleIntervalSec}s with ${cooldownSec}s cooldown.`);
+  };
+
+  const stopAuto = () => {
+    setAutoEnabled(false);
+    setCycleStatus('idle');
+    appendEvent('warning', 'Auto cycle stopped.');
+  };
+
+  const pauseSession = () => {
+    setAutoEnabled(false);
+    setCycleStatus('paused');
+    appendEvent('warning', 'AI trading paused. Auto cycle disabled.');
+  };
+
+  const emergencyStop = () => {
+    setAutoEnabled(false);
+    setCycleStatus('stopped');
+    appendEvent('error', 'Emergency stop engaged. AI trading cycle execution disabled until reset.');
+  };
+
+  const resetSession = () => {
+    setAutoEnabled(false);
+    setCycleStatus('idle');
+    setDecision(null);
+    setOrders([]);
+    setCycleCount(0);
+    setSkippedCycles(0);
+    setLastCycleAt(null);
+    runningRef.current = false;
+    setEvents([{ id: `E-${Date.now()}`, time: new Date().toLocaleTimeString(), level: 'info', message: 'AI trading session reset.' }]);
   };
 
   const approveDecision = () => {
@@ -503,9 +583,15 @@ function AITradingConsole() {
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <div data-testid="ai-trading-title" className="text-sm font-semibold">Automated AI Trading</div>
-            <div data-testid="ai-trading-subtitle" className="text-xs text-muted-foreground">Paper-safe cycle runner. No live broker orders are sent.</div>
+            <div data-testid="ai-trading-subtitle" className="text-xs text-muted-foreground">Paper-safe controller. No live broker orders are sent.</div>
           </div>
-          <div data-testid="ai-trading-status-pill" className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-primary">{cycleStatus}</div>
+          <div data-testid="ai-trading-status-pill" className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-primary">{autoEnabled ? 'auto' : cycleStatus}</div>
+        </div>
+
+        <div data-testid="ai-trading-session-stats" className="mb-3 grid grid-cols-3 gap-2 text-xs">
+          <div data-testid="ai-trading-cycle-count" className="rounded-xl border border-white/10 p-2 theme-day:border-slate-200">Cycles <b>{cycleCount}</b></div>
+          <div data-testid="ai-trading-skipped-count" className="rounded-xl border border-white/10 p-2 theme-day:border-slate-200">Skipped <b>{skippedCycles}</b></div>
+          <div data-testid="ai-trading-cooldown-remaining" className="rounded-xl border border-white/10 p-2 theme-day:border-slate-200">Cooldown <b>{formatCountdown(cooldownRemaining)}</b></div>
         </div>
 
         <div className="grid gap-3">
@@ -527,26 +613,18 @@ function AITradingConsole() {
             </select>
           </label>
           <div className="grid grid-cols-2 gap-3">
-            <label data-testid="ai-trading-risk-per-trade-control" className="grid gap-1 text-xs text-muted-foreground">
-              Risk / trade %
-              <input data-testid="ai-trading-risk-per-trade-input" value={maxRiskPct} onChange={(event) => setMaxRiskPct(event.target.value)} inputMode="decimal" className="rounded-xl border border-white/10 bg-background px-3 py-2 text-sm text-foreground outline-none theme-day:border-slate-200" />
-            </label>
-            <label data-testid="ai-trading-min-confidence-control" className="grid gap-1 text-xs text-muted-foreground">
-              Min confidence %
-              <input data-testid="ai-trading-min-confidence-input" value={minConfidence} onChange={(event) => setMinConfidence(event.target.value)} inputMode="decimal" className="rounded-xl border border-white/10 bg-background px-3 py-2 text-sm text-foreground outline-none theme-day:border-slate-200" />
-            </label>
-            <label data-testid="ai-trading-max-daily-loss-control" className="grid gap-1 text-xs text-muted-foreground">
-              Max daily loss $
-              <input data-testid="ai-trading-max-daily-loss-input" value={maxDailyLoss} onChange={(event) => setMaxDailyLoss(event.target.value)} inputMode="decimal" className="rounded-xl border border-white/10 bg-background px-3 py-2 text-sm text-foreground outline-none theme-day:border-slate-200" />
-            </label>
-            <label data-testid="ai-trading-max-trades-control" className="grid gap-1 text-xs text-muted-foreground">
-              Max trades/day
-              <input data-testid="ai-trading-max-trades-input" value={maxTradesPerDay} onChange={(event) => setMaxTradesPerDay(event.target.value)} inputMode="numeric" className="rounded-xl border border-white/10 bg-background px-3 py-2 text-sm text-foreground outline-none theme-day:border-slate-200" />
-            </label>
+            <label data-testid="ai-trading-risk-per-trade-control" className="grid gap-1 text-xs text-muted-foreground">Risk / trade %<input data-testid="ai-trading-risk-per-trade-input" value={maxRiskPct} onChange={(event) => setMaxRiskPct(event.target.value)} inputMode="decimal" className="rounded-xl border border-white/10 bg-background px-3 py-2 text-sm text-foreground outline-none theme-day:border-slate-200" /></label>
+            <label data-testid="ai-trading-min-confidence-control" className="grid gap-1 text-xs text-muted-foreground">Min confidence %<input data-testid="ai-trading-min-confidence-input" value={minConfidence} onChange={(event) => setMinConfidence(event.target.value)} inputMode="decimal" className="rounded-xl border border-white/10 bg-background px-3 py-2 text-sm text-foreground outline-none theme-day:border-slate-200" /></label>
+            <label data-testid="ai-trading-max-daily-loss-control" className="grid gap-1 text-xs text-muted-foreground">Max daily loss $<input data-testid="ai-trading-max-daily-loss-input" value={maxDailyLoss} onChange={(event) => setMaxDailyLoss(event.target.value)} inputMode="decimal" className="rounded-xl border border-white/10 bg-background px-3 py-2 text-sm text-foreground outline-none theme-day:border-slate-200" /></label>
+            <label data-testid="ai-trading-max-trades-control" className="grid gap-1 text-xs text-muted-foreground">Max trades/day<input data-testid="ai-trading-max-trades-input" value={maxTradesPerDay} onChange={(event) => setMaxTradesPerDay(event.target.value)} inputMode="numeric" className="rounded-xl border border-white/10 bg-background px-3 py-2 text-sm text-foreground outline-none theme-day:border-slate-200" /></label>
+            <label data-testid="ai-trading-cycle-interval-control" className="grid gap-1 text-xs text-muted-foreground">Cycle interval sec<input data-testid="ai-trading-cycle-interval-input" value={cycleIntervalSec} onChange={(event) => setCycleIntervalSec(event.target.value)} inputMode="numeric" className="rounded-xl border border-white/10 bg-background px-3 py-2 text-sm text-foreground outline-none theme-day:border-slate-200" /></label>
+            <label data-testid="ai-trading-cooldown-control" className="grid gap-1 text-xs text-muted-foreground">Cooldown sec<input data-testid="ai-trading-cooldown-input" value={cooldownSec} onChange={(event) => setCooldownSec(event.target.value)} inputMode="numeric" className="rounded-xl border border-white/10 bg-background px-3 py-2 text-sm text-foreground outline-none theme-day:border-slate-200" /></label>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <Button data-testid="ai-trading-run-cycle-button" disabled={cycleStatus === 'running'} onClick={runCycle}>{cycleStatus === 'running' ? 'Running...' : 'Run AI cycle'}</Button>
-            <Button data-testid="ai-trading-pause-button" variant="terminal" onClick={() => { setCycleStatus('paused'); appendEvent('warning', 'AI trading paused.'); }}>Pause</Button>
+            <Button data-testid="ai-trading-run-cycle-button" disabled={cycleStatus === 'running'} onClick={() => void runCycle('manual')}>{cycleStatus === 'running' ? 'Running...' : 'Run AI cycle'}</Button>
+            <Button data-testid="ai-trading-start-auto-button" disabled={autoEnabled || cycleStatus === 'running'} onClick={startAuto}>Start auto</Button>
+            <Button data-testid="ai-trading-stop-auto-button" variant="terminal" disabled={!autoEnabled} onClick={stopAuto}>Stop auto</Button>
+            <Button data-testid="ai-trading-pause-button" variant="terminal" onClick={pauseSession}>Pause</Button>
             <Button data-testid="ai-trading-emergency-stop-button" variant="terminal" onClick={emergencyStop} className="border-destructive/40 text-destructive"><ShieldAlert size={14} /> E-stop</Button>
             <Button data-testid="ai-trading-reset-session-button" variant="terminal" onClick={resetSession}>Reset</Button>
           </div>
@@ -565,18 +643,9 @@ function AITradingConsole() {
         {decision ? (
           <div className="grid gap-3">
             <div className="grid gap-2 sm:grid-cols-3">
-              <div data-testid="ai-trading-decision-confidence" className="rounded-xl border border-white/10 p-3 theme-day:border-slate-200">
-                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Confidence</div>
-                <div className="mt-1 text-lg font-semibold">{formatPercent(decision.confidence)}</div>
-              </div>
-              <div data-testid="ai-trading-risk-gate-status" className="rounded-xl border border-white/10 p-3 theme-day:border-slate-200">
-                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Risk gate</div>
-                <div className={decision.riskStatus === 'blocked' ? 'mt-1 text-lg font-semibold text-destructive' : 'mt-1 text-lg font-semibold text-primary'}>{decision.riskStatus}</div>
-              </div>
-              <div data-testid="ai-trading-proposed-size" className="rounded-xl border border-white/10 p-3 theme-day:border-slate-200">
-                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Size</div>
-                <div className="mt-1 text-lg font-semibold">{decision.quantity}</div>
-              </div>
+              <div data-testid="ai-trading-decision-confidence" className="rounded-xl border border-white/10 p-3 theme-day:border-slate-200"><div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Confidence</div><div className="mt-1 text-lg font-semibold">{formatPercent(decision.confidence)}</div></div>
+              <div data-testid="ai-trading-risk-gate-status" className="rounded-xl border border-white/10 p-3 theme-day:border-slate-200"><div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Risk gate</div><div className={decision.riskStatus === 'blocked' ? 'mt-1 text-lg font-semibold text-destructive' : 'mt-1 text-lg font-semibold text-primary'}>{decision.riskStatus}</div></div>
+              <div data-testid="ai-trading-proposed-size" className="rounded-xl border border-white/10 p-3 theme-day:border-slate-200"><div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Size</div><div className="mt-1 text-lg font-semibold">{decision.quantity}</div></div>
             </div>
             <div data-testid="ai-trading-decision-rationale" className="max-h-24 overflow-auto rounded-xl border border-white/10 p-3 text-xs text-muted-foreground theme-day:border-slate-200">{decision.rationale}</div>
             <div data-testid="ai-trading-proposed-order-card" className="grid gap-2 rounded-xl border border-primary/20 bg-primary/10 p-3 text-xs sm:grid-cols-2">
@@ -585,20 +654,14 @@ function AITradingConsole() {
               <div>Target: <span data-testid="ai-trading-take-profit" className="font-semibold text-foreground">{formatCurrency(decision.takeProfit)}</span></div>
               <div>Mode: <span data-testid="ai-trading-current-mode" className="font-semibold text-foreground">{mode}</span></div>
             </div>
-            {decision.riskReasons.length > 0 && (
-              <ul data-testid="ai-trading-risk-reasons" className="grid gap-1 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
-                {decision.riskReasons.map((reason) => <li key={reason}>• {reason}</li>)}
-              </ul>
-            )}
+            {decision.riskReasons.length > 0 && <ul data-testid="ai-trading-risk-reasons" className="grid gap-1 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">{decision.riskReasons.map((reason) => <li key={reason}>• {reason}</li>)}</ul>}
             <div className="grid grid-cols-2 gap-2">
               <Button data-testid="ai-trading-approve-order-button" disabled={!decision || decision.action === 'hold' || decision.riskStatus !== 'passed'} onClick={approveDecision}>Approve to paper</Button>
               <Button data-testid="ai-trading-reject-order-button" variant="terminal" disabled={!decision} onClick={rejectDecision}>Reject</Button>
             </div>
           </div>
         ) : (
-          <div data-testid="ai-trading-decision-empty" className="grid min-h-[210px] place-items-center rounded-2xl border border-dashed border-white/10 text-center text-sm text-muted-foreground theme-day:border-slate-200">
-            Run an AI cycle to generate a paper-safe trade decision.
-          </div>
+          <div data-testid="ai-trading-decision-empty" className="grid min-h-[210px] place-items-center rounded-2xl border border-dashed border-white/10 text-center text-sm text-muted-foreground theme-day:border-slate-200">Run an AI cycle to generate a paper-safe trade decision.</div>
         )}
       </section>
 
@@ -606,19 +669,12 @@ function AITradingConsole() {
         <div>
           <div data-testid="ai-trading-paper-orders-title" className="text-sm font-semibold">AI paper orders</div>
           <div data-testid="ai-trading-paper-orders-list" className="mt-2 max-h-28 overflow-auto rounded-xl border border-white/10 theme-day:border-slate-200">
-            {orders.length === 0 ? (
-              <div data-testid="ai-trading-paper-orders-empty" className="p-3 text-xs text-muted-foreground">No AI paper orders yet.</div>
-            ) : (
-              orders.map((order) => (
-                <div key={order.id} data-testid={`ai-trading-order-${order.id.toLowerCase()}`} className="border-b border-white/10 p-3 text-xs last:border-b-0 theme-day:border-slate-200">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-foreground">{order.side.toUpperCase()} {order.quantity} {order.symbol}</span>
-                    <span className="text-primary">{order.status}</span>
-                  </div>
-                  <div className="mt-1 text-muted-foreground">{order.time} · {formatCurrency(order.price)}</div>
-                </div>
-              ))
-            )}
+            {orders.length === 0 ? <div data-testid="ai-trading-paper-orders-empty" className="p-3 text-xs text-muted-foreground">No AI paper orders yet.</div> : orders.map((order) => (
+              <div key={order.id} data-testid={`ai-trading-order-${order.id.toLowerCase()}`} className="border-b border-white/10 p-3 text-xs last:border-b-0 theme-day:border-slate-200">
+                <div className="flex items-center justify-between gap-2"><span className="font-semibold text-foreground">{order.side.toUpperCase()} {order.quantity} {order.symbol}</span><span className="text-primary">{order.status}</span></div>
+                <div className="mt-1 text-muted-foreground">{order.time} · {formatCurrency(order.price)}</div>
+              </div>
+            ))}
           </div>
         </div>
         <div className="min-h-0">
@@ -626,10 +682,7 @@ function AITradingConsole() {
           <div data-testid="ai-trading-event-log" className="mt-2 max-h-48 overflow-auto rounded-xl border border-white/10 theme-day:border-slate-200">
             {events.map((event) => (
               <div key={event.id} data-testid={`ai-trading-event-${event.id.toLowerCase()}`} className="border-b border-white/10 p-3 text-xs last:border-b-0 theme-day:border-slate-200">
-                <div className="flex items-center justify-between gap-2">
-                  <span className={event.level === 'error' ? 'font-semibold text-destructive' : event.level === 'success' ? 'font-semibold text-primary' : 'font-semibold text-foreground'}>{event.level}</span>
-                  <span className="text-muted-foreground">{event.time}</span>
-                </div>
+                <div className="flex items-center justify-between gap-2"><span className={event.level === 'error' ? 'font-semibold text-destructive' : event.level === 'success' ? 'font-semibold text-primary' : 'font-semibold text-foreground'}>{event.level}</span><span className="text-muted-foreground">{event.time}</span></div>
                 <div className="mt-1 text-muted-foreground">{event.message}</div>
               </div>
             ))}
@@ -655,33 +708,15 @@ export function BottomConsole({ onCollapse }: BottomConsoleProps) {
               </Tabs.Trigger>
             ))}
           </div>
-          {onCollapse && (
-            <Button data-testid="collapse-console-button" variant="terminal" size="icon" onClick={onCollapse} aria-label="Collapse console">
-              <ChevronDown size={15} />
-            </Button>
-          )}
+          {onCollapse && <Button data-testid="collapse-console-button" variant="terminal" size="icon" onClick={onCollapse} aria-label="Collapse console"><ChevronDown size={15} /></Button>}
         </Tabs.List>
         <div data-testid="bottom-console-tab-content" className="min-h-0 flex-1 overflow-auto p-4">
-          <Tabs.Content data-testid="bottom-console-console-content" value="console" className="m-0 h-full">
-            <div data-testid="bottom-console-ready-message" className="grid h-full place-items-center rounded-2xl border border-dashed border-white/10 text-sm text-muted-foreground">
-              Ready. Select a symbol, run AI research, or resize the workstation panels.
-            </div>
-          </Tabs.Content>
-          <Tabs.Content data-testid="bottom-console-paper-content" value="paper" className="m-0 h-full">
-            <PaperTradingConsole />
-          </Tabs.Content>
-          <Tabs.Content data-testid="bottom-console-ai-trading-content" value="ai-trading" className="m-0 h-full">
-            <AITradingConsole />
-          </Tabs.Content>
-          <Tabs.Content data-testid="bottom-console-payload-content" value="payload" className="m-0">
-            <pre data-testid="bottom-console-payload-json" className="text-xs text-muted-foreground">{JSON.stringify(health.data ?? {}, null, 2)}</pre>
-          </Tabs.Content>
-          <Tabs.Content data-testid="bottom-console-journal-content" value="journal" className="m-0">
-            <pre data-testid="bottom-console-journal-json" className="text-xs text-muted-foreground">{JSON.stringify(journal.data ?? {}, null, 2)}</pre>
-          </Tabs.Content>
-          <Tabs.Content data-testid="bottom-console-diagnostics-content" value="diagnostics" className="m-0">
-            <pre data-testid="bottom-console-diagnostics-json" className="text-xs text-muted-foreground">{JSON.stringify({ health: health.status, journal: journal.status }, null, 2)}</pre>
-          </Tabs.Content>
+          <Tabs.Content data-testid="bottom-console-console-content" value="console" className="m-0 h-full"><div data-testid="bottom-console-ready-message" className="grid h-full place-items-center rounded-2xl border border-dashed border-white/10 text-sm text-muted-foreground">Ready. Select a symbol, run AI research, or resize the workstation panels.</div></Tabs.Content>
+          <Tabs.Content data-testid="bottom-console-paper-content" value="paper" className="m-0 h-full"><PaperTradingConsole /></Tabs.Content>
+          <Tabs.Content data-testid="bottom-console-ai-trading-content" value="ai-trading" className="m-0 h-full"><AITradingConsole /></Tabs.Content>
+          <Tabs.Content data-testid="bottom-console-payload-content" value="payload" className="m-0"><pre data-testid="bottom-console-payload-json" className="text-xs text-muted-foreground">{JSON.stringify(health.data ?? {}, null, 2)}</pre></Tabs.Content>
+          <Tabs.Content data-testid="bottom-console-journal-content" value="journal" className="m-0"><pre data-testid="bottom-console-journal-json" className="text-xs text-muted-foreground">{JSON.stringify(journal.data ?? {}, null, 2)}</pre></Tabs.Content>
+          <Tabs.Content data-testid="bottom-console-diagnostics-content" value="diagnostics" className="m-0"><pre data-testid="bottom-console-diagnostics-json" className="text-xs text-muted-foreground">{JSON.stringify({ health: health.status, journal: journal.status }, null, 2)}</pre></Tabs.Content>
         </div>
       </Tabs.Root>
     </Card>
