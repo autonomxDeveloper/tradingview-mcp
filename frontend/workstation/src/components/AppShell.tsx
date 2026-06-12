@@ -1,10 +1,44 @@
 import type { ElementType } from 'react';
 import { motion } from 'framer-motion';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { Activity, Bot, BrainCircuit, ChartCandlestick, ChevronDown, History, Menu, Newspaper, PanelLeft, PanelRight, Play, Search, Settings, WalletCards } from 'lucide-react';
-import { useUiStore, type ChartStyle, type RightPanel } from '@/store/ui-store';
+import {
+  Activity,
+  Bot,
+  BrainCircuit,
+  Brush,
+  ChartCandlestick,
+  ChevronDown,
+  Circle,
+  Crosshair,
+  Eraser,
+  Eye,
+  EyeOff,
+  Globe2,
+  History,
+  Laugh,
+  Lock,
+  Magnet,
+  Maximize,
+  Menu,
+  Minus,
+  MousePointer2,
+  MoveUpRight,
+  Newspaper,
+  PanelLeft,
+  PanelRight,
+  PencilRuler,
+  Ruler,
+  Search,
+  Settings,
+  Star,
+  TextCursorInput,
+  Trash2,
+  Unlock,
+  WalletCards,
+  ZoomIn,
+} from 'lucide-react';
+import { useUiStore, type ChartStyle, type ChartTool, type RightPanel } from '@/store/ui-store';
 import { Button } from '@/components/ui/button';
-import { WatchlistPanel } from '@/components/WatchlistPanel';
 import { ChartWorkspace } from '@/components/ChartWorkspace';
 import { ResearchPanel } from '@/components/ResearchPanel';
 import { BottomConsole } from '@/components/BottomConsole';
@@ -32,6 +66,27 @@ const chartStyles: Array<{ id: ChartStyle; label: string }> = [
   { id: 'line-break', label: 'Line break' },
 ];
 
+const chartTools: Array<{ id: ChartTool; label: string; icon: ElementType; dividerBefore?: boolean }> = [
+  { id: 'crosshair', label: 'Crosshair', icon: Crosshair },
+  { id: 'cursor', label: 'Cursor', icon: MousePointer2 },
+  { id: 'trend-line', label: 'Trend line', icon: MoveUpRight, dividerBefore: true },
+  { id: 'ray', label: 'Ray', icon: Minus },
+  { id: 'horizontal-line', label: 'Horizontal line', icon: Minus },
+  { id: 'vertical-line', label: 'Vertical line', icon: PencilRuler },
+  { id: 'parallel-channel', label: 'Parallel channel', icon: Maximize },
+  { id: 'fib-retracement', label: 'Fib retracement', icon: Ruler, dividerBefore: true },
+  { id: 'brush', label: 'Brush', icon: Brush },
+  { id: 'text', label: 'Text', icon: TextCursorInput },
+  { id: 'emoji', label: 'Emoji', icon: Laugh },
+  { id: 'measure', label: 'Measure', icon: Ruler, dividerBefore: true },
+  { id: 'zoom', label: 'Zoom', icon: ZoomIn },
+  { id: 'magnet', label: 'Magnet', icon: Magnet },
+  { id: 'lock', label: 'Lock drawings', icon: Lock, dividerBefore: true },
+  { id: 'hide-drawings', label: 'Show/hide drawings', icon: Eye },
+  { id: 'global-mode', label: 'Global drawing mode', icon: Globe2 },
+  { id: 'delete', label: 'Delete drawings', icon: Trash2, dividerBefore: true },
+];
+
 const rightPanelButtons: Array<{ id: RightPanel; label: string; icon: ElementType }> = [
   { id: 'research', label: 'Research', icon: BrainCircuit },
   { id: 'workflow', label: 'AI', icon: Bot },
@@ -39,20 +94,73 @@ const rightPanelButtons: Array<{ id: RightPanel; label: string; icon: ElementTyp
   { id: 'journal', label: 'Journal', icon: History },
 ];
 
+function ChartToolsRail() {
+  const {
+    activeChartTool,
+    drawingsVisible,
+    chartLocked,
+    favoriteChartTools,
+    setActiveChartTool,
+    toggleFavoriteChartTool,
+  } = useUiStore();
+
+  return (
+    <nav data-testid="chart-tools-rail" aria-label="Chart tools" className="glass-panel flex h-full w-full flex-col items-center overflow-y-auto rounded-3xl p-2">
+      <div data-testid="chart-tools-rail-label" className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Tools</div>
+      <div data-testid="chart-tools-list" className="flex w-full flex-col items-center gap-1">
+        {chartTools.map(({ id, label, icon: Icon, dividerBefore }) => {
+          const isActive = activeChartTool === id;
+          const isFavorite = favoriteChartTools.includes(id);
+          const ToolIcon = id === 'lock' && chartLocked ? Unlock : id === 'hide-drawings' && !drawingsVisible ? EyeOff : Icon;
+
+          return (
+            <div key={id} data-testid={`chart-tool-group-${id}`} className="w-full">
+              {dividerBefore && <div data-testid={`chart-tool-divider-${id}`} className="my-2 h-px w-full bg-white/10" />}
+              <div className="group relative flex items-center justify-center">
+                <Button
+                  data-testid={`chart-tool-${id}-button`}
+                  variant={isActive ? 'default' : 'terminal'}
+                  size="icon"
+                  aria-label={label}
+                  title={label}
+                  onClick={() => setActiveChartTool(id)}
+                  className="h-10 w-10"
+                >
+                  <ToolIcon size={17} />
+                </Button>
+                <button
+                  data-testid={`chart-tool-${id}-favorite-button`}
+                  type="button"
+                  aria-label={`Favorite ${label}`}
+                  title={`Favorite ${label}`}
+                  onClick={() => toggleFavoriteChartTool(id)}
+                  className="absolute -right-1 -top-1 hidden h-4 w-4 place-items-center rounded-full border border-white/10 bg-background text-[9px] text-muted-foreground group-hover:grid"
+                >
+                  <Star size={10} className={isFavorite ? 'fill-current text-primary' : ''} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div data-testid="chart-tools-status" className="mt-auto pt-3 text-center text-[10px] text-muted-foreground">
+        <div data-testid="active-chart-tool-label">{activeChartTool.replaceAll('-', ' ')}</div>
+        <div data-testid="chart-drawings-visibility-label">{drawingsVisible ? 'visible' : 'hidden'}</div>
+      </div>
+    </nav>
+  );
+}
+
 export function AppShell() {
   const {
-    symbol,
     timeframe,
     chartStyle,
-    exchange,
     leftOpen,
     rightOpen,
     bottomOpen,
     rightPanel,
-    setSymbol,
     setTimeframe,
     setChartStyle,
-    setExchange,
     toggleLeft,
     toggleRight,
     toggleBottom,
@@ -73,17 +181,11 @@ export function AppShell() {
             <div data-testid="workstation-title" className="text-lg font-semibold">Trading Research Workstation</div>
           </div>
         </div>
-        <div data-testid="symbol-search-control" className="hidden items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.045] px-3 py-2 lg:flex">
-          <Search size={16} className="text-muted-foreground" />
-          <input data-testid="symbol-input" aria-label="Symbol" className="w-28 bg-transparent text-sm font-semibold outline-none" value={symbol} onChange={(event) => setSymbol(event.target.value)} />
-          <span data-testid="symbol-exchange-separator" className="h-5 w-px bg-white/10" />
-          <input data-testid="exchange-input" aria-label="Exchange" className="w-24 bg-transparent text-xs uppercase text-muted-foreground outline-none" value={exchange} onChange={(event) => setExchange(event.target.value)} />
-        </div>
         <div data-testid="header-actions" className="flex items-center gap-2">
-          <Button data-testid="toggle-watchlist-button" variant="terminal" size="icon" onClick={toggleLeft} aria-label="Toggle watchlist"><PanelLeft size={17} /></Button>
+          <Button data-testid="toggle-chart-tools-button" variant="terminal" size="icon" onClick={toggleLeft} aria-label="Toggle chart tools"><PanelLeft size={17} /></Button>
           <Button data-testid="toggle-right-drawer-button" variant="terminal" size="icon" onClick={() => toggleRight()} aria-label="Toggle research"><PanelRight size={17} /></Button>
           <Button data-testid="toggle-console-button" variant="terminal" size="icon" onClick={toggleBottom} aria-label="Toggle console"><Menu size={17} /></Button>
-          <Button data-testid="run-scan-button" size="sm"><Play size={15} /> Run scan</Button>
+          <Button data-testid="run-scan-button" size="sm"><Search size={15} /> Run scan</Button>
         </div>
       </header>
 
@@ -125,18 +227,18 @@ export function AppShell() {
           <Button data-testid="toolbar-news-button" size="sm" variant={toolbarButtonVariant('news')} onClick={() => setRightPanel('news')}><Newspaper size={15} /> News</Button>
           <Button data-testid="toolbar-layout-button" size="sm" variant={toolbarButtonVariant('layout')} onClick={() => setRightPanel('layout')}><Settings size={15} /> Layout</Button>
         </div>
-        <div data-testid="workstation-shell-caption" className="hidden text-xs text-muted-foreground md:block">React + TypeScript workstation shell</div>
+        <div data-testid="workstation-shell-caption" className="hidden text-xs text-muted-foreground md:block">Chart tools + AI research workspace</div>
       </div>
 
       <PanelGroup data-testid="main-panel-group" direction="horizontal" className="min-h-0 flex-1">
         {leftOpen && (
-          <Panel data-testid="watchlist-panel-region" defaultSize={20} minSize={15} maxSize={30} className="min-w-[220px]">
-            <motion.div data-testid="watchlist-panel-motion" initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} className="h-full pr-3">
-              <WatchlistPanel />
+          <Panel data-testid="chart-tools-panel-region" defaultSize={5} minSize={4} maxSize={7} className="min-w-[64px] max-w-[86px]">
+            <motion.div data-testid="chart-tools-panel-motion" initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} className="h-full pr-3">
+              <ChartToolsRail />
             </motion.div>
           </Panel>
         )}
-        {leftOpen && <PanelResizeHandle data-testid="watchlist-resize-handle" className="w-1 rounded-full bg-white/10 transition hover:bg-primary/50" />}
+        {leftOpen && <PanelResizeHandle data-testid="chart-tools-resize-handle" className="w-1 rounded-full bg-white/10 transition hover:bg-primary/50" />}
 
         <Panel data-testid="chart-panel-region" minSize={35} className="min-w-0 px-3">
           <ChartWorkspace />
