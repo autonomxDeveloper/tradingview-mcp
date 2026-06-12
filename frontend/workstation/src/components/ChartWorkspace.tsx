@@ -69,22 +69,22 @@ export function ChartWorkspace() {
   }, [candles]);
 
   return (
-    <Card className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-3xl">
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-        <div>
-          <div className="flex items-center gap-2 text-lg font-semibold"><span>{symbol}</span><span className="rounded-full bg-white/10 px-2 py-1 text-xs text-muted-foreground">{timeframe}</span></div>
-          <div className="text-xs text-muted-foreground">Live research chart · {resolvedAssetType === 'crypto' ? 'Crypto' : 'Stock'} data route</div>
+    <Card data-testid="chart-workspace" className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-3xl">
+      <div data-testid="chart-header" className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+        <div data-testid="chart-title-block">
+          <div data-testid="chart-symbol-row" className="flex items-center gap-2 text-lg font-semibold"><span data-testid="chart-symbol-label">{symbol}</span><span data-testid="chart-timeframe-label" className="rounded-full bg-white/10 px-2 py-1 text-xs text-muted-foreground">{timeframe}</span></div>
+          <div data-testid="chart-route-label" className="text-xs text-muted-foreground">Live research chart · {resolvedAssetType === 'crypto' ? 'Crypto' : 'Stock'} data route</div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="terminal" size="sm">Indicators</Button>
-          <Button variant="terminal" size="icon" onClick={() => chartRef.current?.timeScale().fitContent()} aria-label="Fit chart"><Maximize2 size={15} /></Button>
+        <div data-testid="chart-actions" className="flex items-center gap-2">
+          <Button data-testid="chart-indicators-button" variant="terminal" size="sm">Indicators</Button>
+          <Button data-testid="fit-chart-button" variant="terminal" size="icon" onClick={() => chartRef.current?.timeScale().fitContent()} aria-label="Fit chart"><Maximize2 size={15} /></Button>
         </div>
       </div>
-      <div className="relative min-h-0 flex-1">
-        {chartQuery.isLoading && <div className="absolute inset-0 z-10 grid place-items-center text-sm text-muted-foreground">Loading chart data...</div>}
-        {chartQuery.error && <div className="absolute inset-0 z-10 grid place-items-center text-sm text-destructive">{String(chartQuery.error)}</div>}
-        {!chartQuery.isLoading && !chartQuery.error && candles.length === 0 && <div className="absolute inset-0 z-10 grid place-items-center text-sm text-muted-foreground">No chart bars returned for this symbol/timeframe.</div>}
-        <div ref={containerRef} className="h-full w-full" />
+      <div data-testid="chart-body" className="relative min-h-0 flex-1">
+        {chartQuery.isLoading && <div data-testid="chart-loading-state" className="absolute inset-0 z-10 grid place-items-center text-sm text-muted-foreground">Loading chart data...</div>}
+        {chartQuery.error && <div data-testid="chart-error-state" className="absolute inset-0 z-10 grid place-items-center text-sm text-destructive">{String(chartQuery.error)}</div>}
+        {!chartQuery.isLoading && !chartQuery.error && candles.length === 0 && <div data-testid="chart-empty-state" className="absolute inset-0 z-10 grid place-items-center text-sm text-muted-foreground">No chart bars returned for this symbol/timeframe.</div>}
+        <div data-testid="chart-canvas-container" ref={containerRef} className="h-full w-full" />
       </div>
     </Card>
   );
