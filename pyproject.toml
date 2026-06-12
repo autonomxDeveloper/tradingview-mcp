@@ -26,7 +26,6 @@ dependencies = [
 ]
 
 [project.scripts]
-# Entry point now points to packaged module
 tradingview-mcp = "tradingview_mcp.server:main"
 tradingview-workstation = "tradingview_mcp.workstation_app:main"
 
@@ -34,7 +33,7 @@ tradingview-workstation = "tradingview_mcp.workstation_app:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-tradingview_mcp = ["coinlist/*.txt", "workstation_static/*.html", "workstation_static/*.css", "workstation_static/*.js"]
+tradingview_mcp = ["coinlist/*.txt", "workstation_static/*.html", "workstation_static/*.css", "workstation_static/*.js", "workstation_react_static/*.html", "workstation_react_static/assets/*"]
 
 [tool.uv]
 dev-dependencies = [
