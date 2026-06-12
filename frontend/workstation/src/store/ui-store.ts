@@ -28,7 +28,7 @@ export const useUiStore = create<UiState>((set) => ({
   exchange: 'BINANCE',
   leftOpen: true,
   rightOpen: true,
-  bottomOpen: true,
+  bottomOpen: false,
   rightPanel: 'research',
   setSymbol: (symbol) => set({ symbol: symbol.trim().toUpperCase() || 'BTCUSDT' }),
   setTimeframe: (timeframe) => set({ timeframe }),
