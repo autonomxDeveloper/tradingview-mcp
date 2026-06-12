@@ -1,8 +1,16 @@
+import type { ElementType } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
 import { useQuery } from '@tanstack/react-query';
 import { Activity, Database, FileText, Terminal } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { workstationApi } from '@/lib/api';
+
+const consoleTabs: Array<{ value: string; icon: ElementType; label: string }> = [
+  { value: 'console', icon: Terminal, label: 'Console' },
+  { value: 'payload', icon: Database, label: 'Payload' },
+  { value: 'journal', icon: FileText, label: 'Journal' },
+  { value: 'diagnostics', icon: Activity, label: 'Diagnostics' },
+];
 
 export function BottomConsole() {
   const health = useQuery({ queryKey: ['health'], queryFn: workstationApi.health });
@@ -12,14 +20,9 @@ export function BottomConsole() {
     <Card className="h-full overflow-hidden rounded-3xl">
       <Tabs.Root defaultValue="console" className="flex h-full flex-col">
         <Tabs.List className="flex gap-2 border-b border-white/10 p-3">
-          {[
-            ['console', Terminal, 'Console'],
-            ['payload', Database, 'Payload'],
-            ['journal', FileText, 'Journal'],
-            ['diagnostics', Activity, 'Diagnostics'],
-          ].map(([value, Icon, label]) => (
-            <Tabs.Trigger key={String(value)} value={String(value)} className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs text-muted-foreground transition data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Icon size={14} /> {String(label)}
+          {consoleTabs.map(({ value, icon: Icon, label }) => (
+            <Tabs.Trigger key={value} value={value} className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs text-muted-foreground transition data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Icon size={14} /> {label}
             </Tabs.Trigger>
           ))}
         </Tabs.List>
