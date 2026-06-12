@@ -106,10 +106,16 @@ export function AppShell() {
         )}
       </PanelGroup>
 
-      {bottomOpen && (
+      {bottomOpen ? (
         <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} className="mt-3 h-56 shrink-0">
-          <BottomConsole />
+          <BottomConsole onCollapse={toggleBottom} />
         </motion.div>
+      ) : (
+        <div className="mt-3 flex shrink-0 justify-end">
+          <Button variant="terminal" size="sm" onClick={toggleBottom} aria-label="Open console">
+            <Menu size={15} /> Console
+          </Button>
+        </div>
       )}
     </div>
   );
