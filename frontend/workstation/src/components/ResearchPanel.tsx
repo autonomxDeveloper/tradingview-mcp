@@ -3,16 +3,18 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { BrainCircuit, ClipboardList, History, LineChart, WalletCards } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { workstationApi } from '@/lib/api';
+import { inferAssetType, workstationApi } from '@/lib/api';
 import { useUiStore, type RightPanel } from '@/store/ui-store';
 
 export function ResearchPanel({ panel }: { panel: RightPanel }) {
   const { symbol, timeframe, assetType, exchange } = useUiStore();
+  const resolvedAssetType = inferAssetType(symbol, assetType);
+  const resolvedExchange = resolvedAssetType === 'crypto' ? exchange || 'BINANCE' : exchange || 'NASDAQ';
   const analyze = useMutation<Record<string, unknown>, Error>({
     mutationFn: () => workstationApi.analyze({
       symbol,
-      asset_type: assetType,
-      exchange,
+      asset_type: resolvedAssetType,
+      exchange: resolvedExchange,
       timeframe,
       question: 'Give observations, risks, invalidation levels, and what to backtest next.',
     }),
@@ -38,7 +40,7 @@ export function ResearchPanel({ panel }: { panel: RightPanel }) {
           <div className="space-y-4">
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
               <div className="text-sm font-semibold">Analyze {symbol}</div>
-              <p className="mt-1 text-xs text-muted-foreground">Risk-first research using the existing LM Studio endpoint.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Risk-first {resolvedAssetType} research using the existing LM Studio endpoint.</p>
               <Button className="mt-4 w-full" onClick={() => analyze.mutate()} disabled={analyze.isPending}>
                 <BrainCircuit size={16} /> {analyze.isPending ? 'Analyzing...' : 'Analyze current symbol'}
               </Button>
