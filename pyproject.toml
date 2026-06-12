@@ -27,7 +27,8 @@ dependencies = [
 
 [project.scripts]
 tradingview-mcp = "tradingview_mcp.server:main"
-tradingview-workstation = "tradingview_mcp.workstation_app:main"
+tradingview-workstation = "tradingview_mcp.workstation_react_app:main"
+tradingview-workstation-legacy = "tradingview_mcp.workstation_app:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
