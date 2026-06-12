@@ -16,6 +16,13 @@ const panelTitles: Record<RightPanel, string> = {
   layout: 'Layout',
 };
 
+const workflowSteps = ['Scan market context', 'Generate research thesis', 'Backtest candidate', 'Save research packet'];
+const indicatorControls = ['Moving averages', 'RSI / momentum', 'Volume profile', 'Support and resistance'];
+
+function automationId(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
 type StructuredAnalysis = {
   parsed?: boolean;
   summary?: unknown;
@@ -121,64 +128,64 @@ function buildAnalysisView(payload?: AnalysisPayload): AnalysisView | null {
   };
 }
 
-function TextList({ items }: { items: string[] }) {
-  if (!items.length) return <div className="text-xs text-muted-foreground">No items returned.</div>;
+function TextList({ items, testId }: { items: string[]; testId: string }) {
+  if (!items.length) return <div data-testid={`${testId}-empty`} className="text-xs text-muted-foreground">No items returned.</div>;
   return (
-    <ul className="space-y-1 text-sm text-muted-foreground">
-      {items.map((item, index) => <li key={`${item}-${index}`}>• {item}</li>)}
+    <ul data-testid={testId} className="space-y-1 text-sm text-muted-foreground">
+      {items.map((item, index) => <li data-testid={`${testId}-item-${index}`} key={`${item}-${index}`}>• {item}</li>)}
     </ul>
   );
 }
 
 function AnalysisResult({ view }: { view: AnalysisView }) {
   return (
-    <div className="space-y-3 rounded-2xl border border-primary/20 bg-primary/10 p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold text-primary">LLM analysis</div>
-          {view.model && <div className="mt-1 text-xs text-muted-foreground">Model: {view.model}</div>}
+    <div data-testid="analysis-result-card" className="space-y-3 rounded-2xl border border-primary/20 bg-primary/10 p-4">
+      <div data-testid="analysis-result-header" className="flex items-start justify-between gap-3">
+        <div data-testid="analysis-result-title-block">
+          <div data-testid="analysis-result-title" className="text-sm font-semibold text-primary">LLM analysis</div>
+          {view.model && <div data-testid="analysis-model-label" className="mt-1 text-xs text-muted-foreground">Model: {view.model}</div>}
         </div>
-        {view.confidence && <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1 text-xs text-muted-foreground">Confidence: {view.confidence}</span>}
+        {view.confidence && <span data-testid="analysis-confidence-label" className="rounded-full border border-white/10 bg-black/20 px-2 py-1 text-xs text-muted-foreground">Confidence: {view.confidence}</span>}
       </div>
 
       {view.summary && (
-        <section>
-          <div className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Summary</div>
-          <p className="text-sm leading-6 text-foreground">{view.summary}</p>
+        <section data-testid="analysis-summary-section">
+          <div data-testid="analysis-summary-heading" className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Summary</div>
+          <p data-testid="analysis-summary-text" className="text-sm leading-6 text-foreground">{view.summary}</p>
         </section>
       )}
 
       {view.trend && (
-        <section>
-          <div className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Trend</div>
-          <p className="text-sm leading-6 text-muted-foreground">{view.trend}</p>
+        <section data-testid="analysis-trend-section">
+          <div data-testid="analysis-trend-heading" className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Trend</div>
+          <p data-testid="analysis-trend-text" className="text-sm leading-6 text-muted-foreground">{view.trend}</p>
         </section>
       )}
 
-      <section>
-        <div className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Key levels</div>
-        <TextList items={view.keyLevels} />
+      <section data-testid="analysis-key-levels-section">
+        <div data-testid="analysis-key-levels-heading" className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Key levels</div>
+        <TextList testId="analysis-key-levels-list" items={view.keyLevels} />
       </section>
 
-      <section>
-        <div className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Risks</div>
-        <TextList items={view.risks} />
+      <section data-testid="analysis-risks-section">
+        <div data-testid="analysis-risks-heading" className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Risks</div>
+        <TextList testId="analysis-risks-list" items={view.risks} />
       </section>
 
       {view.invalidation && (
-        <section>
-          <div className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Invalidation</div>
-          <p className="text-sm leading-6 text-muted-foreground">{view.invalidation}</p>
+        <section data-testid="analysis-invalidation-section">
+          <div data-testid="analysis-invalidation-heading" className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Invalidation</div>
+          <p data-testid="analysis-invalidation-text" className="text-sm leading-6 text-muted-foreground">{view.invalidation}</p>
         </section>
       )}
 
-      <section>
-        <div className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Backtest next</div>
-        <TextList items={view.backtestIdeas} />
+      <section data-testid="analysis-backtest-section">
+        <div data-testid="analysis-backtest-heading" className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Backtest next</div>
+        <TextList testId="analysis-backtest-list" items={view.backtestIdeas} />
       </section>
 
       {!view.summary && view.fallbackText && (
-        <pre className="max-h-64 overflow-auto rounded-2xl bg-black/35 p-3 text-xs text-muted-foreground whitespace-pre-wrap">{view.fallbackText}</pre>
+        <pre data-testid="analysis-fallback-text" className="max-h-64 overflow-auto rounded-2xl bg-black/35 p-3 text-xs text-muted-foreground whitespace-pre-wrap">{view.fallbackText}</pre>
       )}
     </div>
   );
@@ -203,102 +210,108 @@ export function ResearchPanel({ panel }: { panel: RightPanel }) {
   const journal = useQuery({ queryKey: ['journal'], queryFn: workstationApi.journal, enabled: panel === 'journal' });
 
   return (
-    <Card className="flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-3xl">
-      <CardHeader className="border-b border-white/10">
-        <CardTitle className="flex items-center gap-2">
+    <Card data-testid={`right-panel-${panel}`} className="flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-3xl">
+      <CardHeader data-testid={`right-panel-${panel}-header`} className="border-b border-white/10">
+        <CardTitle data-testid={`right-panel-${panel}-title`} className="flex items-center gap-2">
           <PanelIcon panel={panel} />
           {panelTitles[panel]}
         </CardTitle>
       </CardHeader>
-      <CardContent className="min-h-0 flex-1 overflow-auto p-4">
+      <CardContent data-testid={`right-panel-${panel}-content`} className="min-h-0 flex-1 overflow-auto p-4">
         {panel === 'research' && (
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <div className="text-sm font-semibold">Analyze {symbol}</div>
-              <p className="mt-1 text-xs text-muted-foreground">Risk-first {resolvedAssetType} research using the existing LM Studio endpoint.</p>
-              <Button className="mt-4 w-full" onClick={() => analyze.mutate()} disabled={analyze.isPending}>
+          <div data-testid="research-panel-content" className="space-y-4">
+            <div data-testid="research-analyze-card" className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <div data-testid="research-analyze-title" className="text-sm font-semibold">Analyze {symbol}</div>
+              <p data-testid="research-analyze-description" className="mt-1 text-xs text-muted-foreground">Risk-first {resolvedAssetType} research using the existing LM Studio endpoint.</p>
+              <Button data-testid="analyze-current-symbol-button" className="mt-4 w-full" onClick={() => analyze.mutate()} disabled={analyze.isPending}>
                 <BrainCircuit size={16} /> {analyze.isPending ? 'Analyzing...' : 'Analyze current symbol'}
               </Button>
             </div>
             {analysisView && <AnalysisResult view={analysisView} />}
-            {analyze.error && <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{analyze.error.message}</div>}
+            {analyze.error && <div data-testid="analysis-error-message" className="rounded-2xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{analyze.error.message}</div>}
           </div>
         )}
 
         {panel === 'workflow' && (
-          <div className="space-y-3">
-            {['Scan market context', 'Generate research thesis', 'Backtest candidate', 'Save research packet'].map((step, index) => (
-              <div key={step} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-                <div className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-xs font-bold text-primary">{index + 1}</div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium">{step}</div>
-                  <div className="text-xs text-muted-foreground">Composable workflow action</div>
+          <div data-testid="workflow-panel-content" className="space-y-3">
+            {workflowSteps.map((step, index) => {
+              const stepId = automationId(step);
+              return (
+                <div key={step} data-testid={`workflow-step-${stepId}`} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                  <div data-testid={`workflow-step-${stepId}-number`} className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-xs font-bold text-primary">{index + 1}</div>
+                  <div data-testid={`workflow-step-${stepId}-text`} className="min-w-0 flex-1">
+                    <div data-testid={`workflow-step-${stepId}-title`} className="text-sm font-medium">{step}</div>
+                    <div data-testid={`workflow-step-${stepId}-description`} className="text-xs text-muted-foreground">Composable workflow action</div>
+                  </div>
+                  <Button data-testid={`workflow-step-${stepId}-run-button`} variant="terminal" size="sm">Run</Button>
                 </div>
-                <Button variant="terminal" size="sm">Run</Button>
-              </div>
-            ))}
-            <pre className="max-h-72 overflow-auto rounded-2xl bg-black/35 p-3 text-xs text-muted-foreground">{JSON.stringify(ideas.data ?? { ideas: [] }, null, 2)}</pre>
+              );
+            })}
+            <pre data-testid="workflow-ideas-json" className="max-h-72 overflow-auto rounded-2xl bg-black/35 p-3 text-xs text-muted-foreground">{JSON.stringify(ideas.data ?? { ideas: [] }, null, 2)}</pre>
           </div>
         )}
 
         {panel === 'paper' && (
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold"><LineChart size={15} /> Paper account</div>
-              <p className="mt-1 text-xs text-muted-foreground">Simulation-only paper trading state.</p>
+          <div data-testid="paper-panel-content" className="space-y-4">
+            <div data-testid="paper-account-card" className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <div data-testid="paper-account-title" className="flex items-center gap-2 text-sm font-semibold"><LineChart size={15} /> Paper account</div>
+              <p data-testid="paper-account-description" className="mt-1 text-xs text-muted-foreground">Simulation-only paper trading state.</p>
             </div>
-            <pre className="max-h-96 overflow-auto rounded-2xl bg-black/35 p-3 text-xs text-muted-foreground">{JSON.stringify(paper.data ?? {}, null, 2)}</pre>
+            <pre data-testid="paper-account-json" className="max-h-96 overflow-auto rounded-2xl bg-black/35 p-3 text-xs text-muted-foreground">{JSON.stringify(paper.data ?? {}, null, 2)}</pre>
           </div>
         )}
 
         {panel === 'journal' && (
-          <pre className="max-h-full overflow-auto rounded-2xl bg-black/35 p-3 text-xs text-muted-foreground">{JSON.stringify(journal.data ?? { events: [] }, null, 2)}</pre>
+          <pre data-testid="right-panel-journal-json" className="max-h-full overflow-auto rounded-2xl bg-black/35 p-3 text-xs text-muted-foreground">{JSON.stringify(journal.data ?? { events: [] }, null, 2)}</pre>
         )}
 
         {panel === 'indicators' && (
-          <div className="space-y-3">
-            {['Moving averages', 'RSI / momentum', 'Volume profile', 'Support and resistance'].map((indicator) => (
-              <button key={indicator} type="button" className="w-full rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-primary/40 hover:bg-primary/10">
-                <div className="text-sm font-medium">{indicator}</div>
-                <div className="mt-1 text-xs text-muted-foreground">Open indicator controls for {symbol} on {timeframe}.</div>
-              </button>
-            ))}
-            <p className="rounded-2xl border border-primary/20 bg-primary/10 p-3 text-xs text-muted-foreground">These controls are now interactive entry points; indicator overlays can be attached here as chart overlay support is expanded.</p>
+          <div data-testid="indicators-panel-content" className="space-y-3">
+            {indicatorControls.map((indicator) => {
+              const indicatorId = automationId(indicator);
+              return (
+                <button key={indicator} data-testid={`indicator-control-${indicatorId}`} type="button" className="w-full rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-primary/40 hover:bg-primary/10">
+                  <div data-testid={`indicator-control-${indicatorId}-title`} className="text-sm font-medium">{indicator}</div>
+                  <div data-testid={`indicator-control-${indicatorId}-description`} className="mt-1 text-xs text-muted-foreground">Open indicator controls for {symbol} on {timeframe}.</div>
+                </button>
+              );
+            })}
+            <p data-testid="indicators-panel-note" className="rounded-2xl border border-primary/20 bg-primary/10 p-3 text-xs text-muted-foreground">These controls are now interactive entry points; indicator overlays can be attached here as chart overlay support is expanded.</p>
           </div>
         )}
 
         {panel === 'news' && (
-          <div className="space-y-3">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold"><Newspaper size={15} /> Market news for {symbol}</div>
-              <p className="mt-1 text-xs text-muted-foreground">News and saved research ideas are grouped here for the current symbol.</p>
+          <div data-testid="news-panel-content" className="space-y-3">
+            <div data-testid="news-market-card" className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <div data-testid="news-market-title" className="flex items-center gap-2 text-sm font-semibold"><Newspaper size={15} /> Market news for {symbol}</div>
+              <p data-testid="news-market-description" className="mt-1 text-xs text-muted-foreground">News and saved research ideas are grouped here for the current symbol.</p>
             </div>
-            <pre className="max-h-96 overflow-auto rounded-2xl bg-black/35 p-3 text-xs text-muted-foreground">{JSON.stringify(ideas.data ?? { ideas: [] }, null, 2)}</pre>
+            <pre data-testid="news-ideas-json" className="max-h-96 overflow-auto rounded-2xl bg-black/35 p-3 text-xs text-muted-foreground">{JSON.stringify(ideas.data ?? { ideas: [] }, null, 2)}</pre>
           </div>
         )}
 
         {panel === 'layout' && (
-          <div className="space-y-3">
-            <button type="button" onClick={toggleLeft} className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-primary/40 hover:bg-primary/10">
-              <span>
-                <span className="block text-sm font-medium">Watchlist panel</span>
-                <span className="text-xs text-muted-foreground">Show or hide the left watchlist.</span>
+          <div data-testid="layout-panel-content" className="space-y-3">
+            <button data-testid="layout-toggle-watchlist-button" type="button" onClick={toggleLeft} className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-primary/40 hover:bg-primary/10">
+              <span data-testid="layout-toggle-watchlist-text">
+                <span data-testid="layout-toggle-watchlist-title" className="block text-sm font-medium">Watchlist panel</span>
+                <span data-testid="layout-toggle-watchlist-description" className="text-xs text-muted-foreground">Show or hide the left watchlist.</span>
               </span>
-              <span className="text-xs font-semibold text-primary">{leftOpen ? 'Open' : 'Closed'}</span>
+              <span data-testid="layout-toggle-watchlist-state" className="text-xs font-semibold text-primary">{leftOpen ? 'Open' : 'Closed'}</span>
             </button>
-            <button type="button" onClick={() => toggleRight()} className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-primary/40 hover:bg-primary/10">
-              <span>
-                <span className="block text-sm font-medium">Right drawer</span>
-                <span className="text-xs text-muted-foreground">Show or hide research, workflow, news, and tools.</span>
+            <button data-testid="layout-toggle-right-drawer-button" type="button" onClick={() => toggleRight()} className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-primary/40 hover:bg-primary/10">
+              <span data-testid="layout-toggle-right-drawer-text">
+                <span data-testid="layout-toggle-right-drawer-title" className="block text-sm font-medium">Right drawer</span>
+                <span data-testid="layout-toggle-right-drawer-description" className="text-xs text-muted-foreground">Show or hide research, workflow, news, and tools.</span>
               </span>
-              <span className="text-xs font-semibold text-primary">{rightOpen ? 'Open' : 'Closed'}</span>
+              <span data-testid="layout-toggle-right-drawer-state" className="text-xs font-semibold text-primary">{rightOpen ? 'Open' : 'Closed'}</span>
             </button>
-            <button type="button" onClick={toggleBottom} className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-primary/40 hover:bg-primary/10">
-              <span>
-                <span className="block text-sm font-medium">Console panel</span>
-                <span className="text-xs text-muted-foreground">Show or hide payload, journal, and diagnostics tabs.</span>
+            <button data-testid="layout-toggle-console-button" type="button" onClick={toggleBottom} className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-primary/40 hover:bg-primary/10">
+              <span data-testid="layout-toggle-console-text">
+                <span data-testid="layout-toggle-console-title" className="block text-sm font-medium">Console panel</span>
+                <span data-testid="layout-toggle-console-description" className="text-xs text-muted-foreground">Show or hide payload, journal, and diagnostics tabs.</span>
               </span>
-              <span className="text-xs font-semibold text-primary">{bottomOpen ? 'Open' : 'Closed'}</span>
+              <span data-testid="layout-toggle-console-state" className="text-xs font-semibold text-primary">{bottomOpen ? 'Open' : 'Closed'}</span>
             </button>
           </div>
         )}
