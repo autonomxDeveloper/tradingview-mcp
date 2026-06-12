@@ -24,6 +24,26 @@
     --radius: 1rem;
   }
 
+  .theme-day {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --primary: 174 80% 36%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 32% 91%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 94%;
+    --muted-foreground: 215 16% 43%;
+    --accent: 205 100% 96%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 86%;
+    --input: 214 32% 86%;
+    --ring: 174 80% 36%;
+  }
+
   * { @apply border-border; }
   html, body, #root { height: 100%; }
   body {
@@ -37,4 +57,8 @@
   .glass-panel { @apply border border-white/10 bg-white/[0.055] shadow-panel backdrop-blur-xl; }
   .surface-panel { @apply border border-border/80 bg-card/95 shadow-panel; }
   .control-input { @apply h-9 rounded-xl border border-white/10 bg-white/[0.06] px-3 text-sm text-foreground outline-none transition focus:border-primary/70 focus:ring-2 focus:ring-primary/20; }
+
+  .theme-day .glass-panel { @apply border-slate-200/80 bg-white/85 shadow-sm; }
+  .theme-day .surface-panel { @apply border-slate-200/90 bg-white/95 shadow-sm; }
+  .theme-day .control-input { @apply border-slate-200 bg-white text-slate-950 shadow-sm; }
 }
