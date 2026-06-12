@@ -4,14 +4,18 @@ import { createChart, type IChartApi, type UTCTimestamp } from 'lightweight-char
 import { Maximize2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { workstationApi, type Candle } from '@/lib/api';
+import { chartBars, workstationApi, type Candle } from '@/lib/api';
 import { useUiStore } from '@/store/ui-store';
 
 function normalizeCandle(candle: Candle, index: number) {
-  const rawTime = candle.time ?? candle.timestamp;
+  const rawTime = candle.time ?? candle.timestamp ?? candle.open_time;
   const parsed = typeof rawTime === 'number' ? rawTime : Date.parse(String(rawTime ?? '')) / 1000;
+  const epochSeconds = Number.isFinite(parsed)
+    ? parsed
+    : Math.floor(Date.now() / 1000) - (300 - index) * 86_400;
+
   return {
-    time: (Number.isFinite(parsed) ? parsed : Math.floor(Date.now() / 1000) - (300 - index) * 86_400) as UTCTimestamp,
+    time: (epochSeconds > 10_000_000_000 ? Math.floor(epochSeconds / 1000) : Math.floor(epochSeconds)) as UTCTimestamp,
     open: Number(candle.open),
     high: Number(candle.high),
     low: Number(candle.low),
@@ -29,8 +33,9 @@ export function ChartWorkspace() {
   });
 
   const candles = useMemo(() => {
-    const raw = chartQuery.data?.candles ?? chartQuery.data?.data ?? [];
-    return raw.map(normalizeCandle).filter((item) => Number.isFinite(item.open + item.high + item.low + item.close));
+    return chartBars(chartQuery.data)
+      .map(normalizeCandle)
+      .filter((item) => Number.isFinite(item.open + item.high + item.low + item.close));
   }, [chartQuery.data]);
 
   useEffect(() => {
@@ -77,6 +82,7 @@ export function ChartWorkspace() {
       <div className="relative min-h-0 flex-1">
         {chartQuery.isLoading && <div className="absolute inset-0 z-10 grid place-items-center text-sm text-muted-foreground">Loading chart data...</div>}
         {chartQuery.error && <div className="absolute inset-0 z-10 grid place-items-center text-sm text-destructive">{String(chartQuery.error)}</div>}
+        {!chartQuery.isLoading && !chartQuery.error && candles.length === 0 && <div className="absolute inset-0 z-10 grid place-items-center text-sm text-muted-foreground">No chart bars returned for this symbol/timeframe.</div>}
         <div ref={containerRef} className="h-full w-full" />
       </div>
     </Card>
