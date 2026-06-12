@@ -1,7 +1,7 @@
 import type { ElementType } from 'react';
 import { motion } from 'framer-motion';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { Activity, Bot, BrainCircuit, ChartCandlestick, History, Menu, Newspaper, PanelLeft, PanelRight, Play, Search, Settings, WalletCards } from 'lucide-react';
+import { Activity, Bot, BrainCircuit, ChartCandlestick, ChevronDown, History, Menu, Newspaper, PanelLeft, PanelRight, Play, Search, Settings, WalletCards } from 'lucide-react';
 import { useUiStore, type RightPanel } from '@/store/ui-store';
 import { Button } from '@/components/ui/button';
 import { WatchlistPanel } from '@/components/WatchlistPanel';
@@ -65,10 +65,22 @@ export function AppShell() {
       </header>
 
       <div data-testid="workstation-toolbar" className="mb-3 flex shrink-0 items-center justify-between gap-3 rounded-3xl border border-white/10 bg-black/20 px-3 py-2 backdrop-blur-xl">
-        <div data-testid="toolbar-left-actions" className="flex items-center gap-1 overflow-x-auto">
-          {timeframes.map((item) => (
-            <Button key={item} data-testid={`timeframe-button-${item.toLowerCase()}`} size="sm" variant={item === timeframe ? 'default' : 'terminal'} onClick={() => setTimeframe(item)}>{item}</Button>
-          ))}
+        <div data-testid="toolbar-left-actions" className="flex min-w-0 items-center gap-2 overflow-x-auto">
+          <label data-testid="timeframe-select-control" className="relative flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-2 text-sm font-semibold text-foreground shadow-sm shadow-black/10">
+            <span data-testid="timeframe-select-label" className="text-xs uppercase tracking-[0.18em] text-muted-foreground">TF</span>
+            <select
+              data-testid="timeframe-select"
+              aria-label="Timeframe"
+              className="min-w-16 cursor-pointer appearance-none bg-transparent pr-6 text-sm font-semibold outline-none"
+              value={timeframe}
+              onChange={(event) => setTimeframe(event.target.value)}
+            >
+              {timeframes.map((item) => (
+                <option key={item} data-testid={`timeframe-option-${item.toLowerCase()}`} value={item}>{item}</option>
+              ))}
+            </select>
+            <ChevronDown data-testid="timeframe-select-icon" size={15} className="pointer-events-none absolute right-3 text-muted-foreground" />
+          </label>
           <span data-testid="toolbar-divider" className="mx-2 h-6 w-px bg-white/10" />
           <Button data-testid="toolbar-indicators-button" size="sm" variant={toolbarButtonVariant('indicators')} onClick={() => setRightPanel('indicators')}><Activity size={15} /> Indicators</Button>
           <Button data-testid="toolbar-news-button" size="sm" variant={toolbarButtonVariant('news')} onClick={() => setRightPanel('news')}><Newspaper size={15} /> News</Button>
